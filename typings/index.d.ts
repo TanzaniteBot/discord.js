@@ -1651,6 +1651,20 @@ export class StageInstance extends Base {
   public readonly createdAt: Date;
 }
 
+export class Structures extends null {
+  private constructor();
+  public static get<K extends keyof Extendable>(structure: K): Extendable[K];
+  public static get(structure: string): (...args: any[]) => void;
+  public static extend<K extends keyof Extendable, T extends Extendable[K]>(
+    structure: K,
+    extender: (baseClass: Extendable[K]) => T,
+  ): T;
+  public static extend<T extends (...args: any[]) => void>(
+    structure: string,
+    extender: (baseClass: typeof Function) => T,
+  ): T;
+}
+
 export class Sticker extends Base {
   public constructor(client: Client, data: RawStickerData);
   public readonly createdTimestamp: number;
@@ -3427,6 +3441,29 @@ export interface EscapeMarkdownOptions {
 }
 
 export type ExplicitContentFilterLevel = keyof typeof ExplicitContentFilterLevels;
+
+interface Extendable {
+  GuildEmoji: typeof GuildEmoji;
+  DMChannel: typeof DMChannel;
+  TextChannel: typeof TextChannel;
+  VoiceChannel: typeof VoiceChannel;
+  CategoryChannel: typeof CategoryChannel;
+  NewsChannel: typeof NewsChannel;
+  StoreChannel: typeof StoreChannel;
+  ThreadChannel: typeof ThreadChannel;
+  GuildMember: typeof GuildMember;
+  ThreadMember: typeof ThreadMember;
+  Guild: typeof Guild;
+  Message: typeof Message;
+  MessageReaction: typeof MessageReaction;
+  Presence: typeof Presence;
+  VoiceState: typeof VoiceState;
+  Role: typeof Role;
+  User: typeof User;
+  CommandInteraction: typeof CommandInteraction;
+  ButtonInteraction: typeof ButtonInteraction;
+  SelectMenuInteraction: typeof SelectMenuInteraction;
+}
 
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {
   guildId?: Snowflake;

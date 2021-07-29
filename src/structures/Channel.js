@@ -1,14 +1,6 @@
 'use strict';
 
 const Base = require('./Base');
-let CategoryChannel;
-let DMChannel;
-let NewsChannel;
-let StageChannel;
-let StoreChannel;
-let TextChannel;
-let ThreadChannel;
-let VoiceChannel;
 const { ChannelTypes, ThreadChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 
@@ -127,18 +119,11 @@ class Channel extends Base {
   }
 
   static create(client, data, guild, { allowUnknownGuild, fromInteraction } = {}) {
-    if (!CategoryChannel) CategoryChannel = require('./CategoryChannel');
-    if (!DMChannel) DMChannel = require('./DMChannel');
-    if (!NewsChannel) NewsChannel = require('./NewsChannel');
-    if (!StageChannel) StageChannel = require('./StageChannel');
-    if (!StoreChannel) StoreChannel = require('./StoreChannel');
-    if (!TextChannel) TextChannel = require('./TextChannel');
-    if (!ThreadChannel) ThreadChannel = require('./ThreadChannel');
-    if (!VoiceChannel) VoiceChannel = require('./VoiceChannel');
-
+    const Structures = require('../util/Structures');
     let channel;
     if (!data.guild_id && !guild) {
       if ((data.recipients && data.type !== ChannelTypes.GROUP_DM) || data.type === ChannelTypes.DM) {
+        const DMChannel = Structures.get('DMChannel');
         channel = new DMChannel(client, data);
       } else if (data.type === ChannelTypes.GROUP_DM) {
         const PartialGroupDMChannel = require('./PartialGroupDMChannel');
@@ -150,32 +135,39 @@ class Channel extends Base {
       if (guild || allowUnknownGuild) {
         switch (data.type) {
           case ChannelTypes.GUILD_TEXT: {
+            const TextChannel = Structures.get('TextChannel');
             channel = new TextChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_VOICE: {
+            const VoiceChannel = Structures.get('VoiceChannel');
             channel = new VoiceChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_CATEGORY: {
+            const CategoryChannel = Structures.get('CategoryChannel');
             channel = new CategoryChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_NEWS: {
+            const NewsChannel = Structures.get('NewsChannel');
             channel = new NewsChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_STORE: {
+            const StoreChannel = Structures.get('StoreChannel');
             channel = new StoreChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_STAGE_VOICE: {
+            const StageChannel = Structures.get('StageChannel');
             channel = new StageChannel(guild, data, client);
             break;
           }
           case ChannelTypes.GUILD_NEWS_THREAD:
           case ChannelTypes.GUILD_PUBLIC_THREAD:
           case ChannelTypes.GUILD_PRIVATE_THREAD: {
+            const ThreadChannel = Structures.get('ThreadChannel');
             channel = new ThreadChannel(guild, data, client, fromInteraction);
             if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
             break;
