@@ -55,18 +55,18 @@ const rest = new REST({ version: '9' }).setToken('token');
 
 (async () => {
     try {
-      console.log('Started refreshing application (/) commands');
+      console.log('Started refreshing application (/) commands.');
     
       await rest.put(
         Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
         { body: commands },
       );
     
-      console.log('Sucessfully reloaded application (/) commands.');
+      console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
       console.error(error);
     }
-})()
+})();
 ```
 
 Afterwards we can create a quite simple example bot:
@@ -93,8 +93,8 @@ client.login('token');
 
 - [Website](https://discord.js.org/) ([source](https://github.com/discordjs/website))
 - [Documentation](https://discord.js.org/#/docs/main/master/general/welcome)
-- [Guide](https://discordjs.guide/) ([source](https://github.com/discordjs/guide)) - this is still for stable  
-  See also the [Update Guide](https://discordjs.guide/additional-info/changes-in-v12.html), including updated and removed items in the library.
+- [Guide](https://discordjs.guide/) ([source](https://github.com/discordjs/guide))
+  See also the [Update Guide](https://discordjs.guide/additional-info/changes-in-v13.html), including updated and removed items in the library.
 - [Discord.js Discord server](https://discord.gg/djs)
 - [Discord API Discord server](https://discord.gg/discord-api)
 - [GitHub](https://github.com/discordjs/discord.js)

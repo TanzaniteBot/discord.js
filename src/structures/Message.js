@@ -27,14 +27,14 @@ class Message extends Base {
   /**
    * @param {Client} client The instantiating client
    * @param {APIMessage} data The data for the message
-   * @param {TextChannel|DMChannel|NewsChannel|ThreadChannel} channel The channel the message was sent in
+   * @param {TextBasedChannels} channel The channel the message was sent in
    */
   constructor(client, data, channel) {
     super(client);
 
     /**
      * The channel that the message was sent in
-     * @type {TextChannel|DMChannel|NewsChannel|ThreadChannel}
+     * @type {TextBasedChannels}
      */
     this.channel = channel;
 
@@ -637,8 +637,9 @@ class Message extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  pin() {
-    return this.channel.messages.pin(this.id).then(() => this);
+  async pin() {
+    await this.channel.messages.pin(this.id);
+    return this;
   }
 
   /**
@@ -650,8 +651,9 @@ class Message extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  unpin() {
-    return this.channel.messages.unpin(this.id).then(() => this);
+  async unpin() {
+    await this.channel.messages.unpin(this.id);
+    return this;
   }
 
   /**
