@@ -1,7 +1,7 @@
 'use strict';
 
 const Base = require('./Base');
-const { ChannelTypes, ThreadChannelTypes } = require('../util/Constants');
+const { ChannelTypes, ThreadChannelTypes, VoiceBasedChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 
 /**
@@ -107,6 +107,15 @@ class Channel extends Base {
    */
   isText() {
     return 'messages' in this;
+  }
+
+  /**
+   * Indicates whether this channel is voice-based
+   * ({@link VoiceChannel} or {@link StageChannel}).
+   * @returns {boolean}
+   */
+  isVoice() {
+    return VoiceBasedChannelTypes.includes(this.type);
   }
 
   /**
