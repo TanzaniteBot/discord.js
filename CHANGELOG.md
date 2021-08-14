@@ -1,4 +1,40 @@
-# [13.0.0](https://github.com/discordjs/discord.js/compare/12.5.0...v13.0.0) (2021-08-06)
+# [13.1.0](https://github.com/discordjs/discord.js/compare/13.0.1...13.1.0) (2021-08-12)
+
+
+### Bug Fixes
+
+* **Constants:** fix CDN endpoint typings ([#6332](https://github.com/discordjs/discord.js/issues/6332)) ([47d2ef3](https://github.com/discordjs/discord.js/commit/47d2ef3e40165d846b5a901709b26dfffea46ef2))
+* **ContextMenuInteractin:** store message as raw value ([#6400](https://github.com/discordjs/discord.js/issues/6400)) ([d9456a1](https://github.com/discordjs/discord.js/commit/d9456a1a76e66bc2bfffa4a4b1dd228132056e9f))
+* **Guild:** `preferredLocale` to always be a string ([#6402](https://github.com/discordjs/discord.js/issues/6402)) ([4a64662](https://github.com/discordjs/discord.js/commit/4a64662a7d5526817ad52fa3d2206dc11f38cb29))
+* **GuildMemberRoleManager:** typo ([#6335](https://github.com/discordjs/discord.js/issues/6335)) ([d87299b](https://github.com/discordjs/discord.js/commit/d87299ba2036ee19da22b5c8abfae3f9d355ea1e))
+* **Managers:** fix typo in unsupported warning ([#6338](https://github.com/discordjs/discord.js/issues/6338)) ([917e71a](https://github.com/discordjs/discord.js/commit/917e71a9ee7d8bd76d8dbea40b40a4fb28276f60))
+* **StageInstance:** Ensure `discoverableDisabled` is not `undefined` ([#6395](https://github.com/discordjs/discord.js/issues/6395)) ([dce8fc7](https://github.com/discordjs/discord.js/commit/dce8fc7b9d4603de26b1118058322aaa96ea699a))
+* **Util:** remove truthy check before isNaN check ([#6358](https://github.com/discordjs/discord.js/issues/6358)) ([3c17939](https://github.com/discordjs/discord.js/commit/3c17939fd53a1f139d95bd36dfdab85b46538a73))
+* **WidgetMember:** Default to `null` and not `undefined` ([#6399](https://github.com/discordjs/discord.js/issues/6399)) ([44bbfa5](https://github.com/discordjs/discord.js/commit/44bbfa5c46a4bb35777aec8681f18590dec9aea4))
+
+
+### Features
+
+* **CommandInteractionResolvedData:** access to "raw" resolved data ([#6384](https://github.com/discordjs/discord.js/issues/6384)) ([fff887b](https://github.com/discordjs/discord.js/commit/fff887b2f43d19164dbf2878b00abead90a0703f))
+* **GuildManager:** allow setting with_counts to false ([#6407](https://github.com/discordjs/discord.js/issues/6407)) ([14aea12](https://github.com/discordjs/discord.js/commit/14aea1290061c225feb9d9f5378508d937e34a69))
+* **GuildMemberManager:** add 'list' method ([#6403](https://github.com/discordjs/discord.js/issues/6403)) ([2bf0970](https://github.com/discordjs/discord.js/commit/2bf09703c13afe7481071ae1b064dbc3513468e1))
+* **Utils:** add additional formatters ([#6388](https://github.com/discordjs/discord.js/issues/6388)) ([cd40292](https://github.com/discordjs/discord.js/commit/cd4029218fc8b67c395b3cd49a121b1bfa38f021))
+* **ContextMenus:** right-clickybois (context menu support for ApplicationCommand and CommandInteraction) ([#6176](https://github.com/discordjs/discord.js/issues/6176)) ([0266f28](https://github.com/discordjs/discord.js/commit/0266f280960729b27bf65ba0ee7b7bd8659f304d))
+* **Threads:** max autoArchiveDuration option ([#6304](https://github.com/discordjs/discord.js/issues/6304)) ([394d486](https://github.com/discordjs/discord.js/commit/394d48649fe4faef8c6b30d5c04962588f86261e))
+
+
+
+## [13.0.1](https://github.com/discordjs/discord.js/compare/13.0.0...13.0.1) (2021-08-07)
+
+
+### Bug Fixes
+
+* **GuildMemberManager:** refactor fetchMany ([#6328](https://github.com/discordjs/discord.js/issues/6328)) ([909c873](https://github.com/discordjs/discord.js/commit/909c87353e24eb7947d1cabc78d9c0ee97c3902d))
+* **Message:** handle fetched messages ([#6325](https://github.com/discordjs/discord.js/issues/6325)) ([ceae596](https://github.com/discordjs/discord.js/commit/ceae5960edefc63be5f16a52e286e390c14e0d29))
+
+
+
+# [13.0.0](https://github.com/discordjs/discord.js/compare/12.5.0...13.0.0) (2021-08-06)
 
 
 ### Bug Fixes
@@ -289,7 +325,7 @@
 * stage channels ([#5456](https://github.com/discordjs/discord.js/issues/5456)) ([eec7cf7](https://github.com/discordjs/discord.js/commit/eec7cf7634653fc02ee4f94e970960174a0e6d1b))
 * stage instances ([#5749](https://github.com/discordjs/discord.js/issues/5749)) ([918921e](https://github.com/discordjs/discord.js/commit/918921e8211fc16e9b12d2502f3168264246ea22))
 * **Browser:** remove browser � ([#5113](https://github.com/discordjs/discord.js/issues/5113)) ([0a591a9](https://github.com/discordjs/discord.js/commit/0a591a96974ab8b2aef7d7b9b64ec63d0fbe4ec4))
-* **Role:** role tags ([#4628](https://github.com/discordjs/discord.js/issues/4628)) ([d6234b7](https://github.com/discordjs/discord.js/commit/d6234b764ecbf12ebc0a795429a6aa3a650f5a6c)), closes [#1](https://github.com/discordjs/discord.js/issues/1)
+* **Role:** role tags ([#4628](https://github.com/discordjs/discord.js/issues/4628)) ([d6234b7](https://github.com/discordjs/discord.js/commit/d6234b764ecbf12ebc0a795429a6aa3a650f5a6c))
 * **ShardingManager:** Allow b-Eval/fetchClientValues on a specific shard when not all are ready  ([#5222](https://github.com/discordjs/discord.js/issues/5222)) ([001676c](https://github.com/discordjs/discord.js/commit/001676c7a97f4e44c6601dd84aa0354ea94b7c25))
 * **Sticker:** added Sticker ([#4909](https://github.com/discordjs/discord.js/issues/4909)) ([026afc2](https://github.com/discordjs/discord.js/commit/026afc2c1a88bc210c973bcf235fef3484571111))
 * **Util:** allow array for StringOptions' char ([#5566](https://github.com/discordjs/discord.js/issues/5566)) ([fbcbb29](https://github.com/discordjs/discord.js/commit/fbcbb29884a35308a7af2169f5f9ae5658c458e8))
