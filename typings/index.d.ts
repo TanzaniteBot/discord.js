@@ -3584,6 +3584,7 @@ interface Extendable {
   CommandInteraction: typeof CommandInteraction;
   ButtonInteraction: typeof ButtonInteraction;
   SelectMenuInteraction: typeof SelectMenuInteraction;
+  ContextMenuInteraction: typeof ContextMenuInteraction;
 }
 
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {

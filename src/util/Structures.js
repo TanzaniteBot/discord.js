@@ -117,6 +117,7 @@ const structures = {
   ButtonInteraction: require('../structures/ButtonInteraction'),
   SelectMenuInteraction: require('../structures/SelectMenuInteraction'),
   StageInstance: require('../structures/StageInstance'),
+  ContextMenuInteraction: require('../structures/ContextMenuInteraction'),
 };
 
 module.exports = Structures;
