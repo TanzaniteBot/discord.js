@@ -136,7 +136,7 @@ class Channel extends Base {
         channel = new PartialGroupDMChannel(client, data);
       }
     } else {
-      if (!guild) guild = client.guilds.cache.get(data.guild_id);
+      guild ??= client.guilds.cache.get(data.guild_id);
 
       if (guild || allowUnknownGuild) {
         switch (data.type) {

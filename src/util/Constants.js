@@ -376,6 +376,7 @@ exports.InviteScopes = [
  * * APPLICATION_COMMAND
  * * THREAD_STARTER_MESSAGE
  * * GUILD_INVITE_REMINDER
+ * * CONTEXT_MENU_COMMAND
  * @typedef {string} MessageType
  * @see {@link https://discord.com/developers/docs/resources/channel#message-object-message-types}
  */
@@ -403,6 +404,7 @@ exports.MessageTypes = [
   'APPLICATION_COMMAND',
   'THREAD_STARTER_MESSAGE',
   'GUILD_INVITE_REMINDER',
+  'CONTEXT_MENU_COMMAND',
 ];
 
 /**
@@ -410,10 +412,11 @@ exports.MessageTypes = [
  * * DEFAULT
  * * REPLY
  * * APPLICATION_COMMAND
+ * * CONTEXT_MENU_COMMAND
  * @typedef {string} SystemMessageType
  */
 exports.SystemMessageTypes = exports.MessageTypes.filter(
-  type => type && !['DEFAULT', 'REPLY', 'APPLICATION_COMMAND'].includes(type),
+  type => type && !['DEFAULT', 'REPLY', 'APPLICATION_COMMAND', 'CONTEXT_MENU_COMMAND'].includes(type),
 );
 
 /**
@@ -690,6 +693,7 @@ exports.VerificationLevels = createEnum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'VERY_
  * * REACTION_BLOCKED
  * * RESOURCE_OVERLOADED
  * * STAGE_ALREADY_OPEN
+ * * CANNOT_REPLY_WITHOUT_READ_MESSAGE_HISTORY_PERMISSION
  * * MESSAGE_ALREADY_HAS_THREAD
  * * THREAD_LOCKED
  * * MAXIMUM_ACTIVE_THREADS
@@ -821,6 +825,7 @@ exports.APIErrors = {
   REACTION_BLOCKED: 90001,
   RESOURCE_OVERLOADED: 130000,
   STAGE_ALREADY_OPEN: 150006,
+  CANNOT_REPLY_WITHOUT_READ_MESSAGE_HISTORY_PERMISSION: 160002,
   MESSAGE_ALREADY_HAS_THREAD: 160004,
   THREAD_LOCKED: 160005,
   MAXIMUM_ACTIVE_THREADS: 160006,
