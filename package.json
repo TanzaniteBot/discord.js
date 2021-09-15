@@ -1,5 +1,5 @@
 {
-  "name": "discord.js",
+  "name": "@notenoughupdates/discord.js",
   "version": "13.2.0-dev",
   "description": "A powerful library for interacting with the Discord API",
   "main": "./src/index.js",
