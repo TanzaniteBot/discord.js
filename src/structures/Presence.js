@@ -35,6 +35,10 @@ const Util = require('../util/Util');
  * @extends {Base}
  */
 class Presence extends Base {
+  /**
+   * @param {Client} client The instantiating client
+   * @param {APIPresence} [data={}] The data for the presence
+   */
   constructor(client, data = {}) {
     super(client);
 
@@ -382,3 +386,9 @@ class RichPresenceAssets {
 exports.Presence = Presence;
 exports.Activity = Activity;
 exports.RichPresenceAssets = RichPresenceAssets;
+
+/* eslint-disable max-len */
+/**
+ * @external APIPresence
+ * @see {@link https://discord.com/developers/docs/rich-presence/how-to#updating-presence-update-presence-payload-fields}
+ */

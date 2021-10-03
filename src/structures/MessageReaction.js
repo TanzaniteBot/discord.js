@@ -9,6 +9,11 @@ const Util = require('../util/Util');
  * Represents a reaction to a message.
  */
 class MessageReaction {
+  /**
+   * @param {Client} client The instantiating client
+   * @param {APIReaction} data The data for the message reaction
+   * @param {Message} message The message the reaction refers to
+   */
   constructor(client, data, message) {
     /**
      * The client that instantiated this message reaction
@@ -129,3 +134,8 @@ class MessageReaction {
 }
 
 module.exports = MessageReaction;
+
+/**
+ * @external APIReaction
+ * @see {@link https://discord.com/developers/docs/resources/channel#reaction-object}
+ */

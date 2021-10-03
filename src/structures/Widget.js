@@ -8,6 +8,10 @@ const WidgetMember = require('./WidgetMember');
  * Represents a Widget.
  */
 class Widget extends Base {
+  /**
+   * @param {Client} client The instantiating client
+   * @param {Object} data The raw data
+   */
   constructor(client, data) {
     super(client);
     this._patch(data);
@@ -21,6 +25,11 @@ class Widget extends Base {
    * @property {number} position Position of the channel
    */
 
+  /**
+   * Builds the widget with the provided data.
+   * @param {*} data The raw data of the widget
+   * @private
+   */
   _patch(data) {
     /**
      * The id of the guild.

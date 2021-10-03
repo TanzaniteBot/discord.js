@@ -10,6 +10,10 @@ const MessageManager = require('../managers/MessageManager');
  * @implements {TextBasedChannel}
  */
 class DMChannel extends Channel {
+  /**
+   * @param {Client} client The instantiating client
+   * @param {APIChannel} data The data for the DM channel
+   */
   constructor(client, data) {
     super(client, data);
 
