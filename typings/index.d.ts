@@ -20,7 +20,6 @@ import {
   userMention,
 } from '@discordjs/builders';
 import { Collection } from '@discordjs/collection';
-import { ChildProcess } from 'child_process';
 import {
   APIActionRowComponent,
   APIApplicationCommand,
@@ -47,10 +46,12 @@ import {
   RESTPostAPIApplicationCommandsJSONBody,
   Snowflake,
 } from 'discord-api-types/v9';
-import { EventEmitter } from 'events';
-import { AgentOptions } from 'https';
-import { Stream } from 'stream';
-import { MessagePort, Worker } from 'worker_threads';
+import { ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { AgentOptions } from 'node:https';
+import { Response } from 'node-fetch';
+import { Stream } from 'node:stream';
+import { MessagePort, Worker } from 'node:worker_threads';
 import * as WebSocket from 'ws';
 import {
   ActivityTypes,
@@ -2765,6 +2766,7 @@ export class GuildStickerManager extends CachedManager<Snowflake, Sticker, Stick
 export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleResolvable> {
   public constructor(member: GuildMember);
   public readonly hoist: Role | null;
+  public readonly icon: Role | null;
   public readonly color: Role | null;
   public readonly highest: Role;
   public readonly premiumSubscriberRole: Role | null;
@@ -3142,6 +3144,14 @@ export interface APIErrors {
   STICKER_ANIMATION_DURATION_EXCEEDS_MAXIMUM_OF_5_SECONDS: 170007;
 }
 
+export interface APIRequest {
+  method: 'get' | 'post' | 'delete' | 'patch' | 'put';
+  options: unknown;
+  path: string;
+  retries: number;
+  route: string;
+}
+
 export interface ApplicationAsset {
   name: string;
   id: Snowflake;
@@ -3452,6 +3462,8 @@ export interface ChannelWebhookCreateOptions {
 }
 
 export interface ClientEvents {
+  apiResponse: [request: APIRequest, response: Response];
+  apiRequest: [request: APIRequest];
   applicationCommandCreate: [command: ApplicationCommand];
   applicationCommandDelete: [command: ApplicationCommand];
   applicationCommandUpdate: [oldCommand: ApplicationCommand | null, newCommand: ApplicationCommand];
@@ -3690,6 +3702,8 @@ export interface ConstantsColors {
 export interface ConstantsEvents {
   RATE_LIMIT: 'rateLimit';
   INVALID_REQUEST_WARNING: 'invalidRequestWarning';
+  API_RESPONSE: 'apiResponse';
+  API_REQUEST: 'apiRequest';
   CLIENT_READY: 'ready';
   APPLICATION_COMMAND_CREATE: 'applicationCommandCreate';
   APPLICATION_COMMAND_DELETE: 'applicationCommandDelete';
@@ -4431,14 +4445,14 @@ export interface MessageEditOptions {
 }
 
 export interface MessageEmbedAuthor {
-  name?: string;
+  name: string;
   url?: string;
   iconURL?: string;
   proxyIconURL?: string;
 }
 
 export interface MessageEmbedFooter {
-  text?: string;
+  text: string;
   iconURL?: string;
   proxyIconURL?: string;
 }
@@ -5026,7 +5040,7 @@ export interface WidgetChannel {
 
 export interface WelcomeChannelData {
   description: string;
-  channel: GuildChannelResolvable;
+  channel: TextChannel | NewsChannel | StoreChannel | Snowflake;
   emoji?: EmojiIdentifierResolvable;
 }
 

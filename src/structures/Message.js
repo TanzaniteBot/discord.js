@@ -49,7 +49,7 @@ class Message extends Base {
      */
     this.deleted = false;
 
-    if (data) this._patch(data);
+    this._patch(data);
   }
 
   _patch(data) {
