@@ -32,7 +32,7 @@ class ReactionCollector extends Collector {
     this.message = message;
 
     /**
-     * The users which have reacted to this message
+     * The users that have reacted to this message
      * @type {Collection}
      */
     this.users = new Collection();
@@ -69,7 +69,7 @@ class ReactionCollector extends Collector {
     this.on('collect', (reaction, user) => {
       /**
        * Emitted whenever a reaction is newly created on a message. Will emit only when a new reaction is
-       * added to the message, as opposed to {@link Collector#collect} which which will
+       * added to the message, as opposed to {@link Collector#collect} which will
        * be emitted even when a reaction has already been added to the message.
        * @event ReactionCollector#create
        * @param {MessageReaction} reaction The reaction that was added
