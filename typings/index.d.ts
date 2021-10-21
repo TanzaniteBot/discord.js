@@ -2232,6 +2232,11 @@ export class Webhook extends WebhookMixin() {
   public sourceChannel: NewsChannel | APIPartialChannel | null;
   public token: string | null;
   public type: WebhookType;
+  public isIncoming(): this is this & { token: string };
+  public isChannelFollower(): this is this & {
+    sourceGuild: Guild | APIPartialGuild;
+    sourceChannel: NewsChannel | APIPartialChannel;
+  };
 }
 
 export class WebhookClient extends WebhookMixin(BaseClient) {
@@ -4741,6 +4746,7 @@ export interface PartialChannelData {
   nsfw?: boolean;
   bitrate?: number;
   userLimit?: number;
+  rtcRegion?: string | null;
   permissionOverwrites?: PartialOverwriteData[];
   rateLimitPerUser?: number;
 }
