@@ -3979,6 +3979,7 @@ interface Extendable {
   CategoryChannel: typeof CategoryChannel;
   NewsChannel: typeof NewsChannel;
   StoreChannel: typeof StoreChannel;
+  StageChannel: typeof StageChannel;
   ThreadChannel: typeof ThreadChannel;
   GuildMember: typeof GuildMember;
   ThreadMember: typeof ThreadMember;
@@ -3986,13 +3987,16 @@ interface Extendable {
   Message: typeof Message;
   MessageReaction: typeof MessageReaction;
   Presence: typeof Presence;
+  ClientPresence: typeof ClientPresence;
   VoiceState: typeof VoiceState;
   Role: typeof Role;
   User: typeof User;
+  StageInstance: typeof StageInstance;
   CommandInteraction: typeof CommandInteraction;
   ButtonInteraction: typeof ButtonInteraction;
   SelectMenuInteraction: typeof SelectMenuInteraction;
   ContextMenuInteraction: typeof ContextMenuInteraction;
+  AutocompleteInteraction: typeof AutocompleteInteraction;
 }
 
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {

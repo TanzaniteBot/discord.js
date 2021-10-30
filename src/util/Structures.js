@@ -21,10 +21,12 @@
  * * **`VoiceState`**
  * * **`Role`**
  * * **`User`**
+ * * **`StageInstance`**
  * * **`CommandInteraction`**
  * * **`ButtonInteraction`**
- * * **`StageInstance`**
  * * **`SelectMenuInteraction`**
+ * * **`ContextMenuInteraction`**
+ * * **`AutocompleteInteraction`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -113,11 +115,12 @@ const structures = {
   VoiceState: require('../structures/VoiceState'),
   Role: require('../structures/Role'),
   User: require('../structures/User'),
+  StageInstance: require('../structures/StageInstance'),
   CommandInteraction: require('../structures/CommandInteraction'),
   ButtonInteraction: require('../structures/ButtonInteraction'),
   SelectMenuInteraction: require('../structures/SelectMenuInteraction'),
-  StageInstance: require('../structures/StageInstance'),
   ContextMenuInteraction: require('../structures/ContextMenuInteraction'),
+  AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
 };
 
 module.exports = Structures;
