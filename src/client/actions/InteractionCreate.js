@@ -1,6 +1,7 @@
 'use strict';
 
 const Action = require('./Action');
+const AutocompleteInteraction = require('../../structures/AutocompleteInteraction');
 const { Events, InteractionTypes, MessageComponentTypes, ApplicationCommandTypes } = require('../../util/Constants');
 const Structures = require('../../util/Structures');
 
@@ -47,6 +48,9 @@ class InteractionCreateAction extends Action {
             );
             return;
         }
+        break;
+      case InteractionTypes.APPLICATION_COMMAND_AUTOCOMPLETE:
+        InteractionType = AutocompleteInteraction;
         break;
       default:
         client.emit(Events.DEBUG, `[INTERACTION] Received interaction with unknown type: ${data.type}`);
