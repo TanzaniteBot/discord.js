@@ -618,6 +618,39 @@ export class BaseClient extends EventEmitter {
    */
   private incrementMaxListeners(): void;
 
+  public on<K extends keyof BaseClientEvents>(
+    event: K,
+    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
+  ): this;
+  public on<S extends string | symbol>(
+    event: Exclude<S, keyof BaseClientEvents>,
+    listener: (...args: any[]) => Awaitable<void>,
+  ): this;
+
+  public once<K extends keyof BaseClientEvents>(
+    event: K,
+    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
+  ): this;
+  public once<S extends string | symbol>(
+    event: Exclude<S, keyof BaseClientEvents>,
+    listener: (...args: any[]) => Awaitable<void>,
+  ): this;
+
+  public emit<K extends keyof BaseClientEvents>(event: K, ...args: BaseClientEvents[K]): boolean;
+  public emit<S extends string | symbol>(event: Exclude<S, keyof BaseClientEvents>, ...args: unknown[]): boolean;
+
+  public off<K extends keyof BaseClientEvents>(
+    event: K,
+    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
+  ): this;
+  public off<S extends string | symbol>(
+    event: Exclude<S, keyof BaseClientEvents>,
+    listener: (...args: any[]) => Awaitable<void>,
+  ): this;
+
+  public removeAllListeners<K extends keyof BaseClientEvents>(event?: K): this;
+  public removeAllListeners<S extends string | symbol>(event?: Exclude<S, keyof BaseClientEvents>): this;
+
   /**
    * The options the client was instantiated with
    */
@@ -13538,7 +13571,7 @@ export interface ChannelWebhookCreateOptions {
   reason?: string;
 }
 
-export interface ClientEvents {
+export interface BaseClientEvents {
   /**
    * Emitted after every API request has received a response.
    * This event does not necessarily correlate to completion of the request, e.g. when hitting a rate limit.
@@ -13558,6 +13591,27 @@ export interface ClientEvents {
    */
   apiRequest: [request: APIRequest];
 
+  /**
+   * Emitted for general debugging information.
+   * @param message The debug information
+   */
+  debug: [message: string];
+
+  /**
+   * Emitted when the client hits a rate limit while making a request
+   * @param rateLimitData Object containing the rate limit info
+   */
+  rateLimit: [rateLimitData: RateLimitData];
+
+  /**
+   * Emitted periodically when the process sends invalid requests to let users avoid the
+   * 10k invalid requests in 10 minutes threshold that causes a ban
+   * @param invalidRequestWarningData Object containing the invalid request info
+   */
+  invalidRequestWarning: [invalidRequestWarningData: InvalidRequestWarningData];
+}
+
+export interface ClientEvents {
   /**
    * Emitted when a guild application command is created.
    * @param command The command which was created
@@ -13606,12 +13660,6 @@ export interface ClientEvents {
    * @param newChannel The channel after the update
    */
   channelUpdate: [oldChannel: DMChannel | GuildChannel, newChannel: DMChannel | GuildChannel];
-
-  /**
-   * Emitted for general debugging information.
-   * @param message The debug information
-   */
-  debug: [message: string];
 
   /**
    * Emitted for general warnings.
