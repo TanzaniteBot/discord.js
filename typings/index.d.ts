@@ -463,7 +463,6 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
 
   /**
    * Autoincrementing version identifier updated during substantial record changes
-   * @type {Snowflake}
    */
   public version: Snowflake;
 
@@ -509,7 +508,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * @param existing The options on the existing command,
    * should be {@link ApplicationCommand.options}
    * @param options The options to compare against
-   * @param [enforceOptionOrder=false] Whether to strictly check that options and choices are in the same
+   * @param enforceOptionOrder Whether to strictly check that options and choices are in the same
    * order in the array <info>The client may not always respect this ordering!</info>
    */
   public static optionsEqual(
@@ -989,7 +988,7 @@ export class BaseGuildTextChannel extends TextBasedChannel(GuildChannel) {
 
   /**
    * Creates an invite to this guild channel.
-   * @param [options={}] The options for creating the invite
+   * @param options The options for creating the invite
    * @example
    * // Create an invite to a channel
    * channel.createInvite()
@@ -5407,7 +5406,6 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * When concatenated with a string, this automatically concatenates the message's content instead of the object.
-   * @returns {string}
    * @example
    * // Logs: Message: This is a message!
    * console.log(`Message: ${message}`);
@@ -5507,7 +5505,6 @@ export class MessageAttachment {
 
   /**
    * Whether this attachment is ephemeral
-   * @type {boolean}
    */
   public ephemeral: boolean;
 
@@ -5656,7 +5653,7 @@ export class MessageButton extends BaseMessageComponent {
   /**
    * Sets the URL of this button.
    * <info>{@link MessageButton.style} must be LINK when setting a URL</info>
-   * @param {string} url The URL of this button
+   * @param url The URL of this button
    */
   public setURL(url: string): this;
 
@@ -6457,7 +6454,6 @@ export class MessageSelectMenu extends BaseMessageComponent {
 
   /**
    * The type of this component
-   * @type {?MessageComponentType}
    */
   public type: 'SELECT_MENU';
 
@@ -10071,7 +10067,6 @@ export class Widget extends Base {
 
   /**
    * The number of members online.
-   * @type {number}
    */
   public presenceCount: number;
 }
@@ -10476,7 +10471,6 @@ export const Constants: {
   MFALevels: EnumHolder<typeof MFALevels>;
   /**
    * NSFW level of a Guild
-   * @typedef {string} NSFWLevel
    * @see {@link [guild-object-guild-nsfw-level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
    */
   NSFWLevels: EnumHolder<typeof NSFWLevels>;
@@ -14059,9 +14053,6 @@ export interface ClientEvents {
 
 /**
  * Options for a client.
- * @property {number|number[]|string} [shards] The shard's id to run, or an array of shard ids. If not specified,
- * the client will spawn {@link ClientOptions.shardCount} shards. If set to `auto`, it will fetch the
- * recommended amount of shards from Discord and spawn that amount
  */
 export interface ClientOptions {
   /**
@@ -14856,11 +14847,6 @@ export interface StageInstanceCreateOptions {
 
 /**
  * Crossposted channel data.
- * @typedef {Object} CrosspostedChannel
- * @property {Snowflake} channelId The mentioned channel's id
- * @property {Snowflake} guildId The id of the guild that has the channel
- * @property {ChannelType} type The channel's type
- * @property {string} name The channel's name
  */
 export interface CrosspostedChannel {
   /**
@@ -15585,26 +15571,6 @@ export interface GuildWidgetSettings {
 
 /**
  * The data for editing a guild.
- * @typedef {Object} GuildEditData
- * @property {string} [name] The name of the guild
- * @property {VerificationLevel|number} [verificationLevel] The verification level of the guild
- * @property {ExplicitContentFilterLevel|number} [explicitContentFilter] The level of the explicit content filter
- * @property {VoiceChannelResolvable} [afkChannel] The AFK channel of the guild
- * @property {TextChannelResolvable} [systemChannel] The system channel of the guild
- * @property {number} [afkTimeout] The AFK timeout of the guild
- * @property {?(BufferResolvable|Base64Resolvable)} [icon] The icon of the guild
- * @property {GuildMemberResolvable} [owner] The owner of the guild
- * @property {?(BufferResolvable|Base64Resolvable)} [splash] The invite splash image of the guild
- * @property {?(BufferResolvable|Base64Resolvable)} [discoverySplash] The discovery splash image of the guild
- * @property {?(BufferResolvable|Base64Resolvable)} [banner] The banner of the guild
- * @property {DefaultMessageNotificationLevel|number} [defaultMessageNotifications] The default message notification
- * level of the guild
- * @property {SystemChannelFlagsResolvable} [systemChannelFlags] The system channel flags of the guild
- * @property {TextChannelResolvable} [rulesChannel] The rules channel of the guild
- * @property {TextChannelResolvable} [publicUpdatesChannel] The community updates channel of the guild
- * @property {string} [preferredLocale] The preferred locale of the guild
- * @property {string} [description] The discovery description of the guild
- * @property {Features[]} [features] The features of the guild
  */
 export interface GuildEditData {
   /**
@@ -15789,13 +15755,6 @@ export type GuildFeatures =
 
 /**
  * The data for editing a guild member.
- * @typedef {Object} GuildMemberEditData
- * @property {?string} [nick] The nickname to set for the member
- * @property {Collection<Snowflake, Role>|RoleResolvable[]} [roles] The roles or role ids to apply
- * @property {boolean} [mute] Whether or not the member should be muted
- * @property {boolean} [deaf] Whether or not the member should be deafened
- * @property {GuildVoiceChannelResolvable|null} [channel] Channel to move the member to
- * (if they are connected to voice), or `null` if you want to disconnect them from voice
  */
 export interface GuildMemberEditData {
   /**
@@ -16012,8 +15971,6 @@ export interface HTTPOptions {
 
 /**
  * Options for Image URLs.
- * @typedef {StaticImageURLOptions} ImageURLOptions
- * @property {boolean} [dynamic=false] If true, the format will dynamically change to `gif` for animated avatars.
  */
 export interface ImageURLOptions extends Omit<StaticImageURLOptions, 'format'> {
   /**
@@ -17694,7 +17651,6 @@ export interface StageInstanceEditOptions {
 }
 
 /**
- * @typedef {Function} SweepFilter
  * @param collection The collection being swept
  * @returns Return `null` to skip sweeping, otherwise a function passed to `sweep()`, See {@link Collection.sweep} for the
  * definition of this function.
@@ -17766,14 +17722,6 @@ export type ThreadChannelTypes = 'GUILD_NEWS_THREAD' | 'GUILD_PUBLIC_THREAD' | '
 
 /**
  * Options for creating a thread. <warn>Only one of `startMessage` or `type` can be defined.</warn>
- * @typedef {StartThreadOptions} ThreadCreateOptions
- * @property {MessageResolvable} [startMessage] The message to start a thread from. <warn>If this is defined then type
- * of thread gets automatically defined and cannot be changed. The provided `type` field will be ignored</warn>
- * @property {ThreadChannelTypes|number} [type] The type of thread to create. Defaults to `GUILD_PUBLIC_THREAD` if
- * created in a {@link TextChannel} <warn>When creating threads in a {@link NewsChannel} this is ignored and is always
- * `GUILD_NEWS_THREAD`</warn>
- * @property {boolean} [invitable] Whether non-moderators can add other non-moderators to the thread
- * <info>Can only be set when type will be `GUILD_PRIVATE_THREAD`</info>
  */
 export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
   /**

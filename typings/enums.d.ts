@@ -1,6 +1,11 @@
 // These are enums that are used in the typings file but do not exist as actual exported values. To prevent them from
 // showing up in an editor, they are imported from here instead of exporting them there directly.
 
+/**
+ * The type of an activity of a user's presence.
+ * <info>Bots cannot set a `CUSTOM` activity type, it is only for custom statuses received from users</info>
+ * @see {@link [data-models-activitytype-enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
+ */
 export const enum ActivityTypes {
   PLAYING = 0,
   STREAMING = 1,
@@ -10,12 +15,20 @@ export const enum ActivityTypes {
   COMPETING = 5,
 }
 
+/**
+ * The type of an {@link ApplicationCommand} object
+ * @see {@link [application-command-object-application-command-types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
+ */
 export const enum ApplicationCommandTypes {
   CHAT_INPUT = 1,
   USER = 2,
   MESSAGE = 3,
 }
 
+/**
+ * The type of an {@link ApplicationCommandOption} object
+ * @see {@link [application-command-object-application-command-option-type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
+ */
 export const enum ApplicationCommandOptionTypes {
   SUB_COMMAND = 1,
   SUB_COMMAND_GROUP = 2,
@@ -29,26 +42,85 @@ export const enum ApplicationCommandOptionTypes {
   NUMBER = 10,
 }
 
+/**
+ * The type of an {@link ApplicationCommandPermissions} object
+ * @see {@link [application-command-permissions-object-application-command-permission-type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
+ */
 export const enum ApplicationCommandPermissionTypes {
   ROLE = 1,
   USER = 2,
 }
 
+/**
+ * All available channel types
+ * @see {@link [channel-object-channel-types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
+ */
 export const enum ChannelTypes {
+  /**
+   * a guild text channel
+   */
   GUILD_TEXT = 0,
+
+  /**
+   * a DM channel
+   */
   DM = 1,
+
+  /**
+   * a guild voice channel
+   */
   GUILD_VOICE = 2,
+
+  /**
+   * a group DM channel
+   */
   GROUP_DM = 3,
+
+  /**
+   * a guild category channel
+   */
   GUILD_CATEGORY = 4,
+
+  /**
+   * a guild news channel
+   */
   GUILD_NEWS = 5,
+
+  /**
+   * a guild store channel
+   */
   GUILD_STORE = 6,
+
+  /**
+   * a generic channel of unknown type, could be Channel or GuildChannel
+   */
   UNKNOWN = 7,
+
+  /**
+   * a guild news channel's public thread channel
+   */
   GUILD_NEWS_THREAD = 10,
+
+  /**
+   * a guild text channel's public thread channel
+   */
   GUILD_PUBLIC_THREAD = 11,
+
+  /**
+   * a guild text channel's private thread channel
+   */
   GUILD_PRIVATE_THREAD = 12,
+
+  /**
+   * a guild stage voice channel
+   */
   GUILD_STAGE_VOICE = 13,
 }
 
+/**
+ * The type of a message, e.g. `DEFAULT`.
+ * @see {@link [message-object-message-types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
+ */
 export const enum MessageTypes {
   DEFAULT,
   RECIPIENT_ADD,
@@ -75,17 +147,29 @@ export const enum MessageTypes {
   CONTEXT_MENU_COMMAND,
 }
 
+/**
+ * The value set for a guild's default message notifications, e.g. `ALL_MESSAGES`.
+ * @see {@link [guild-object-default-message-notification-level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
+ */
 export const enum DefaultMessageNotificationLevels {
   ALL_MESSAGES = 0,
   ONLY_MENTIONS = 1,
 }
 
+/**
+ * The value set for the explicit content filter levels for a guild
+ * @see {@link [guild-object-explicit-content-filter-level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
+ */
 export const enum ExplicitContentFilterLevels {
   DISABLED = 0,
   MEMBERS_WITHOUT_ROLES = 1,
   ALL_MEMBERS = 2,
 }
 
+/**
+ * The type of an interaction response
+ * @see {@link [interaction-response-object-interaction-callback-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
+ */
 export const enum InteractionResponseTypes {
   PONG = 1,
   CHANNEL_MESSAGE_WITH_SOURCE = 4,
@@ -95,6 +179,10 @@ export const enum InteractionResponseTypes {
   APPLICATION_COMMAND_AUTOCOMPLETE_RESULT = 8,
 }
 
+/**
+ * The type of an {@link Interaction} object
+ * @see {@link [interaction-object-interaction-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
+ */
 export const enum InteractionTypes {
   PING = 1,
   APPLICATION_COMMAND = 2,
@@ -107,11 +195,19 @@ export const enum InviteTargetType {
   EMBEDDED_APPLICATION = 2,
 }
 
+/**
+ * The value set for a team member's membership state
+ * @see {@link [data-models-membership-state-enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
+ */
 export const enum MembershipStates {
   INVITED = 1,
   ACCEPTED = 2,
 }
 
+/**
+ * The style of a message button
+ * @see {@link [button-object-button-styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
+ */
 export const enum MessageButtonStyles {
   PRIMARY = 1,
   SECONDARY = 2,
@@ -120,17 +216,29 @@ export const enum MessageButtonStyles {
   LINK = 5,
 }
 
+/**
+ * The type of a message component
+ * @see {@link [component-object-component-types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
+ */
 export const enum MessageComponentTypes {
   ACTION_ROW = 1,
   BUTTON = 2,
   SELECT_MENU = 3,
 }
 
+/**
+ * The required MFA level for a guild
+ * @see {@link [guild-object-mfa-level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
+ */
 export const enum MFALevels {
   NONE = 0,
   ELEVATED = 1,
 }
 
+/**
+ * NSFW level of a Guild
+ * @see {@link [guild-object-guild-nsfw-level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
+ */
 export const enum NSFWLevels {
   DEFAULT = 0,
   EXPLICIT = 1,
@@ -138,11 +246,19 @@ export const enum NSFWLevels {
   AGE_RESTRICTED = 3,
 }
 
+/**
+ * An overwrite type
+ * @see {@link [overwrite-object-overwrite-structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
+ */
 export const enum OverwriteTypes {
   role = 0,
   member = 1,
 }
 
+/**
+ * The premium tier (Server Boost level) of a guild
+ * @see {@link [guild-object-premium-tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
+ */
 export const enum PremiumTiers {
   NONE = 0,
   TIER_1 = 1,
@@ -150,22 +266,38 @@ export const enum PremiumTiers {
   TIER_3 = 3,
 }
 
+/**
+ * Privacy level of a {@link StageInstance} object
+ * @see {@link [stage-instance-object-privacy-level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
+ */
 export const enum PrivacyLevels {
   PUBLIC = 1,
   GUILD_ONLY = 2,
 }
 
+/**
+ * The value set for a sticker's format type
+ * @see {@link [sticker-object-sticker-format-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
+ */
 export const enum StickerFormatTypes {
   PNG = 1,
   APNG = 2,
   LOTTIE = 3,
 }
 
+/**
+ * The value set for a sticker's type
+ * @see {@link [sticker-object-sticker-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
+ */
 export const enum StickerTypes {
   STANDARD = 1,
   GUILD = 2,
 }
 
+/**
+ * The value set for the verification levels for a guild
+ * @see {@link [guild-object-verification-level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
+ */
 export const enum VerificationLevels {
   NONE = 0,
   LOW = 1,
@@ -174,6 +306,10 @@ export const enum VerificationLevels {
   VERY_HIGH = 4,
 }
 
+/**
+ * The value set for a webhook's type
+ * @see {@link [webhook-object-webhook-types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
+ */
 export const enum WebhookTypes {
   Incoming = 1,
   'Channel Follower' = 2,
