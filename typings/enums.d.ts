@@ -4,7 +4,7 @@
 /**
  * The type of an activity of a user's presence.
  * <info>Bots cannot set a `CUSTOM` activity type, it is only for custom statuses received from users</info>
- * @see {@link [data-models-activitytype-enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
+ * @see {@link [ActivityType Enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
  */
 export const enum ActivityTypes {
   PLAYING = 0,
@@ -17,7 +17,7 @@ export const enum ActivityTypes {
 
 /**
  * The type of an {@link ApplicationCommand} object
- * @see {@link [application-command-object-application-command-types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
+ * @see {@link [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
  */
 export const enum ApplicationCommandTypes {
   CHAT_INPUT = 1,
@@ -27,7 +27,7 @@ export const enum ApplicationCommandTypes {
 
 /**
  * The type of an {@link ApplicationCommandOption} object
- * @see {@link [application-command-object-application-command-option-type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
+ * @see {@link [Application Command Option Type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
  */
 export const enum ApplicationCommandOptionTypes {
   SUB_COMMAND = 1,
@@ -44,7 +44,7 @@ export const enum ApplicationCommandOptionTypes {
 
 /**
  * The type of an {@link ApplicationCommandPermissions} object
- * @see {@link [application-command-permissions-object-application-command-permission-type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
+ * @see {@link [Application Command Permission Type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
  */
 export const enum ApplicationCommandPermissionTypes {
   ROLE = 1,
@@ -53,7 +53,7 @@ export const enum ApplicationCommandPermissionTypes {
 
 /**
  * All available channel types
- * @see {@link [channel-object-channel-types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
+ * @see {@link [Channel Types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
  */
 export const enum ChannelTypes {
   /**
@@ -119,7 +119,7 @@ export const enum ChannelTypes {
 
 /**
  * The type of a message, e.g. `DEFAULT`.
- * @see {@link [message-object-message-types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
+ * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
  */
 export const enum MessageTypes {
   DEFAULT,
@@ -149,7 +149,7 @@ export const enum MessageTypes {
 
 /**
  * The value set for a guild's default message notifications, e.g. `ALL_MESSAGES`.
- * @see {@link [guild-object-default-message-notification-level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
+ * @see {@link [Default Message Notification Level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
  */
 export const enum DefaultMessageNotificationLevels {
   ALL_MESSAGES = 0,
@@ -158,7 +158,7 @@ export const enum DefaultMessageNotificationLevels {
 
 /**
  * The value set for the explicit content filter levels for a guild
- * @see {@link [guild-object-explicit-content-filter-level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
+ * @see {@link [Explicit Content Filter Level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
  */
 export const enum ExplicitContentFilterLevels {
   DISABLED = 0,
@@ -168,7 +168,7 @@ export const enum ExplicitContentFilterLevels {
 
 /**
  * The type of an interaction response
- * @see {@link [interaction-response-object-interaction-callback-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
+ * @see {@link [Interaction Callback Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
  */
 export const enum InteractionResponseTypes {
   PONG = 1,
@@ -181,7 +181,7 @@ export const enum InteractionResponseTypes {
 
 /**
  * The type of an {@link Interaction} object
- * @see {@link [interaction-object-interaction-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
+ * @see {@link [Interaction Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
  */
 export const enum InteractionTypes {
   PING = 1,
@@ -197,7 +197,7 @@ export const enum InviteTargetType {
 
 /**
  * The value set for a team member's membership state
- * @see {@link [data-models-membership-state-enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
+ * @see {@link [Membership State Enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
  */
 export const enum MembershipStates {
   INVITED = 1,
@@ -206,7 +206,7 @@ export const enum MembershipStates {
 
 /**
  * The style of a message button
- * @see {@link [button-object-button-styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
+ * @see {@link [Button Styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
  */
 export const enum MessageButtonStyles {
   PRIMARY = 1,
@@ -218,7 +218,7 @@ export const enum MessageButtonStyles {
 
 /**
  * The type of a message component
- * @see {@link [component-object-component-types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
+ * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
  */
 export const enum MessageComponentTypes {
   ACTION_ROW = 1,
@@ -228,7 +228,7 @@ export const enum MessageComponentTypes {
 
 /**
  * The required MFA level for a guild
- * @see {@link [guild-object-mfa-level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
+ * @see {@link [MFA Level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
  */
 export const enum MFALevels {
   NONE = 0,
@@ -237,7 +237,7 @@ export const enum MFALevels {
 
 /**
  * NSFW level of a Guild
- * @see {@link [guild-object-guild-nsfw-level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
+ * @see {@link [Guild NSFW Level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
  */
 export const enum NSFWLevels {
   DEFAULT = 0,
@@ -248,7 +248,7 @@ export const enum NSFWLevels {
 
 /**
  * An overwrite type
- * @see {@link [overwrite-object-overwrite-structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
+ * @see {@link [Overwrite Structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
  */
 export const enum OverwriteTypes {
   role = 0,
@@ -257,7 +257,7 @@ export const enum OverwriteTypes {
 
 /**
  * The premium tier (Server Boost level) of a guild
- * @see {@link [guild-object-premium-tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
+ * @see {@link [Premium Tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
  */
 export const enum PremiumTiers {
   NONE = 0,
@@ -268,7 +268,7 @@ export const enum PremiumTiers {
 
 /**
  * Privacy level of a {@link StageInstance} object
- * @see {@link [stage-instance-object-privacy-level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
+ * @see {@link [Privacy Level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
  */
 export const enum PrivacyLevels {
   PUBLIC = 1,
@@ -277,7 +277,7 @@ export const enum PrivacyLevels {
 
 /**
  * The value set for a sticker's format type
- * @see {@link [sticker-object-sticker-format-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
+ * @see {@link [Sticker Format Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
  */
 export const enum StickerFormatTypes {
   PNG = 1,
@@ -287,7 +287,7 @@ export const enum StickerFormatTypes {
 
 /**
  * The value set for a sticker's type
- * @see {@link [sticker-object-sticker-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
+ * @see {@link [Sticker Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
  */
 export const enum StickerTypes {
   STANDARD = 1,
@@ -296,7 +296,7 @@ export const enum StickerTypes {
 
 /**
  * The value set for the verification levels for a guild
- * @see {@link [guild-object-verification-level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
+ * @see {@link [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
  */
 export const enum VerificationLevels {
   NONE = 0,
@@ -308,7 +308,7 @@ export const enum VerificationLevels {
 
 /**
  * The value set for a webhook's type
- * @see {@link [webhook-object-webhook-types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
+ * @see {@link [Webhook Types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
  */
 export const enum WebhookTypes {
   Incoming = 1,

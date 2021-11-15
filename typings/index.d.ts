@@ -255,7 +255,7 @@ export class Activity {
 export class ActivityFlags extends BitField<ActivityFlagsString> {
   /**
    * Numeric activity flags.
-   * @see {@link [activity-object-activity-flags](https://discord.com/developers/docs/topics/gateway#activity-object-activity-flags)}
+   * @see {@link [Activity Flags](https://discord.com/developers/docs/topics/gateway#activity-object-activity-flags)}
    */
   public static FLAGS: Record<ActivityFlagsString, number>;
 
@@ -558,7 +558,7 @@ export type ApplicationResolvable = Application | Activity | Snowflake;
 export class ApplicationFlags extends BitField<ApplicationFlagsString> {
   /**
    * Numeric application flags.
-   * @see {@link [application-object-application-flags](https://discord.com/developers/docs/resources/application#application-object-application-flags)}
+   * @see {@link [Application Flags](https://discord.com/developers/docs/resources/application#application-object-application-flags)}
    */
   public static FLAGS: Record<ApplicationFlagsString, number>;
 
@@ -2817,7 +2817,7 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The preferred locale of the guild, defaults to `en-US`
-   * @see {@link [predefined-field-values-accepted-locales](https://discord.com/developers/docs/dispatch/field-values#predefined-field-values-accepted-locales)}
+   * @see {@link [Accepted Locales](https://discord.com/developers/docs/dispatch/field-values#predefined-field-values-accepted-locales)}
    */
   public preferredLocale: string;
 
@@ -4409,7 +4409,7 @@ export class IntegrationApplication extends Application {
 export class Intents extends BitField<IntentsString> {
   /**
    * Numeric WebSocket intents.
-   * @see {@link https://discord.com/developers/docs/topics/gateway#list-of-intents}
+   * @see {@link [List of Intents](https://discord.com/developers/docs/topics/gateway#list-of-intents)}
    */
   public static FLAGS: Record<IntentsString, number>;
 
@@ -4428,11 +4428,11 @@ export type CacheTypeReducer<
   RawType = CachedType,
   PresentType = CachedType | RawType,
   Fallback = PresentType | null,
-> = State extends 'cached'
+> = [State] extends ['cached']
   ? CachedType
-  : State extends 'raw'
+  : [State] extends ['raw']
   ? RawType
-  : State extends 'present'
+  : [State] extends ['present']
   ? PresentType
   : Fallback;
 
@@ -5504,6 +5504,11 @@ export class MessageAttachment {
   public contentType: string | null;
 
   /**
+   * The description (alt text) of this attachment
+   */
+  public description: string | null;
+
+  /**
    * Whether this attachment is ephemeral
    */
   public ephemeral: boolean;
@@ -5547,6 +5552,13 @@ export class MessageAttachment {
    * The width of this attachment (if an image or video)
    */
   public width: number | null;
+
+  /**
+   * Sets the description of this attachment.
+   * @param description The description of the file
+   * @returns This attachment
+   */
+  public setDescription(description: string): this;
 
   /**
    * Sets the file of this attachment.
@@ -5998,7 +6010,7 @@ export class MessageEmbed {
 
   /**
    * The type of this embed
-   * @see {@link [embed-object-embed-types](https://discord.com/developers/docs/resources/channel#embed-object-embed-types)}
+   * @see {@link [Embed Types](https://discord.com/developers/docs/resources/channel#embed-object-embed-types)}
    * @deprecated
    */
   public type: string;
@@ -6132,7 +6144,7 @@ export class MessageEmbed {
 export class MessageFlags extends BitField<MessageFlagsString> {
   /**
    * Numeric message flags.
-   * @see {@link [message-object-message-flags](https://discord.com/developers/docs/resources/channel#message-object-message-flags)}
+   * @see {@link [Message Flags](https://discord.com/developers/docs/resources/channel#message-object-message-flags)}
    */
   public static FLAGS: Record<MessageFlagsString, number>;
 
@@ -6723,7 +6735,7 @@ export class Permissions extends BitField<PermissionString, bigint> {
 
   /**
    * Numeric permission flags.
-   * @see {@link [permissions-bitwise-permission-flags](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags)}
+   * @see {@link [Bitwise Permission Flags](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags)}
    */
   public static FLAGS: PermissionFlags;
 
@@ -8156,7 +8168,7 @@ export class StoreChannel extends GuildChannel {
 export class SystemChannelFlags extends BitField<SystemChannelFlagsString> {
   /**
    * Numeric system channel flags.
-   * @see {@link [guild-object-system-channel-flags](https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags)}
+   * @see {@link [System Channel Flags](https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags)}
    */
   public static FLAGS: Record<SystemChannelFlagsString, number>;
 
@@ -8867,7 +8879,7 @@ export class User extends PartialTextBasedChannel(Base) {
 export class UserFlags extends BitField<UserFlagsString> {
   /**
    * Numeric user flags.
-   * @see {@link [user-object-user-flags](https://discord.com/developers/docs/resources/user#user-object-user-flags)}
+   * @see {@link [User Flags](https://discord.com/developers/docs/resources/user#user-object-user-flags)}
    */
   public static FLAGS: Record<UserFlagsString, number>;
 
@@ -10315,7 +10327,7 @@ export const Constants: {
   };
   /**
    * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
-   * @see {@link [commands-and-events-gateway-events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
+   * @see {@link [Gateway Events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
    */
   WSEvents: {
     [K in WSEventType]: K;
@@ -10328,7 +10340,7 @@ export const Constants: {
   Opcodes: ConstantsOpcodes;
   /**
    * An error encountered while performing an API request.
-   * @see {@link [json-json-error-codes](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)}
+   * @see {@link [JSON Error Codes](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)}
    */
   APIErrors: APIErrors;
   /**
@@ -10345,7 +10357,7 @@ export const Constants: {
    * * `GUILD_PRIVATE_THREAD` - a guild text channel's private thread channel
    * * `GUILD_STAGE_VOICE` - a guild stage voice channel
    * * `UNKNOWN` - a generic channel of unknown type, could be Channel or GuildChannel
-   * @see {@link [channel-object-channel-types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
+   * @see {@link [Channel Types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
    */
   ChannelTypes: EnumHolder<typeof ChannelTypes>;
   /**
@@ -10363,7 +10375,7 @@ export const Constants: {
   ClientApplicationAssetTypes: ConstantsClientApplicationAssetTypes;
   /**
    * The behavior of expiring subscribers for Integrations.
-   * @see {@link [integration-object-integration-expire-behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
+   * @see {@link [Integration Expire Behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
    */
   IntegrationExpireBehaviors: IntegrationExpireBehaviors[];
   /**
@@ -10381,12 +10393,12 @@ export const Constants: {
    * * `guilds.join`: allows the bot to join the user to any guild it is in using Guild#addMember
    * * `gdm.join`: allows joining the user to a group dm
    * * `webhook.incoming`: generates a webhook to a channel
-   * @see {@link [shared-resources-oauth2-scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
+   * @see {@link [OAuth2 Scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
    */
   InviteScopes: InviteScope[];
   /**
    * The type of a message, e.g. `DEFAULT`.
-   * @see {@link [message-object-message-types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
+   * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
    */
   MessageTypes: MessageType[];
   /**
@@ -10396,52 +10408,52 @@ export const Constants: {
   /**
    * <info>Bots cannot set a `CUSTOM` activity type, it is only for custom statuses received from users</info>
    * The type of an activity of a user's presence.
-   * @see {@link [data-models-activitytype-enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
+   * @see {@link [ActivityType Enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
    */
   ActivityTypes: EnumHolder<typeof ActivityTypes>;
   /**
    * The value set for a sticker's type
-   * @see {@link [sticker-object-sticker-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
+   * @see {@link [Sticker Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
    */
   StickerTypes: EnumHolder<typeof StickerTypes>;
   /**
    * The value set for a sticker's format type
-   * @see {@link [sticker-object-sticker-format-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
+   * @see {@link [Sticker Format Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
    */
   StickerFormatTypes: EnumHolder<typeof StickerFormatTypes>;
   /**
    * An overwrite type
-   * @see {@link [overwrite-object-overwrite-structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
+   * @see {@link [Overwrite Structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
    */
   OverwriteTypes: EnumHolder<typeof OverwriteTypes>;
   /**
    * The value set for the explicit content filter levels for a guild
-   * @see {@link [guild-object-explicit-content-filter-level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
+   * @see {@link [Explicit Content Filter Level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
    */
   ExplicitContentFilterLevels: EnumHolder<typeof ExplicitContentFilterLevels>;
   /**
    * The value set for a guild's default message notifications, e.g. `ALL_MESSAGES`.
-   * @see {@link [guild-object-default-message-notification-level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
+   * @see {@link [Default Message Notification Level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
    */
   DefaultMessageNotificationLevels: EnumHolder<typeof DefaultMessageNotificationLevels>;
   /**
    * The value set for the verification levels for a guild
-   * @see {@link [guild-object-verification-level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
+   * @see {@link [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
    */
   VerificationLevels: EnumHolder<typeof VerificationLevels>;
   /**
    * The value set for a team member's membership state
-   * @see {@link [data-models-membership-state-enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
+   * @see {@link [Membership State Enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
    */
   MembershipStates: EnumHolder<typeof MembershipStates>;
   /**
    * The type of an {@link ApplicationCommandOption} object
-   * @see {@link [application-command-object-application-command-option-type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
+   * @see {@link [Application Command Option Type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
    */
   ApplicationCommandOptionTypes: EnumHolder<typeof ApplicationCommandOptionTypes>;
   /**
    * The type of an {@link ApplicationCommandPermissions} object
-   * @see {@link [application-command-permissions-object-application-command-permission-type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
+   * @see {@link [Application Command Permission Type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
    */
   ApplicationCommandPermissionTypes: EnumHolder<typeof ApplicationCommandPermissionTypes>;
   /**
@@ -10451,47 +10463,47 @@ export const Constants: {
   InteractionTypes: EnumHolder<typeof InteractionTypes>;
   /**
    * The type of an interaction response
-   * @see {@link [interaction-response-object-interaction-callback-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
+   * @see {@link [Interaction Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
    */
   InteractionResponseTypes: EnumHolder<typeof InteractionResponseTypes>;
   /**
    * The type of a message component
-   * @see {@link [component-object-component-types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
+   * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
    */
   MessageComponentTypes: EnumHolder<typeof MessageComponentTypes>;
   /**
    * The style of a message button
-   * @see {@link [button-object-button-styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
+   * @see {@link [Button Styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
    */
   MessageButtonStyles: EnumHolder<typeof MessageButtonStyles>;
   /**
    * The required MFA level for a guild
-   * @see {@link [guild-object-mfa-level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
+   * @see {@link [MFA Level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
    */
   MFALevels: EnumHolder<typeof MFALevels>;
   /**
    * NSFW level of a Guild
-   * @see {@link [guild-object-guild-nsfw-level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
+   * @see {@link [Guild NSFW Level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
    */
   NSFWLevels: EnumHolder<typeof NSFWLevels>;
   /**
    * Privacy level of a {@link StageInstance} object
-   * @see {@link [stage-instance-object-privacy-level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
+   * @see {@link [Privacy Level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
    */
   PrivacyLevels: EnumHolder<typeof PrivacyLevels>;
   /**
    * The value set for a webhook's type
-   * @see {@link [webhook-object-webhook-types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
+   * @see {@link [Webhook Types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
    */
   WebhookTypes: EnumHolder<typeof WebhookTypes>;
   /**
    * The premium tier (Server Boost level) of a guild
-   * @see {@link [guild-object-premium-tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
+   * @see {@link [Premium Tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
    */
   PremiumTiers: EnumHolder<typeof PremiumTiers>;
   /**
    * The type of an {@link ApplicationCommand} object
-   * @see {@link [application-command-object-application-command-types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
+   * @see {@link [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
    */
   ApplicationCommandTypes: EnumHolder<typeof ApplicationCommandTypes>;
 };
@@ -10593,8 +10605,7 @@ export class ApplicationCommandManager<
   /**
    * Creates an application command.
    * @param command The command
-   * @param guildId The guild's id to create this command in,
-   * ignored when using a {@link GuildApplicationCommandManager}
+   * @param guildId The guild's id to create this command in, ignored when using a {@link GuildApplicationCommandManager}
    * @example
    * // Create a new command
    * client.application.commands.create({
@@ -10604,8 +10615,7 @@ export class ApplicationCommandManager<
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public create(command: ApplicationCommandDataResolvable): Promise<ApplicationCommandScope>;
-  public create(command: ApplicationCommandDataResolvable, guildId: Snowflake): Promise<ApplicationCommand>;
+  public create(command: ApplicationCommandDataResolvable, guildId?: Snowflake): Promise<ApplicationCommandScope>;
 
   /**
    * Deletes an application command.
@@ -12223,6 +12233,52 @@ export function TextBasedChannel<T, I extends keyof TextBasedChannelFields = nev
 ): Constructable<T & Omit<TextBasedChannelFields, I>>;
 
 export interface PartialTextBasedChannelFields {
+  /**
+   * Sends a message to this channel.
+   * @param options The options to provide
+   * @example
+   * // Send a basic message
+   * channel.send('hello!')
+   *   .then(message => console.log(`Sent message: ${message.content}`))
+   *   .catch(console.error);
+   * @example
+   * // Send a remote file
+   * channel.send({
+   *   files: ['https://cdn.discordapp.com/icons/222078108977594368/6e1019b3179d71046e463a75915e7244.png?size=2048']
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Send a local file
+   * channel.send({
+   *   files: [{
+   *     attachment: 'entire/path/to/file.jpg',
+   *     name: 'file.jpg'
+   *     description: 'A description of the file'
+   *   }]
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Send an embed with a local image inside
+   * channel.send({
+   *   content: 'This is an embed',
+   *   embeds: [
+   *     {
+   *       thumbnail: {
+   *         url: 'attachment://file.jpg'
+   *       }
+   *     }
+   *   ],
+   *   files: [{
+   *     attachment: 'entire/path/to/file.jpg',
+   *     name: 'file.jpg'
+   *     description: 'A description of the file'
+   *   }]
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   send(options: string | MessagePayload | MessageOptions): Promise<Message>;
 }
 
@@ -12528,7 +12584,7 @@ export type ActivityPlatform = 'desktop' | 'samsung' | 'xbox';
 /**
  * <info>Bots cannot set a `CUSTOM` activity type, it is only for custom statuses received from users</info>
  * The type of an activity of a user's presence.
- * @see {@link [data-models-activitytype-enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
+ * @see {@link [ActivityType Enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
  */
 export type ActivityType = keyof typeof ActivityTypes;
 
@@ -12585,7 +12641,7 @@ export type AllowedThreadTypeForTextChannel = 'GUILD_PUBLIC_THREAD' | 'GUILD_PRI
 
 /**
  * An error encountered while performing an API request.
- * @see {@link [json-json-error-codes](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)}
+ * @see {@link [JSON Error Codes](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)}
  */
 export interface APIErrors {
   UNKNOWN_ACCOUNT: 10001;
@@ -12797,10 +12853,13 @@ export type CommandOptionDataTypeResolvable = ApplicationCommandOptionType | App
 export type CommandOptionChannelResolvableType = ApplicationCommandOptionTypes.CHANNEL | 'CHANNEL';
 
 export type CommandOptionChoiceResolvableType =
-  | ApplicationCommandOptionTypes.NUMBER
-  | 'NUMBER'
   | ApplicationCommandOptionTypes.STRING
   | 'STRING'
+  | CommandOptionNumericResolvableType;
+
+export type CommandOptionNumericResolvableType =
+  | ApplicationCommandOptionTypes.NUMBER
+  | 'NUMBER'
   | ApplicationCommandOptionTypes.INTEGER
   | 'INTEGER';
 
@@ -12830,11 +12889,6 @@ export interface BaseApplicationCommandOptionsData {
    * Whether the option is required
    */
   required?: boolean;
-
-  /**
-   * Whether the option is an autocomplete option
-   */
-  autocomplete?: boolean;
 }
 
 /**
@@ -12915,6 +12969,24 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   channelTypes?: (keyof typeof ChannelTypes)[];
 }
 
+export interface ApplicationCommandAutocompleteOption extends BaseApplicationCommandOptionsData {
+  /**
+   * The type of the option
+   */
+  type:
+    | 'STRING'
+    | 'NUMBER'
+    | 'INTEGER'
+    | ApplicationCommandOptionTypes.STRING
+    | ApplicationCommandOptionTypes.NUMBER
+    | ApplicationCommandOptionTypes.INTEGER;
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete: true;
+}
+
 export interface ApplicationCommandChoicesData extends BaseApplicationCommandOptionsData {
   /**
    * The type of the option
@@ -12925,6 +12997,11 @@ export interface ApplicationCommandChoicesData extends BaseApplicationCommandOpt
    * The choices of the option for the user to pick from
    */
   choices?: ApplicationCommandOptionChoice[];
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete?: false;
 }
 
 export interface ApplicationCommandChoicesOption extends BaseApplicationCommandOptionsData {
@@ -12937,6 +13014,55 @@ export interface ApplicationCommandChoicesOption extends BaseApplicationCommandO
    * The choices of the option for the user to pick from
    */
   choices?: ApplicationCommandOptionChoice[];
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete?: false;
+}
+
+export interface ApplicationCommandNumericOptionData extends ApplicationCommandChoicesData {
+  /**
+   * The type of the option
+   */
+  type: CommandOptionNumericResolvableType;
+
+  /**
+   * The minimum value for an `INTEGER` or `NUMBER` option
+   */
+  minValue?: number;
+
+  /**
+   * The minimum value for an `INTEGER` or `NUMBER` option
+   */
+  min_value?: number;
+
+  /**
+   * The maximum value for an `INTEGER` or `NUMBER` option
+   */
+  maxValue?: number;
+
+  /**
+   * The maximum value for an `INTEGER` or `NUMBER` option
+   */
+  max_value?: number;
+}
+
+export interface ApplicationCommandNumericOption extends ApplicationCommandChoicesOption {
+  /**
+   * The type of the option
+   */
+  type: Exclude<CommandOptionNumericResolvableType, ApplicationCommandOptionTypes>;
+
+  /**
+   * The minimum value for an `INTEGER` or `NUMBER` option
+   */
+  minValue?: number;
+
+  /**
+   * The maximum value for an `INTEGER` or `NUMBER` option
+   */
+  maxValue?: number;
 }
 
 export interface ApplicationCommandSubGroupData extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -13009,6 +13135,8 @@ export type ApplicationCommandOptionData =
   | ApplicationCommandNonOptionsData
   | ApplicationCommandChannelOptionData
   | ApplicationCommandChoicesData
+  | ApplicationCommandAutocompleteOption
+  | ApplicationCommandNumericOptionData
   | ApplicationCommandSubCommandData;
 
 /**
@@ -13019,6 +13147,7 @@ export type ApplicationCommandOption =
   | ApplicationCommandNonOptions
   | ApplicationCommandChannelOption
   | ApplicationCommandChoicesOption
+  | ApplicationCommandNumericOption
   | ApplicationCommandSubCommand;
 
 /**
@@ -13038,13 +13167,13 @@ export interface ApplicationCommandOptionChoice {
 
 /**
  * The type of an {@link ApplicationCommand} object
- * @see {@link [application-command-object-application-command-types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
+ * @see {@link [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
  */
 export type ApplicationCommandType = keyof typeof ApplicationCommandTypes;
 
 /**
  * The type of an {@link ApplicationCommandOption} object
- * @see {@link [application-command-object-application-command-option-type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
+ * @see {@link [Application Command Option Type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
  */
 export type ApplicationCommandOptionType = keyof typeof ApplicationCommandOptionTypes;
 
@@ -13080,7 +13209,7 @@ export interface ApplicationCommandPermissions extends ApplicationCommandPermiss
 
 /**
  * The type of an {@link ApplicationCommandPermissions} object
- * @see {@link [application-command-permissions-object-application-command-permission-type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
+ * @see {@link [Application Command Permission Type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
  */
 export type ApplicationCommandPermissionType = keyof typeof ApplicationCommandPermissionTypes;
 
@@ -14915,7 +15044,7 @@ export interface DeconstructedSnowflake {
 
 /**
  * The value set for a guild's default message notifications, e.g. `ALL_MESSAGES`.
- * @see {@link [guild-object-default-message-notification-level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
+ * @see {@link [Default Message Notification Level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
  */
 export type DefaultMessageNotificationLevel = keyof typeof DefaultMessageNotificationLevels;
 
@@ -15049,7 +15178,7 @@ export interface EscapeMarkdownOptions {
 
 /**
  * The value set for the explicit content filter levels for a guild
- * @see {@link [guild-object-explicit-content-filter-level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
+ * @see {@link [Explicit Content Filter Level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
  */
 export type ExplicitContentFilterLevel = keyof typeof ExplicitContentFilterLevels;
 
@@ -15316,6 +15445,11 @@ export interface FileOptions {
    * Filename of the attachment
    */
   name?: string;
+
+  /**
+   * The description of the file
+   */
+  description?: string;
 }
 
 /**
@@ -16108,13 +16242,13 @@ export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'us
 
 /**
  * The type of an interaction response
- * @see {@link [interaction-response-object-interaction-callback-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
+ * @see {@link [Interaction Callback Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
  */
 export type InteractionResponseType = keyof typeof InteractionResponseTypes;
 
 /**
  * The type of an {@link Interaction} object
- * @see {@link [interaction-object-interaction-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
+ * @see {@link [Interaction Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
  */
 export type InteractionType = keyof typeof InteractionTypes;
 
@@ -16230,7 +16364,7 @@ export interface CreateInviteOptions {
 
 /**
  * The behavior of expiring subscribers for Integrations.
- * @see {@link [integration-object-integration-expire-behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
+ * @see {@link [Integration Expire Behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
  */
 export type IntegrationExpireBehaviors = 'REMOVE_ROLE' | 'KICK';
 
@@ -16254,7 +16388,7 @@ export type InviteResolvable = string;
  * * `guilds.join`: allows the bot to join the user to any guild it is in using Guild#addMember
  * * `gdm.join`: allows joining the user to a group dm
  * * `webhook.incoming`: generates a webhook to a channel
- * @see {@link [shared-resources-oauth2-scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
+ * @see {@link [OAuth2 Scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
  */
 export type InviteScope =
   | 'applications.builds.read'
@@ -16316,7 +16450,7 @@ export type MemberMention = UserMention | `<@!${Snowflake}>`;
 
 /**
  * The value set for a team member's membership state
- * @see {@link [data-models-membership-state-enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
+ * @see {@link [Membership State Enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
  */
 export type MembershipState = keyof typeof MembershipStates;
 
@@ -16404,7 +16538,7 @@ export type MessageButtonOptions = InteractionButtonOptions | LinkButtonOptions;
 
 /**
  * The style of a message button
- * @see {@link [button-object-button-styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
+ * @see {@link [Button Styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
  */
 export type MessageButtonStyle = keyof typeof MessageButtonStyles;
 
@@ -16427,7 +16561,7 @@ export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
 
 /**
  * Components that can be sent in a message.
- * @see {@link [component-object-component-types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
+ * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
  */
 export type MessageComponent = BaseMessageComponent | MessageActionRow | MessageButton | MessageSelectMenu;
 
@@ -16863,7 +16997,7 @@ export type MessageReactionResolvable =
  * * CHANNEL_PINNED_MESSAGE
  * * REPLY
  * * THREAD_STARTER_MESSAGE
- * @see {@link [message-types](https://discord.com/developers/docs/resources/channel#message-types)}
+ * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-types)}
  */
 export interface MessageReference {
   /**
@@ -16989,13 +17123,13 @@ export type MessageTarget =
 
 /**
  * The type of a message, e.g. `DEFAULT`.
- * @see {@link [message-object-message-types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
+ * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
  */
 export type MessageType = keyof typeof MessageTypes;
 
 /**
  * The required MFA level for a guild
- * @see {@link [guild-object-mfa-level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
+ * @see {@link [MFA Level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
  */
 export type MFALevel = keyof typeof MFALevels;
 
@@ -17041,7 +17175,7 @@ export interface MultipleShardSpawnOptions {
 
 /**
  * NSFW level of a Guild
- * @see {@link [guild-object-guild-nsfw-level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
+ * @see {@link [Guild NSFW Level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
  */
 export type NSFWLevel = keyof typeof NSFWLevels;
 
@@ -17077,7 +17211,7 @@ export type OverwriteResolvable = PermissionOverwrites | OverwriteData;
 
 /**
  * An overwrite type
- * @see {@link [overwrite-object-overwrite-structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
+ * @see {@link [Overwrite Structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
  */
 export type OverwriteType = 'member' | 'role';
 
@@ -17161,7 +17295,7 @@ export interface PartialRecipient {
 
 /**
  * The premium tier (Server Boost level) of a guild
- * @see {@link [guild-object-premium-tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
+ * @see {@link [Premium Tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
  */
 export type PremiumTier = keyof typeof PremiumTiers;
 
@@ -17596,7 +17730,7 @@ export type Status = number;
 
 /**
  * The value set for a sticker's format type
- * @see {@link [sticker-object-sticker-format-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
+ * @see {@link [Sticker Format Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
  */
 export type StickerFormatType = keyof typeof StickerFormatTypes;
 
@@ -17607,7 +17741,7 @@ export type StickerResolvable = Sticker | Snowflake;
 
 /**
  * The value set for a sticker's type
- * @see {@link [sticker-object-sticker-types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
+ * @see {@link [Sticker Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
  */
 export type StickerType = keyof typeof StickerTypes;
 
@@ -17825,7 +17959,7 @@ export interface Vanity {
 
 /**
  * The value set for the verification levels for a guild
- * @see {@link [guild-object-verification-level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
+ * @see {@link [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
  */
 export type VerificationLevel = keyof typeof VerificationLevels;
 
@@ -17933,7 +18067,7 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply'> {
 
 /**
  * The value set for a webhook's type
- * @see {@link [webhook-object-webhook-types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
+ * @see {@link [Webhook Types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
  */
 export type WebhookType = keyof typeof WebhookTypes;
 
@@ -18021,7 +18155,7 @@ export interface WelcomeScreenEditData {
 
 /**
  * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
- * @see {@link [commands-and-events-gateway-events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
+ * @see {@link [Gateway Events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
  */
 export type WSEventType =
   | 'READY'
