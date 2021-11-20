@@ -732,17 +732,17 @@ export abstract class BaseCommandInteraction<Cached extends CacheType = CacheTyp
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is BaseCommandInteraction<'present'> & this;
+  public inGuild(): this is BaseCommandInteraction<'present'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is BaseCommandInteraction<'cached'> & this;
+  public inCachedGuild(): this is BaseCommandInteraction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is BaseCommandInteraction<'raw'> & this;
+  public inRawGuild(): this is BaseCommandInteraction<'raw'>;
 
   /**
    * Defers the reply to this interaction.
@@ -1264,6 +1264,21 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
    * The type of component which was interacted with
    */
   public componentType: 'BUTTON';
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is ButtonInteraction<'present'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is ButtonInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is ButtonInteraction<'raw'>;
 }
 
 /**
@@ -2161,17 +2176,17 @@ export class CommandInteraction<Cached extends CacheType = CacheType> extends Ba
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is CommandInteraction<'present'> & this;
+  public inGuild(): this is CommandInteraction<'present'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is CommandInteraction<'cached'> & this;
+  public inCachedGuild(): this is CommandInteraction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is CommandInteraction<'raw'> & this;
+  public inRawGuild(): this is CommandInteraction<'raw'>;
 
   /**
    * Returns a string representation of the command interaction.
@@ -2217,17 +2232,17 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is CommandInteraction<'present'> & this;
+  public inGuild(): this is AutocompleteInteraction<'present'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is CommandInteraction<'cached'> & this;
+  public inCachedGuild(): this is AutocompleteInteraction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is CommandInteraction<'raw'> & this;
+  public inRawGuild(): this is AutocompleteInteraction<'raw'>;
 
   /**
    * Transforms an option received from the API.
@@ -2469,6 +2484,21 @@ export class ContextMenuInteraction<Cached extends CacheType = CacheType> extend
    * The type of the target of the interaction
    */
   public targetType: Exclude<ApplicationCommandType, 'CHAT_INPUT'>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is ContextMenuInteraction<'present'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is ContextMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is ContextMenuInteraction<'raw'>;
 
   /**
    * Resolves and transforms options received from the API for a context menu interaction.
@@ -4517,17 +4547,17 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is Interaction<'present'> & this;
+  public inGuild(): this is Interaction<'present'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is Interaction<'cached'> & this;
+  public inCachedGuild(): this is Interaction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is Interaction<'raw'> & this;
+  public inRawGuild(): this is Interaction<'raw'>;
 
   /**
    * Indicates whether this interaction is a {@link BaseCommandInteraction}.
@@ -4547,7 +4577,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * Indicates whether this interaction is an {@link AutocompleteInteraction}
    */
-  public isAutocomplete(): this is AutocompleteInteraction;
+  public isAutocomplete(): this is AutocompleteInteraction<Cached>;
 
   /**
    * Indicates whether this interaction is a {@link ContextMenuInteraction}
@@ -4943,68 +4973,40 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): SweepFilter<K, V>;
 }
 
-// This is a general conditional type utility that allows for specific union members to be extracted given
-// a tagged union.
-export type TaggedUnion<T, K extends keyof T, V extends T[K]> = T extends Record<K, V>
-  ? T
-  : T extends Record<K, infer U>
-  ? V extends U
-    ? T
-    : never
-  : never;
-
-// This creates a map of MessageComponentTypes to their respective `InteractionCollectorOptionsResolvable` variant.
-export type CollectorOptionsTypeResolver<U extends InteractionCollectorOptionsResolvable<Cached>, Cached = boolean> = {
-  readonly [T in U['componentType']]: TaggedUnion<U, 'componentType', T>;
-};
-
-// This basically says "Given a `InteractionCollectorOptionsResolvable` variant", I'll give the corresponding
-// `InteractionCollector<T>` variant back.
-export type ConditionalInteractionCollectorType<T extends InteractionCollectorOptionsResolvable | undefined> =
-  T extends InteractionCollectorOptions<infer Item>
-    ? InteractionCollector<Item>
-    : InteractionCollector<MessageComponentInteraction>;
-
-// This maps each componentType key to each variant.
-export type MappedInteractionCollectorOptions<Cached = boolean> = CollectorOptionsTypeResolver<
-  InteractionCollectorOptionsResolvable<Cached>,
-  Cached
->;
-
-// Converts mapped types to complimentary collector types.
-export type InteractionCollectorReturnType<
-  T extends MessageComponentType | MessageComponentTypes | undefined,
-  Cached extends boolean = false,
-> = T extends MessageComponentType | MessageComponentTypes
-  ? ConditionalInteractionCollectorType<MappedInteractionCollectorOptions<Cached>[T]>
-  : InteractionCollector<MessageComponentInteraction>;
-
-export type InteractionExtractor<
-  T extends MessageComponentType | MessageComponentTypes | undefined,
-  C extends boolean = false,
-> = T extends MessageComponentType | MessageComponentTypes
-  ? MappedInteractionCollectorOptions<C>[T] extends InteractionCollectorOptions<infer Item>
-    ? Item
-    : never
-  : MessageComponentInteraction;
-
-export type MessageCollectorOptionsParams<T extends MessageComponentType | MessageComponentTypes | undefined> =
+export type MessageCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
   | {
       componentType?: T;
-    } & MessageComponentCollectorOptions<InteractionExtractor<T>>;
+    } & MessageComponentCollectorOptions<MappedInteractionTypes[T]>;
 
-export type MessageChannelCollectorOptionsParams<T extends MessageComponentType | MessageComponentTypes | undefined> =
+export type MessageChannelCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
   | {
       componentType?: T;
-    } & MessageChannelComponentCollectorOptions<InteractionExtractor<T>>;
+    } & MessageChannelComponentCollectorOptions<MappedInteractionTypes[T]>;
 
-export type AwaitMessageCollectorOptionsParams<T extends MessageComponentType | MessageComponentTypes | undefined> =
+export type AwaitMessageCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
   | { componentType?: T } & Pick<
-      InteractionCollectorOptions<InteractionExtractor<T>>,
+      InteractionCollectorOptions<MappedInteractionTypes[T]>,
       keyof AwaitMessageComponentOptions<any>
     >;
 
 export type GuildTextBasedChannel = Exclude<TextBasedChannels, PartialDMChannel | DMChannel>;
+export interface StringMappedInteractionTypes<Cached extends CacheType = CacheType> {
+  BUTTON: ButtonInteraction<Cached>;
+  SELECT_MENU: SelectMenuInteraction<Cached>;
+  ACTION_ROW: MessageComponentInteraction<Cached>;
+}
+
+export interface EnumMappedInteractionTypes<Cached extends CacheType = CacheType> {
+  1: MessageComponentInteraction<Cached>;
+  2: ButtonInteraction<Cached>;
+  3: SelectMenuInteraction<Cached>;
+}
+
+export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
+export type MappedInteractionTypes<Cached extends boolean = boolean> = StringMappedInteractionTypes<
+  WrapBooleanCache<Cached>
+> &
+  EnumMappedInteractionTypes<WrapBooleanCache<Cached>>;
 
 /**
  * Represents a message on Discord.
@@ -5237,9 +5239,9 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  public awaitMessageComponent<
-    T extends MessageComponentType | MessageComponentTypes | undefined = MessageComponentTypes.ACTION_ROW,
-  >(options?: AwaitMessageCollectorOptionsParams<T>): Promise<InteractionExtractor<T, Cached>>;
+  public awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
+    options?: AwaitMessageCollectorOptionsParams<T>,
+  ): Promise<MappedInteractionTypes<Cached>[T]>;
 
   /**
    * Similar to createReactionCollector but in promise form.
@@ -5276,9 +5278,9 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  public createMessageComponentCollector<
-    T extends MessageComponentType | MessageComponentTypes | undefined = undefined,
-  >(options?: MessageCollectorOptionsParams<T>): InteractionCollectorReturnType<T, Cached>;
+  public createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
+    options?: MessageCollectorOptionsParams<T>,
+  ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
 
   /**
    * Deletes the message.
@@ -5804,17 +5806,17 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is MessageComponentInteraction<'present'> & this;
+  public inGuild(): this is MessageComponentInteraction<'present'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is MessageComponentInteraction<'cached'> & this;
+  public inCachedGuild(): this is MessageComponentInteraction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is MessageComponentInteraction<'raw'> & this;
+  public inRawGuild(): this is MessageComponentInteraction<'raw'>;
 
   /**
    * Defers the reply to this interaction.
@@ -6047,9 +6049,18 @@ export class MessageEmbed {
 
   /**
    * Sets the author of this embed.
+   * @param options The options to provide for the author.
+   * A string may simply be provided if only the author name is desirable.
+   * Provide `null` to remove the author data.
+   */
+  public setAuthor(options: string | EmbedAuthorData | null): this;
+
+  /**
+   * Sets the author of this embed.
    * @param name The name of the author
    * @param iconURL The icon URL of the author
    * @param url The URL of the author
+   * @deprecated Supply a lone object of interface {@link EmbedAuthorData} instead of more parameters.
    */
   public setAuthor(name: string, iconURL?: string, url?: string): this;
 
@@ -7278,6 +7289,21 @@ export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends
    * The values selected, if the component which was interacted with was a select menu
    */
   public values: string[];
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is SelectMenuInteraction<'present'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is SelectMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is SelectMenuInteraction<'raw'>;
 }
 
 /**
@@ -8394,6 +8420,11 @@ export class ThreadChannel extends TextBasedChannel(Channel) {
    * Whether the thread is manageable by the client user, for deleting or editing rateLimitPerUser or locked.
    */
   public readonly manageable: boolean;
+
+  /**
+   * Whether the thread is viewable by the client user
+   */
+  public readonly viewable: boolean;
 
   /**
    * Whether the client user can send messages in this thread
@@ -12314,9 +12345,9 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  awaitMessageComponent<T extends MessageComponentType | MessageComponentTypes | undefined = undefined>(
+  awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
     options?: AwaitMessageCollectorOptionsParams<T>,
-  ): Promise<InteractionExtractor<T>>;
+  ): Promise<MappedInteractionTypes[T]>;
 
   /**
    * Similar to createMessageCollector but in promise form.
@@ -12358,9 +12389,9 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  createMessageComponentCollector<T extends MessageComponentType | MessageComponentTypes | undefined = undefined>(
+  createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
     options?: MessageChannelCollectorOptionsParams<T>,
-  ): InteractionCollectorReturnType<T>;
+  ): InteractionCollector<MappedInteractionTypes[T]>;
 
   /**
    * Creates a Message Collector.
@@ -12889,6 +12920,11 @@ export interface BaseApplicationCommandOptionsData {
    * Whether the option is required
    */
   required?: boolean;
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete?: never;
 }
 
 /**
@@ -12969,7 +13005,7 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   channelTypes?: (keyof typeof ChannelTypes)[];
 }
 
-export interface ApplicationCommandAutocompleteOption extends BaseApplicationCommandOptionsData {
+export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
@@ -12987,7 +13023,7 @@ export interface ApplicationCommandAutocompleteOption extends BaseApplicationCom
   autocomplete: true;
 }
 
-export interface ApplicationCommandChoicesData extends BaseApplicationCommandOptionsData {
+export interface ApplicationCommandChoicesData extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
@@ -13004,7 +13040,7 @@ export interface ApplicationCommandChoicesData extends BaseApplicationCommandOpt
   autocomplete?: false;
 }
 
-export interface ApplicationCommandChoicesOption extends BaseApplicationCommandOptionsData {
+export interface ApplicationCommandChoicesOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
@@ -13098,7 +13134,13 @@ export interface ApplicationCommandSubCommandData extends Omit<BaseApplicationCo
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: (ApplicationCommandChoicesData | ApplicationCommandNonOptionsData | ApplicationCommandChannelOptionData)[];
+  options?: (
+    | ApplicationCommandChoicesData
+    | ApplicationCommandNonOptionsData
+    | ApplicationCommandChannelOptionData
+    | ApplicationCommandAutocompleteOption
+    | ApplicationCommandNumericOptionData
+  )[];
 }
 
 export interface ApplicationCommandSubCommand extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -15063,6 +15105,26 @@ export interface EditGuildTemplateOptions {
    * The description of this template
    */
   description?: string;
+}
+
+/**
+ * The options to provide for setting an author for a {@link MessageEmbed}.
+ */
+export interface EmbedAuthorData {
+  /**
+   * The name of this author.
+   */
+  name: string;
+
+  /**
+   * The URL of this author.
+   */
+  url?: string;
+
+  /**
+   * The icon URL of this author.
+   */
+  iconURL?: string;
 }
 
 /**
@@ -17712,6 +17774,11 @@ export interface StartThreadOptions {
    * Reason for creating the thread
    */
   reason?: string;
+
+  /**
+   * The rate limit per user (slowmode) for the thread in seconds
+   */
+  rateLimitPerUser?: number;
 }
 
 /**
@@ -17875,6 +17942,11 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
    * `GUILD_PRIVATE_THREAD`</info>
    */
   invitable?: AllowedThreadType extends 'GUILD_PRIVATE_THREAD' | 12 ? boolean : never;
+
+  /**
+   * The rate limit per user (slowmode) for the new channel in seconds
+   */
+  rateLimitPerUser?: number;
 }
 
 /**
