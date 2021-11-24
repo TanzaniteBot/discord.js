@@ -1920,6 +1920,27 @@ export class ClientVoiceManager {
 
 export { Collection } from '@discordjs/collection';
 
+export interface CollectorEventTypes<K, V, F extends unknown[] = []> {
+  /**
+   * Emitted whenever an element is collected/disposed of.
+   * @param args The arguments emitted by the listener
+   */
+  collect: [V, ...F];
+
+  /**
+   * Emitted whenever an element is disposed of.
+   * @param args The arguments emitted by the listener
+   */
+  dispose: [V, ...F];
+
+  /**
+   * Emitted when the collector is finished collecting.
+   * @param collected The elements collected by the collector
+   * @param reason The reason the collector ended
+   */
+  end: [collected: Collection<K, V>, reason: string];
+}
+
 /**
  * Abstract class for defining a new Collector.
  */
@@ -2031,31 +2052,15 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    */
   public abstract dispose(...args: unknown[]): K | null;
 
-  /**
-   * Emitted whenever an element is collected/disposed of.
-   * @param args The arguments emitted by the listener
-   */
-  public on(event: 'collect' | 'dispose', listener: (...args: [V, ...F]) => Awaitable<void>): this;
+  public on<EventKey extends keyof CollectorEventTypes<K, V, F>>(
+    event: EventKey,
+    listener: (...args: CollectorEventTypes<K, V, F>[EventKey]) => Awaitable<void>,
+  ): this;
 
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public on(event: 'end', listener: (collected: Collection<K, V>, reason: string) => Awaitable<void>): this;
-
-  /**
-   * Emitted whenever an element is collected/disposed of.
-   * @param args The arguments emitted by the listener
-   */
-  public once(event: 'collect' | 'dispose', listener: (...args: [V, ...F]) => Awaitable<void>): this;
-
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public once(event: 'end', listener: (collected: Collection<K, V>, reason: string) => Awaitable<void>): this;
+  public once<EventKey extends keyof CollectorEventTypes<K, V, F>>(
+    event: EventKey,
+    listener: (...args: CollectorEventTypes<K, V, F>[EventKey]) => Awaitable<void>,
+  ): this;
 }
 
 export interface ApplicationCommandInteractionOptionResolver<Cached extends CacheType = CacheType>
@@ -7306,6 +7311,43 @@ export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends
   public inRawGuild(): this is SelectMenuInteraction<'raw'>;
 }
 
+export interface ShardEventTypes {
+  /**
+   * Emitted upon the creation of the shard's child process/worker.
+   * @param process Child process/worker that was created/exited.
+   */
+  spawn: [child: ChildProcess];
+
+  /**
+   * Emitted upon the shard's child process/worker exiting.
+   * @param process Child process/worker that was created/exited.
+   */
+  death: [child: ChildProcess];
+
+  /**
+   * Emitted upon the shard's {@link ClientEvents.shardDisconnect} event.
+   */
+  disconnect: [];
+
+  /**
+   * Emitted upon the shard's {@link ClientEvents.shardReady} event.
+   */
+  ready: [];
+
+  /**
+   * Emitted upon the shard's {@link ClientEvents.shardReconnecting} event.
+   */
+  reconnection: [];
+
+  error: [error: Error];
+
+  /**
+   * Emitted upon receiving a message from the child process/worker.
+   * @param message Message that was received
+   */
+  message: [message: any];
+}
+
 /**
  * A self-contained shard created by the {@link ShardingManager}. Each one has a {@link ChildProcess} that contains
  * an instance of the bot and its {@link Client}. When its child process/worker exits for any reason, the shard will
@@ -7391,10 +7433,12 @@ export class Shard extends EventEmitter {
   /**
    * Evaluates a script or function on the shard, in the context of the {@link Client}.
    * @param script JavaScript to run on the shard
+   * @param context The context for the eval
    * @returns Result of the script execution
    */
   public eval(script: string): Promise<unknown>;
   public eval<T>(fn: (client: Client) => T): Promise<T>;
+  public eval<T, P>(fn: (client: Client, context: Serialized<P>) => T, context: P): Promise<T>;
 
   /**
    * Fetches a client property value of the shard.
@@ -7431,59 +7475,15 @@ export class Shard extends EventEmitter {
    */
   public spawn(timeout?: number): Promise<ChildProcess>;
 
-  /**
-   * **spawn**: Emitted upon the creation of the shard's child process/worker.
-   *
-   * **death**: Emitted upon the shard's child process/worker exiting.
-   * @param process Child process/worker that was created/exited.
-   */
-  public on(event: 'spawn' | 'death', listener: (child: ChildProcess) => Awaitable<void>): this;
+  public on<K extends keyof ShardEventTypes>(
+    event: K,
+    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
+  ): this;
 
-  /**
-   * **disconnect**: Emitted upon the shard's {@link ClientEvents.shardDisconnect} event.
-   *
-   * **ready**: Emitted upon the shard's {@link ClientEvents.shardReady} event.
-   *
-   * **reconnecting**: Emitted upon the shard's {@link ClientEvents.shardReconnecting} event.
-   */
-  public on(event: 'disconnect' | 'ready' | 'reconnecting', listener: () => Awaitable<void>): this;
-
-  public on(event: 'error', listener: (error: Error) => Awaitable<void>): this;
-
-  /**
-   * Emitted upon receiving a message from the child process/worker.
-   * @param message Message that was received
-   */
-  public on(event: 'message', listener: (message: any) => Awaitable<void>): this;
-
-  public on(event: string, listener: (...args: any[]) => Awaitable<void>): this;
-
-  /**
-   * **spawn**: Emitted upon the creation of the shard's child process/worker.
-   *
-   * **death**: Emitted upon the shard's child process/worker exiting.
-   * @param process Child process/worker that was created/exited.
-   */
-  public once(event: 'spawn' | 'death', listener: (child: ChildProcess) => Awaitable<void>): this;
-
-  /**
-   * **disconnect**: Emitted upon the shard's {@link ClientEvents.shardDisconnect} event.
-   *
-   * **ready**: Emitted upon the shard's {@link ClientEvents.shardReady} event.
-   *
-   * **reconnecting**: Emitted upon the shard's {@link ClientEvents.shardReconnecting} event.
-   */
-  public once(event: 'disconnect' | 'ready' | 'reconnecting', listener: () => Awaitable<void>): this;
-
-  public once(event: 'error', listener: (error: Error) => Awaitable<void>): this;
-
-  /**
-   * Emitted upon receiving a message from the child process/worker.
-   * @param message Message that was received
-   */
-  public once(event: 'message', listener: (message: any) => Awaitable<void>): this;
-
-  public once(event: string, listener: (...args: any[]) => Awaitable<void>): this;
+  public once<K extends keyof ShardEventTypes>(
+    event: K,
+    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
+  ): this;
 }
 
 /**
@@ -9811,6 +9811,35 @@ export class WebSocketManager extends EventEmitter {
   private triggerClientReady(): void;
 }
 
+export interface WebSocketShardEvents {
+  /**
+   * Emitted when the shard receives the READY payload and is now waiting for guilds
+   */
+  ready: [];
+
+  /**
+   * Emitted when the shard resumes successfully
+   */
+  resumed: [];
+
+  invalidSession: [];
+
+  /**
+   * Emitted when a shard's WebSocket closes.
+   * @param event The received event
+   */
+  close: [event: CloseEvent];
+
+  /**
+   * Emitted when the shard is fully ready.
+   * This event is emitted if:
+   * * all guilds were received by this shard
+   * * the ready timeout expired, and some guilds are unavailable
+   * @param unavailableGuilds Set of unavailable guilds, if any
+   */
+  allReady: [unavailableGuilds?: Set<Snowflake>];
+}
+
 /**
  * Represents a Shard's WebSocket connection
  */
@@ -10016,53 +10045,15 @@ export class WebSocketShard extends EventEmitter {
    */
   public send(data: unknown, important?: boolean): void;
 
-  /**
-   * **ready**: Emitted when the shard receives the READY payload and is now waiting for guilds
-   *
-   * **resumed**: Emitted when the shard resumes successfully
-   */
-  public on(event: 'ready' | 'resumed' | 'invalidSession', listener: () => Awaitable<void>): this;
+  public on<K extends keyof WebSocketShardEvents>(
+    event: K,
+    listener: (...args: WebSocketShardEvents[K]) => Awaitable<void>,
+  ): this;
 
-  /**
-   * Emitted when a shard's WebSocket closes.
-   * @param event The received event
-   */
-  public on(event: 'close', listener: (event: CloseEvent) => Awaitable<void>): this;
-
-  /**
-   * Emitted when the shard is fully ready.
-   * This event is emitted if:
-   * * all guilds were received by this shard
-   * * the ready timeout expired, and some guilds are unavailable
-   * @param unavailableGuilds Set of unavailable guilds, if any
-   */
-  public on(event: 'allReady', listener: (unavailableGuilds?: Set<Snowflake>) => Awaitable<void>): this;
-
-  public on(event: string, listener: (...args: any[]) => Awaitable<void>): this;
-
-  /**
-   * **ready**: Emitted when the shard receives the READY payload and is now waiting for guilds
-   *
-   * **resumed**: Emitted when the shard resumes successfully
-   */
-  public once(event: 'ready' | 'resumed' | 'invalidSession', listener: () => Awaitable<void>): this;
-
-  /**
-   * Emitted when a shard's WebSocket closes.
-   * @param event The received event
-   */
-  public once(event: 'close', listener: (event: CloseEvent) => Awaitable<void>): this;
-
-  /**
-   * Emitted when the shard is fully ready.
-   * This event is emitted if:
-   * * all guilds were received by this shard
-   * * the ready timeout expired, and some guilds are unavailable
-   * @param unavailableGuilds Set of unavailable guilds, if any
-   */
-  public once(event: 'allReady', listener: (unavailableGuilds?: Set<Snowflake>) => Awaitable<void>): this;
-
-  public once(event: string, listener: (...args: any[]) => Awaitable<void>): this;
+  public once<K extends keyof WebSocketShardEvents>(
+    event: K,
+    listener: (...args: WebSocketShardEvents[K]) => Awaitable<void>,
+  ): this;
 }
 
 /**
@@ -13776,7 +13767,7 @@ export interface BaseClientEvents {
   invalidRequestWarning: [invalidRequestWarningData: InvalidRequestWarningData];
 }
 
-export interface ClientEvents {
+export interface ClientEvents extends BaseClientEvents {
   /**
    * Emitted when a guild application command is created.
    * @param command The command which was created
@@ -18120,7 +18111,7 @@ export interface WebhookFetchMessageOptions {
 /**
  * Options that can be passed into send.
  */
-export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply'> {
+export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 'stickers'> {
   /**
    * Username override for the message
    */
