@@ -1,6 +1,6 @@
 'use strict';
 
-const Channel = require('./Channel');
+const { Channel } = require('./Channel');
 const PermissionOverwrites = require('./PermissionOverwrites');
 const { Error } = require('../errors');
 const PermissionOverwriteManager = require('../managers/PermissionOverwriteManager');
@@ -466,7 +466,7 @@ class GuildChannel extends Channel {
       bitrate: this.bitrate,
       userLimit: this.userLimit,
       rateLimitPerUser: this.rateLimitPerUser,
-      position: this.position,
+      position: this.rawPosition,
       reason: null,
       ...options,
     });

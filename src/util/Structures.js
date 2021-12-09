@@ -25,8 +25,9 @@
  * * **`CommandInteraction`**
  * * **`ButtonInteraction`**
  * * **`SelectMenuInteraction`**
- * * **`ContextMenuInteraction`**
+ * * **`MessageContextMenuInteraction`**
  * * **`AutocompleteInteraction`**
+ * * **`UserContextMenuInteraction`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -119,8 +120,9 @@ const structures = {
   CommandInteraction: require('../structures/CommandInteraction'),
   ButtonInteraction: require('../structures/ButtonInteraction'),
   SelectMenuInteraction: require('../structures/SelectMenuInteraction'),
-  ContextMenuInteraction: require('../structures/ContextMenuInteraction'),
+  MessageContextMenuInteraction: require('../structures/MessageContextMenuInteraction'),
   AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
+  UserContextMenuInteraction: require('../structures/UserContextMenuInteraction'),
 };
 
 module.exports = Structures;

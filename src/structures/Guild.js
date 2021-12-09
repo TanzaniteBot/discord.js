@@ -38,6 +38,13 @@ let deprecationEmittedForSetChannelPositions = false;
 let deprecationEmittedForSetRolePositions = false;
 
 /**
+ * @type {WeakSet<Guild>}
+ * @private
+ * @internal
+ */
+const deletedGuilds = new WeakSet();
+
+/**
  * Represents a guild (or a server) on Discord.
  * <info>It's recommended to see if a guild is available before performing operations or reading data from it. You can
  * check this with {@link Guild#available}.</info>
@@ -101,12 +108,6 @@ class Guild extends AnonymousGuild {
      */
     this.invites = new GuildInviteManager(this);
 
-    /**
-     * Whether the bot has been removed from the guild
-     * @type {boolean}
-     */
-    this.deleted = false;
-
     if (!data) return;
     if (data.unavailable) {
       /**
@@ -124,6 +125,19 @@ class Guild extends AnonymousGuild {
      * @type {number}
      */
     this.shardId = data.shardId;
+  }
+
+  /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   */
+  get deleted() {
+    return deletedGuilds.has(this);
+  }
+
+  set deleted(value) {
+    if (value) deletedGuilds.add(this);
+    else deletedGuilds.delete(this);
   }
 
   /**
@@ -173,6 +187,14 @@ class Guild extends AnonymousGuild {
        * @type {boolean}
        */
       this.large = Boolean(data.large);
+    }
+
+    if ('premium_progress_bar_enabled' in data) {
+      /**
+       * Whether this guild has its premium (boost) progress bar enabled
+       * @type {boolean}
+       */
+      this.premiumProgressBarEnabled = data.premium_progress_bar_enabled;
     }
 
     /**
@@ -792,6 +814,7 @@ class Guild extends AnonymousGuild {
    * @property {TextChannelResolvable} [rulesChannel] The rules channel of the guild
    * @property {TextChannelResolvable} [publicUpdatesChannel] The community updates channel of the guild
    * @property {string} [preferredLocale] The preferred locale of the guild
+   * @property {boolean} [premiumProgressBarEnabled] Whether the guild's premium progress bar is enabled
    * @property {string} [description] The discovery description of the guild
    * @property {Features[]} [features] The features of the guild
    */
@@ -874,6 +897,7 @@ class Guild extends AnonymousGuild {
       _data.description = data.description;
     }
     if (data.preferredLocale) _data.preferred_locale = data.preferredLocale;
+    if ('premiumProgressBarEnabled' in data) _data.premium_progress_bar_enabled = data.premiumProgressBarEnabled;
     const newData = await this.client.api.guilds(this.id).patch({ data: _data, reason });
     return this.client.actions.GuildUpdate.handle(newData).updated;
   }
@@ -1176,6 +1200,16 @@ class Guild extends AnonymousGuild {
   }
 
   /**
+   * Edits the enabled state of the guild's premium progress bar
+   * @param {boolean} [enabled=true] The new enabled state of the guild's premium progress bar
+   * @param {string} [reason] Reason for changing the state of the guild's premium progress bar
+   * @returns {Promise<Guild>}
+   */
+  setPremiumProgressBarEnabled(enabled = true, reason) {
+    return this.edit({ premiumProgressBarEnabled: enabled }, reason);
+  }
+
+  /**
    * Data that can be resolved to give a Category Channel object. This can be:
    * * A CategoryChannel object
    * * A Snowflake
@@ -1384,7 +1418,8 @@ class Guild extends AnonymousGuild {
   }
 }
 
-module.exports = Guild;
+exports.Guild = Guild;
+exports.deletedGuilds = deletedGuilds;
 
 /**
  * @external APIGuild

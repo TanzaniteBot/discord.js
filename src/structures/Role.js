@@ -7,6 +7,13 @@ const SnowflakeUtil = require('../util/SnowflakeUtil');
 const Util = require('../util/Util');
 
 /**
+ * @type {WeakSet<Role>}
+ * @private
+ * @internal
+ */
+const deletedRoles = new WeakSet();
+
+/**
  * Represents a role on Discord.
  * @extends {Base}
  */
@@ -36,12 +43,6 @@ class Role extends Base {
      * @type {?string}
      */
     this.unicodeEmoji = null;
-
-    /**
-     * Whether the role has been deleted
-     * @type {boolean}
-     */
-    this.deleted = false;
 
     if (data) this._patch(data);
   }
@@ -139,7 +140,7 @@ class Role extends Base {
    * @readonly
    */
   get createdTimestamp() {
-    return SnowflakeUtil.deconstruct(this.id).timestamp;
+    return SnowflakeUtil.timestampFrom(this.id);
   }
 
   /**
@@ -149,6 +150,19 @@ class Role extends Base {
    */
   get createdAt() {
     return new Date(this.createdTimestamp);
+  }
+
+  /**
+   * Whether or not the role has been deleted
+   * @type {boolean}
+   */
+  get deleted() {
+    return deletedRoles.has(this);
+  }
+
+  set deleted(value) {
+    if (value) deletedRoles.add(this);
+    else deletedRoles.delete(this);
   }
 
   /**
@@ -467,7 +481,8 @@ class Role extends Base {
   }
 }
 
-module.exports = Role;
+exports.Role = Role;
+exports.deletedRoles = deletedRoles;
 
 /**
  * @external APIRole

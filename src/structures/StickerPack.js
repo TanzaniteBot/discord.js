@@ -2,7 +2,7 @@
 
 const { Collection } = require('@discordjs/collection');
 const Base = require('./Base');
-const Sticker = require('./Sticker');
+const { Sticker } = require('./Sticker');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 
 /**
@@ -65,7 +65,7 @@ class StickerPack extends Base {
    * @readonly
    */
   get createdTimestamp() {
-    return SnowflakeUtil.deconstruct(this.id).timestamp;
+    return SnowflakeUtil.timestampFrom(this.id);
   }
 
   /**

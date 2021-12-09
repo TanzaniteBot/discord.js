@@ -10,7 +10,7 @@ const Embed = require('./MessageEmbed');
 const Mentions = require('./MessageMentions');
 const MessagePayload = require('./MessagePayload');
 const ReactionCollector = require('./ReactionCollector');
-const Sticker = require('./Sticker');
+const { Sticker } = require('./Sticker');
 const { Error } = require('../errors');
 const ReactionManager = require('../managers/ReactionManager');
 const { InteractionTypes, MessageTypes, SystemMessageTypes } = require('../util/Constants');
@@ -18,6 +18,13 @@ const MessageFlags = require('../util/MessageFlags');
 const Permissions = require('../util/Permissions');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
 const Util = require('../util/Util');
+
+/**
+ * @type {WeakSet<Message>}
+ * @private
+ * @internal
+ */
+const deletedMessages = new WeakSet();
 
 /**
  * Represents a message on Discord.
@@ -43,12 +50,6 @@ class Message extends Base {
      */
     this.guildId = data.guild_id ?? this.channel?.guild?.id ?? null;
 
-    /**
-     * Whether this message has been deleted
-     * @type {boolean}
-     */
-    this.deleted = false;
-
     this._patch(data);
   }
 
@@ -63,7 +64,7 @@ class Message extends Base {
      * The timestamp the message was sent at
      * @type {number}
      */
-    this.createdTimestamp = SnowflakeUtil.deconstruct(this.id).timestamp;
+    this.createdTimestamp = SnowflakeUtil.timestampFrom(this.id);
 
     if ('type' in data) {
       /**
@@ -297,7 +298,7 @@ class Message extends Base {
     /**
      * Reference data sent in a message that contains ids identifying the referenced message.
      * This can be present in the following types of message:
-     * * Crossposted messages (IS_CROSSPOST {@link MessageFlags#FLAGS message flag})
+     * * Crossposted messages (IS_CROSSPOST {@link MessageFlags.FLAGS message flag})
      * * CHANNEL_FOLLOW_ADD
      * * CHANNEL_PINNED_MESSAGE
      * * REPLY
@@ -350,6 +351,19 @@ class Message extends Base {
     } else {
       this.interaction ??= null;
     }
+  }
+
+  /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   */
+  get deleted() {
+    return deletedMessages.has(this);
+  }
+
+  set deleted(value) {
+    if (value) deletedMessages.add(this);
+    else deletedMessages.delete(this);
   }
 
   /**
@@ -946,4 +960,5 @@ class Message extends Base {
   }
 }
 
-module.exports = Message;
+exports.Message = Message;
+exports.deletedMessages = deletedMessages;

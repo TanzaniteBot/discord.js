@@ -21,8 +21,10 @@ class InteractionCreateAction extends Action {
             InteractionType = Structures.get('CommandInteraction');
             break;
           case ApplicationCommandTypes.USER:
+            InteractionType = Structures.get('UserContextMenuInteraction');
+            break;
           case ApplicationCommandTypes.MESSAGE:
-            InteractionType = Structures.get('ContextMenuInteraction');
+            InteractionType = Structures.get('MessageContextMenuInteraction');
             break;
           default:
             client.emit(

@@ -466,6 +466,9 @@ exports.ActivityTypes = createEnum(['PLAYING', 'STREAMING', 'LISTENING', 'WATCHI
  * * `GUILD_CATEGORY` - a guild category channel
  * * `GUILD_NEWS` - a guild news channel
  * * `GUILD_STORE` - a guild store channel
+ * <warn>Store channels are deprecated and will be removed from Discord in March 2022. See
+ * [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479)
+ * for more information.</warn>
  * * `GUILD_NEWS_THREAD` - a guild news channel's public thread channel
  * * `GUILD_PUBLIC_THREAD` - a guild text channel's public thread channel
  * * `GUILD_PRIVATE_THREAD` - a guild text channel's private thread channel
@@ -645,7 +648,9 @@ exports.VerificationLevels = createEnum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'VERY_
  * * ACCOUNT_OWNER_ONLY
  * * ANNOUNCEMENT_EDIT_LIMIT_EXCEEDED
  * * CHANNEL_HIT_WRITE_RATELIMIT
+ * * SERVER_HIT_WRITE_RATELIMIT
  * * CONTENT_NOT_ALLOWED
+ * * GUILD_PREMIUM_LEVEL_TOO_LOW
  * * MAXIMUM_GUILDS
  * * MAXIMUM_FRIENDS
  * * MAXIMUM_PINS
@@ -704,7 +709,10 @@ exports.VerificationLevels = createEnum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'VERY_
  * * INVALID_FORM_BODY
  * * INVITE_ACCEPTED_TO_GUILD_NOT_CONTAINING_BOT
  * * INVALID_API_VERSION
+ * * FILE_UPLOADED_EXCEEDS_MAXIMUM_SIZE
+ * * INVALID_FILE_UPLOADED
  * * CANNOT_SELF_REDEEM_GIFT
+ * * INVALID_GUILD
  * * PAYMENT_SOURCE_REQUIRED
  * * CANNOT_DELETE_COMMUNITY_REQUIRED_CHANNEL
  * * INVALID_STICKER_SENT
@@ -724,6 +732,13 @@ exports.VerificationLevels = createEnum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'VERY_
  * * THREAD_LOCKED
  * * MAXIMUM_ACTIVE_THREADS
  * * MAXIMUM_ACTIVE_ANNOUNCEMENT_THREAD
+ * * INVALID_JSON_FOR_UPLOADED_LOTTIE_FILE
+ * * UPLOADED_LOTTIES_CANNOT_CONTAIN_RASTERIZED_IMAGES
+ * * STICKER_MAXIMUM_FRAMERATE_EXCEEDED
+ * * STICKER_FRAME_COUNT_EXCEEDS_MAXIMUM_OF_1000_FRAMES
+ * * LOTTIE_ANIMATION_MAXIMUM_DIMENSIONS_EXCEEDED
+ * * STICKER_FRAME_RATE_IS_TOO_SMALL_OR_TOO_LARGE
+ * * STICKER_ANIMATION_DURATION_EXCEEDS_MAXIMUM_OF_5_SECONDS
  * @typedef {string} APIError
  * @see {@link https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes}
  */
@@ -776,6 +791,7 @@ exports.APIErrors = {
   ACCOUNT_OWNER_ONLY: 20018,
   ANNOUNCEMENT_EDIT_LIMIT_EXCEEDED: 20022,
   CHANNEL_HIT_WRITE_RATELIMIT: 20028,
+  SERVER_HIT_WRITE_RATELIMIT: 20029,
   CONTENT_NOT_ALLOWED: 20031,
   GUILD_PREMIUM_LEVEL_TOO_LOW: 20035,
   MAXIMUM_GUILDS: 30001,
@@ -839,6 +855,7 @@ exports.APIErrors = {
   FILE_UPLOADED_EXCEEDS_MAXIMUM_SIZE: 50045,
   INVALID_FILE_UPLOADED: 50046,
   CANNOT_SELF_REDEEM_GIFT: 50054,
+  INVALID_GUILD: 50055,
   PAYMENT_SOURCE_REQUIRED: 50070,
   CANNOT_DELETE_COMMUNITY_REQUIRED_CHANNEL: 50074,
   INVALID_STICKER_SENT: 50081,

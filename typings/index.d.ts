@@ -28,6 +28,7 @@ import {
   APIApplicationCommandPermission,
   APIAuditLogChange,
   APIButtonComponent,
+  APIChannel,
   APIEmbed,
   APIEmoji,
   APIInteractionDataResolvedChannel,
@@ -488,6 +489,30 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    *   .catch(console.error);
    */
   public edit(data: ApplicationCommandData): Promise<ApplicationCommand<PermissionsFetchType>>;
+
+  /**
+   * Edits the name of this ApplicationCommand
+   * @param name The new name of the command
+   */
+  public setName(name: string): Promise<ApplicationCommand<PermissionsFetchType>>;
+
+  /**
+   * Edits the description of this ApplicationCommand
+   * @param description The new description of the command
+   */
+  public setDescription(description: string): Promise<ApplicationCommand<PermissionsFetchType>>;
+
+  /**
+   * Edits the default permission of this ApplicationCommand
+   * @param defaultPermission The default permission for this command
+   */
+  public setDefaultPermission(defaultPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
+
+  /**
+   * Edits the options of this ApplicationCommand
+   * @param options The options to set for this command
+   */
+  public setOptions(options: ApplicationCommandOptionData[]): Promise<ApplicationCommand<PermissionsFetchType>>;
 
   /**
    * Whether this command equals another command. It compares all properties, so for most operations
@@ -1313,6 +1338,7 @@ export class CategoryChannel extends GuildChannel {
     name: string,
     options: CategoryCreateChannelOptions & { type: 'GUILD_NEWS' },
   ): Promise<NewsChannel>;
+  /** @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information */
   public createChannel(
     name: string,
     options: CategoryCreateChannelOptions & { type: 'GUILD_STORE' },
@@ -1353,7 +1379,13 @@ export class Channel extends Base {
   /**
    * Whether the channel has been deleted
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the channel has been deleted
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The channel's id
@@ -2657,7 +2689,13 @@ export class Emoji extends Base {
   /**
    * Whether this emoji has been deleted
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether this emoji has been deleted
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The emoji's id
@@ -2777,7 +2815,13 @@ export class Guild extends AnonymousGuild {
   /**
    * Whether the bot has been removed from the guild
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the bot has been removed from the guild
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The hash of the guild discovery splash image
@@ -2860,6 +2904,11 @@ export class Guild extends AnonymousGuild {
    * The total number of boosts for this server
    */
   public premiumSubscriptionCount: number | null;
+
+  /**
+   * Whether this guild has its premium (boost) progress bar enabled
+   */
+  public premiumProgressBarEnabled: boolean;
 
   /**
    * The premium tier of this guild
@@ -3039,7 +3088,9 @@ export class Guild extends AnonymousGuild {
    *   .then(audit => console.log(audit.entries.first()))
    *   .catch(console.error);
    */
-  public fetchAuditLogs(options?: GuildAuditLogsFetchOptions): Promise<GuildAuditLogs>;
+  public fetchAuditLogs<T extends GuildAuditLogsResolvable = 'ALL'>(
+    options?: GuildAuditLogsFetchOptions<T>,
+  ): Promise<GuildAuditLogs<T>>;
 
   /**
    * Fetches a collection of integrations to this guild.
@@ -3338,6 +3389,13 @@ export class Guild extends AnonymousGuild {
   public setVerificationLevel(verificationLevel: VerificationLevel | number, reason?: string): Promise<Guild>;
 
   /**
+   * Edits the enabled state of the guild's premium progress bar
+   * @param enabled The new enabled state of the guild's premium progress bar
+   * @param reason Reason for changing the state of the guild's premium progress bar
+   */
+  public setPremiumProgressBarEnabled(enabled?: boolean, reason?: string): Promise<Guild>;
+
+  /**
    * Edits the guild's widget settings.
    * @param settings The widget settings for the guild
    * @param reason Reason for changing the guild's widget settings
@@ -3350,7 +3408,7 @@ export class Guild extends AnonymousGuild {
   public toJSON(): unknown;
 }
 
-export class GuildAuditLogs {
+export class GuildAuditLogs<T extends GuildAuditLogsResolvable = 'ALL'> {
   public constructor(guild: Guild, data: RawGuildAuditLogData);
 
   /**
@@ -3366,7 +3424,7 @@ export class GuildAuditLogs {
   /**
    * The entries for this guild's audit logs
    */
-  public entries: Collection<Snowflake, GuildAuditLogsEntry>;
+  public entries: Collection<Snowflake, GuildAuditLogsEntry<T>>;
 
   /**
    * All available actions keyed under their names to their numeric values.
@@ -3409,18 +3467,31 @@ export class GuildAuditLogs {
 /**
  * Audit logs entry.
  */
-export class GuildAuditLogsEntry {
+export class GuildAuditLogsEntry<
+  TActionRaw extends GuildAuditLogsResolvable = 'ALL',
+  TAction = TActionRaw extends keyof GuildAuditLogsIds
+    ? GuildAuditLogsIds[TActionRaw]
+    : TActionRaw extends null
+    ? 'ALL'
+    : TActionRaw,
+  TActionType extends GuildAuditLogsActionType = TAction extends keyof GuildAuditLogsTypes
+    ? GuildAuditLogsTypes[TAction][1]
+    : 'ALL',
+  TTargetType extends GuildAuditLogsTarget = TAction extends keyof GuildAuditLogsTypes
+    ? GuildAuditLogsTypes[TAction][0]
+    : 'UNKNOWN',
+> {
   public constructor(logs: GuildAuditLogs, guild: Guild, data: RawGuildAuditLogEntryData);
 
   /**
    * Specific action type of this entry in its string presentation
    */
-  public action: GuildAuditLogsAction;
+  public action: TAction;
 
   /**
    * The action type of this entry
    */
-  public actionType: GuildAuditLogsActionType;
+  public actionType: TActionType;
 
   /**
    * Specific property changes
@@ -3445,7 +3516,7 @@ export class GuildAuditLogsEntry {
   /**
    * Any extra data from the entry
    */
-  public extra: unknown | Role | GuildMember | null;
+  public extra: TAction extends keyof GuildAuditLogsEntryExtraField ? GuildAuditLogsEntryExtraField[TAction] : null;
 
   /**
    * The entry's id
@@ -3460,26 +3531,14 @@ export class GuildAuditLogsEntry {
   /**
    * The target of this entry
    */
-  public target:
-    | Guild
-    | GuildChannel
-    | User
-    | Role
-    | GuildEmoji
-    | Invite
-    | Webhook
-    | Message
-    | Integration
-    | StageInstance
-    | Sticker
-    | ThreadChannel
-    | { id: Snowflake }
-    | null;
+  public target: TTargetType extends keyof GuildAuditLogsEntryTargetField<TActionType>
+    ? GuildAuditLogsEntryTargetField<TActionType>[TTargetType]
+    : Role | GuildEmoji | { id: Snowflake } | null;
 
   /**
    * The target type of this entry
    */
-  public targetType: GuildAuditLogsTarget;
+  public targetType: TTargetType;
 
   /**
    * Transforms the audit log entry to a plain object.
@@ -3827,7 +3886,13 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * Whether the member has been removed from the guild
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the member has been removed from the guild
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The displayed color of this member in base 10
@@ -4487,7 +4552,13 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * The channel this interaction was sent in
    */
-  public readonly channel: CacheTypeReducer<Cached, TextBasedChannels | null>;
+  public readonly channel: CacheTypeReducer<
+    Cached,
+    GuildTextBasedChannel | null,
+    GuildTextBasedChannel | null,
+    GuildTextBasedChannel | null,
+    TextBasedChannels | null
+  >;
 
   /**
    * The id of the channel this interaction was sent in
@@ -4547,7 +4618,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * The permissions of the member, if one exists, in the channel this interaction was executed in
    */
-  public memberPermissions: Readonly<Permissions> | null;
+  public memberPermissions: CacheTypeReducer<Cached, Readonly<Permissions>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -4590,6 +4661,16 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   public isContextMenu(): this is ContextMenuInteraction<Cached>;
 
   /**
+   * Indicates whether this interaction is a {@link UserContextMenuInteraction}
+   */
+  public isUserContextMenu(): this is UserContextMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link MessageContextMenuInteraction}
+   */
+  public isMessageContextMenu(): this is MessageContextMenuInteraction<Cached>;
+
+  /**
    * Indicates whether this interaction is a {@link MessageComponentInteraction}.
    */
   public isMessageComponent(): this is MessageComponentInteraction<Cached>;
@@ -4627,6 +4708,12 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
    * @param channel The channel that was deleted
    */
   private _handleChannelDeletion(channel: GuildChannel): void;
+
+  /**
+   * Handles checking if the thread has been deleted, and if so, stops the collector with the reason 'threadDelete'.
+   * @param thread The thread that was deleted
+   */
+  private handleThreadDeletion(thread: ThreadChannel): void;
 
   /**
    * Handles checking if the guild has been deleted, and if so, stops the collector with the reason 'guildDelete'.
@@ -4752,13 +4839,12 @@ export class InteractionWebhook extends PartialWebhookMixin() {
 
 /**
  * Represents an invitation to a guild channel.
- * <warn>The only guaranteed properties are `code`, `channel`, and `url`. Other properties can be missing.</warn>
  */
 export class Invite extends Base {
   public constructor(client: Client, data: RawInviteData);
 
   /**
-   * The channel the invite is for
+   * The channel this invite is for
    */
   public channel: GuildChannel | PartialGroupDMChannel;
 
@@ -4778,7 +4864,7 @@ export class Invite extends Base {
   public readonly createdAt: Date | null;
 
   /**
-   * The timestamp the invite was created at
+   * The timestamp this invite was created at
    */
   public createdTimestamp: number | null;
 
@@ -4804,21 +4890,27 @@ export class Invite extends Base {
 
   /**
    * The maximum age of the invite, in seconds, 0 if never expires
+   * <info>This is only available when the invite was fetched through {@link GuildInviteManager.fetch}
+   * or created through {@link GuildInviteManager.create}.</info>
    */
   public maxAge: number | null;
 
   /**
    * The maximum uses of this invite
+   * <info>This is only available when the invite was fetched through {@link GuildInviteManager.fetch}
+   * or created through {@link GuildInviteManager.create}.</info>
    */
   public maxUses: number | null;
 
   /**
    * The approximate total number of members of the guild this invite is for
+   * <info>This is only available when the invite was fetched through {@link Client.fetchInvite}.</info>
    */
   public memberCount: number;
 
   /**
    * The approximate number of online members of the guild this invite is for
+   * <info>This is only available when the invite was fetched through {@link Client.fetchInvite}.</info>
    */
   public presenceCount: number;
 
@@ -4839,6 +4931,8 @@ export class Invite extends Base {
 
   /**
    * Whether or not this invite only grants temporary membership
+   * <info>This is only available when the invite was fetched through {@link GuildInviteManager.fetch}
+   * or created through {@link GuildInviteManager.create}.</info>
    */
   public temporary: boolean | null;
 
@@ -4849,6 +4943,8 @@ export class Invite extends Base {
 
   /**
    * How many times this invite has been used
+   * <info>This is only available when the invite was fetched through {@link GuildInviteManager.fetch}
+   * or created through {@link GuildInviteManager.create}.</info>
    */
   public uses: number | null;
 
@@ -5094,9 +5190,15 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public readonly deletable: boolean;
 
   /**
-   * Whether this message has been deleted
+   * Whether the message is editable by the client user
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the message is editable by the client user
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * Whether the message is editable by the client user
@@ -5126,12 +5228,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The id of the guild the message was sent in, if any
    */
-  public guildId: Snowflake | null;
+  public guildId: If<Cached, Snowflake>;
 
   /**
    * The guild the message was sent in (if in a guild channel)
    */
-  public readonly guild: Guild | null;
+  public readonly guild: If<Cached, Guild>;
 
   /**
    * Whether this message has a thread associated with it
@@ -5755,11 +5857,6 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public constructor(client: Client, data: RawMessageComponentInteractionData);
 
   /**
-   * The channel this interaction was sent in
-   */
-  public readonly channel: CacheTypeReducer<Cached, TextBasedChannels | null>;
-
-  /**
    * The component which was interacted with
    */
   public readonly component: CacheTypeReducer<
@@ -5932,6 +6029,33 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    * @param type The type to resolve
    */
   public static resolveType(type: MessageComponentTypeResolvable): MessageComponentType;
+}
+
+/**
+ * Represents a message context menu interaction.
+ */
+export class MessageContextMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends ContextMenuInteraction<Cached> {
+  /**
+   * The message this interaction was sent from
+   */
+  public readonly targetMessage: CacheTypeReducer<Cached, Message, APIMessage>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is MessageContextMenuInteraction<'present'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is MessageContextMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is MessageContextMenuInteraction<'raw'>;
 }
 
 /**
@@ -7028,7 +7152,13 @@ export class Role extends Base {
   /**
    * Whether the role has been deleted
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the role has been deleted
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * Whether the role is editable by the client user
@@ -7762,6 +7892,12 @@ export class SnowflakeUtil extends null {
   public static generate(timestamp?: number | Date): Snowflake;
 
   /**
+   * Retrieves the timestamp field's value from a Discord snowflake.
+   * @param snowflake Snowflake to get the timestamp value from
+   */
+  public static timestampFrom(snowflake: Snowflake): number;
+
+  /**
    * Discord's epoch value (2015-01-01T00:00:00.000Z).
    */
   public static readonly EPOCH: number;
@@ -7819,7 +7955,13 @@ export class StageInstance extends Base {
   /**
    * Whether the stage instance has been deleted
    */
-  public deleted: boolean;
+  public get deleted(): boolean;
+
+  /**
+   * Whether the stage instance has been deleted
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The id of the guild associated with the stage channel
@@ -7949,9 +8091,20 @@ export class Structures extends null {
 export class Sticker extends Base {
   /**
    * @param client The instantiating client
-   * @param sticker The data for the sticker
+   * @param data The data for the sticker
    */
   public constructor(client: Client, data: RawStickerData);
+
+  /**
+   * Whether or not the sticker has been deleted
+   */
+  public get deleted(): boolean;
+
+  /**
+   * Whether or not the sticker has been deleted
+   * @deprecated Will be removed in v14
+   */
+  public set deleted(value: boolean);
 
   /**
    * The timestamp the sticker was created at
@@ -8148,6 +8301,7 @@ export class StickerPack extends Base {
 
 /**
  * Represents a guild store channel on Discord.
+ * @deprecated Store channels are deprecated and will be removed from Discord in March 2022. See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
  */
 export class StoreChannel extends GuildChannel {
   /**
@@ -8174,6 +8328,13 @@ export class StoreChannel extends GuildChannel {
    * @param cache Whether or not to cache the fetched invites
    */
   public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
+
+  /**
+   * Clones this channel.
+   * @param options The options for cloning this channel
+   * @deprecated Store channels are deprecated and will be removed from Discord in March 2022. See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
+   */
+  public clone(options?: GuildChannelCloneOptions): Promise<this>;
 
   /**
    * If the guild considers this channel NSFW
@@ -8905,6 +9066,36 @@ export class User extends PartialTextBasedChannel(Base) {
 }
 
 /**
+ * Represents a user context menu interaction.
+ */
+export class UserContextMenuInteraction<Cached extends CacheType = CacheType> extends ContextMenuInteraction<Cached> {
+  /**
+   * The user this interaction was sent from
+   */
+  public readonly targetUser: User;
+
+  /**
+   * The member this interaction was sent from
+   */
+  public readonly targetMember: CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is UserContextMenuInteraction<'present'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is UserContextMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is UserContextMenuInteraction<'raw'>;
+}
+
+/**
  * Data structure that makes it easy to interact with a {@link User.flags} bitfield.
  */
 export class UserFlags extends BitField<UserFlagsString> {
@@ -8942,12 +9133,6 @@ export class Util extends null {
   public static basename(path: string, ext?: string): string;
 
   /**
-   * Transforms a snowflake from a bit string to a decimal string.
-   * @param num Bit string to be transformed
-   */
-  public static binaryToId(num: string): Snowflake;
-
-  /**
    * The content to have all mentions replaced by the equivalent text.
    * <warn>When {@link Util.removeMentions} is removed, this method will no longer sanitize mentions.
    * Use {@link MessageOptions.allowedMentions} instead to prevent mentions when sending a message.</warn>
@@ -8968,12 +9153,6 @@ export class Util extends null {
    * @param obj Object to clone
    */
   public static cloneObject(obj: unknown): unknown;
-
-  /**
-   * Creates a Promise that resolves after a specified duration.
-   * @param ms How long to wait before resolving (in milliseconds)
-   */
-  public static delayFor(ms: number): Promise<void>;
 
   /**
    * Sorts by Discord's position and id.
@@ -9052,12 +9231,6 @@ export class Util extends null {
    * @param props Specific properties to include/exclude.
    */
   public static flatten(obj: unknown, ...props: Record<string, boolean | string>[]): unknown;
-
-  /**
-   * Transforms a snowflake from a decimal string to a bit string.
-   * @param num Snowflake to be transformed
-   */
-  public static idToBinary(num: Snowflake): string;
 
   /**
    * Makes an Error from a plain info object.
@@ -10373,7 +10546,10 @@ export const Constants: {
    * * `GROUP_DM` - a group DM channel
    * * `GUILD_CATEGORY` - a guild category channel
    * * `GUILD_NEWS` - a guild news channel
-   * * `GUILD_STORE` - a guild store channel
+   * * `GUILD_STORE` - a guild store channel.
+   * <warn>Store channels are deprecated and will be removed from Discord in March 2022. See
+   * [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479)
+   * for more information.</warn>
    * * `GUILD_NEWS_THREAD` - a guild news channel's public thread channel
    * * `GUILD_PUBLIC_THREAD` - a guild text channel's public thread channel
    * * `GUILD_PRIVATE_THREAD` - a guild text channel's private thread channel
@@ -11091,6 +11267,7 @@ export class GuildChannelManager extends CachedManager<
   ): Promise<CategoryChannel>;
   public create(name: string, options?: GuildChannelCreateOptions & { type?: 'GUILD_TEXT' }): Promise<TextChannel>;
   public create(name: string, options: GuildChannelCreateOptions & { type: 'GUILD_NEWS' }): Promise<NewsChannel>;
+  /** @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information */
   public create(name: string, options: GuildChannelCreateOptions & { type: 'GUILD_STORE' }): Promise<StoreChannel>;
   public create(
     name: string,
@@ -11587,12 +11764,12 @@ export class GuildStickerManager extends CachedManager<Snowflake, Sticker, Stick
    * @returns The created sticker
    * @example
    * // Create a new sticker from a URL
-   * guild.stickers.create('https://i.imgur.com/w3duR07.png', 'rip', '🪦')
+   * guild.stickers.create('https://i.imgur.com/w3duR07.png', 'rip', 'headstone')
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    * @example
    * // Create a new sticker from a file on your computer
-   * guild.stickers.create('./memes/banana.png', 'banana', '🍌')
+   * guild.stickers.create('./memes/banana.png', 'banana', 'banana')
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    */
@@ -11755,7 +11932,7 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    * @param message The message to edit
    * @param options The options to edit the message
    */
-  public edit(message: MessageResolvable, options: MessagePayload | MessageEditOptions): Promise<Message>;
+  public edit(message: MessageResolvable, options: string | MessagePayload | MessageEditOptions): Promise<Message>;
 
   /**
    * Gets a message, or messages, from this channel.
@@ -12714,6 +12891,7 @@ export interface APIErrors {
   ACCOUNT_OWNER_ONLY: 20018;
   ANNOUNCEMENT_EDIT_LIMIT_EXCEEDED: 20022;
   CHANNEL_HIT_WRITE_RATELIMIT: 20028;
+  SERVER_HIT_WRITE_RATELIMIT: 20029;
   CONTENT_NOT_ALLOWED: 20031;
   GUILD_PREMIUM_LEVEL_TOO_LOW: 20035;
   MAXIMUM_GUILDS: 30001;
@@ -12777,6 +12955,7 @@ export interface APIErrors {
   FILE_UPLOADED_EXCEEDS_MAXIMUM_SIZE: 50045;
   INVALID_FILE_UPLOADED: 50046;
   CANNOT_SELF_REDEEM_GIFT: 50054;
+  INVALID_GUILD: 50055;
   PAYMENT_SOURCE_REQUIRED: 50070;
   CANNOT_DELETE_COMMUNITY_REQUIRED_CHANNEL: 50074;
   INVALID_STICKER_SENT: 50081;
@@ -15262,8 +15441,9 @@ interface Extendable {
   CommandInteraction: typeof CommandInteraction;
   ButtonInteraction: typeof ButtonInteraction;
   SelectMenuInteraction: typeof SelectMenuInteraction;
-  ContextMenuInteraction: typeof ContextMenuInteraction;
+  MessageContextMenuInteraction: typeof MessageContextMenuInteraction;
   AutocompleteInteraction: typeof AutocompleteInteraction;
+  UserContextMenuInteraction: typeof UserContextMenuInteraction;
 }
 
 /**
@@ -15520,62 +15700,151 @@ export interface GuildApplicationCommandPermissionData {
   permissions: ApplicationCommandPermissionData[];
 }
 
-export type GuildAuditLogsAction = keyof GuildAuditLogsActions;
-
-export interface GuildAuditLogsActions {
-  ALL?: null;
-  GUILD_UPDATE?: number;
-  CHANNEL_CREATE?: number;
-  CHANNEL_UPDATE?: number;
-  CHANNEL_DELETE?: number;
-  CHANNEL_OVERWRITE_CREATE?: number;
-  CHANNEL_OVERWRITE_UPDATE?: number;
-  CHANNEL_OVERWRITE_DELETE?: number;
-  MEMBER_KICK?: number;
-  MEMBER_PRUNE?: number;
-  MEMBER_BAN_ADD?: number;
-  MEMBER_BAN_REMOVE?: number;
-  MEMBER_UPDATE?: number;
-  MEMBER_ROLE_UPDATE?: number;
-  MEMBER_MOVE?: number;
-  MEMBER_DISCONNECT?: number;
-  BOT_ADD?: number;
-  ROLE_CREATE?: number;
-  ROLE_UPDATE?: number;
-  ROLE_DELETE?: number;
-  INVITE_CREATE?: number;
-  INVITE_UPDATE?: number;
-  INVITE_DELETE?: number;
-  WEBHOOK_CREATE?: number;
-  WEBHOOK_UPDATE?: number;
-  WEBHOOK_DELETE?: number;
-  EMOJI_CREATE?: number;
-  EMOJI_UPDATE?: number;
-  EMOJI_DELETE?: number;
-  MESSAGE_DELETE?: number;
-  MESSAGE_BULK_DELETE?: number;
-  MESSAGE_PIN?: number;
-  MESSAGE_UNPIN?: number;
-  INTEGRATION_CREATE?: number;
-  INTEGRATION_UPDATE?: number;
-  INTEGRATION_DELETE?: number;
-  STAGE_INSTANCE_CREATE?: number;
-  STAGE_INSTANCE_UPDATE?: number;
-  STAGE_INSTANCE_DELETE?: number;
-  STICKER_CREATE?: number;
-  STICKER_UPDATE?: number;
-  STICKER_DELETE?: number;
-  THREAD_CREATE?: number;
-  THREAD_UPDATE?: number;
-  THREAD_DELETE?: number;
+interface GuildAuditLogsTypes {
+  GUILD_UPDATE: ['GUILD', 'UPDATE'];
+  CHANNEL_CREATE: ['CHANNEL', 'CREATE'];
+  CHANNEL_UPDATE: ['CHANNEL', 'UPDATE'];
+  CHANNEL_DELETE: ['CHANNEL', 'DELETE'];
+  CHANNEL_OVERWRITE_CREATE: ['CHANNEL', 'CREATE'];
+  CHANNEL_OVERWRITE_UPDATE: ['CHANNEL', 'UPDATE'];
+  CHANNEL_OVERWRITE_DELETE: ['CHANNEL', 'DELETE'];
+  MEMBER_KICK: ['USER', 'DELETE'];
+  MEMBER_PRUNE: ['USER', 'DELETE'];
+  MEMBER_BAN_ADD: ['USER', 'DELETE'];
+  MEMBER_BAN_REMOVE: ['USER', 'CREATE'];
+  MEMBER_UPDATE: ['USER', 'UPDATE'];
+  MEMBER_ROLE_UPDATE: ['USER', 'UPDATE'];
+  MEMBER_MOVE: ['USER', 'UPDATE'];
+  MEMBER_DISCONNECT: ['USER', 'DELETE'];
+  BOT_ADD: ['USER', 'CREATE'];
+  ROLE_CREATE: ['ROLE', 'CREATE'];
+  ROLE_UPDATE: ['ROLE', 'UPDATE'];
+  ROLE_DELETE: ['ROLE', 'DELETE'];
+  INVITE_CREATE: ['INVITE', 'CREATE'];
+  INVITE_UPDATE: ['INVITE', 'UPDATE'];
+  INVITE_DELETE: ['INVITE', 'DELETE'];
+  WEBHOOK_CREATE: ['WEBHOOK', 'CREATE'];
+  WEBHOOK_UPDATE: ['WEBHOOK', 'UPDATE'];
+  WEBHOOK_DELETE: ['WEBHOOK', 'DELETE'];
+  EMOJI_CREATE: ['EMOJI', 'CREATE'];
+  EMOJI_UPDATE: ['EMOJI', 'UPDATE'];
+  EMOJI_DELETE: ['EMOJI', 'DELETE'];
+  MESSAGE_DELETE: ['MESSAGE', 'DELETE'];
+  MESSAGE_BULK_DELETE: ['MESSAGE', 'DELETE'];
+  MESSAGE_PIN: ['MESSAGE', 'CREATE'];
+  MESSAGE_UNPIN: ['MESSAGE', 'DELETE'];
+  INTEGRATION_CREATE: ['INTEGRATION', 'CREATE'];
+  INTEGRATION_UPDATE: ['INTEGRATION', 'UPDATE'];
+  INTEGRATION_DELETE: ['INTEGRATION', 'DELETE'];
+  STAGE_INSTANCE_CREATE: ['STAGE_INSTANCE', 'CREATE'];
+  STAGE_INSTANCE_UPDATE: ['STAGE_INSTANCE', 'UPDATE'];
+  STAGE_INSTANCE_DELETE: ['STAGE_INSTANCE', 'DELETE'];
+  STICKER_CREATE: ['STICKER', 'CREATE'];
+  STICKER_UPDATE: ['STICKER', 'UPDATE'];
+  STICKER_DELETE: ['STICKER', 'DELETE'];
+  THREAD_CREATE: ['THREAD', 'CREATE'];
+  THREAD_UPDATE: ['THREAD', 'UPDATE'];
+  THREAD_DELETE: ['THREAD', 'DELETE'];
 }
 
-export type GuildAuditLogsActionType = 'CREATE' | 'DELETE' | 'UPDATE' | 'ALL';
+export interface GuildAuditLogsIds {
+  1: 'GUILD_UPDATE';
+  10: 'CHANNEL_CREATE';
+  11: 'CHANNEL_UPDATE';
+  12: 'CHANNEL_DELETE';
+  13: 'CHANNEL_OVERWRITE_CREATE';
+  14: 'CHANNEL_OVERWRITE_UPDATE';
+  15: 'CHANNEL_OVERWRITE_DELETE';
+  20: 'MEMBER_KICK';
+  21: 'MEMBER_PRUNE';
+  22: 'MEMBER_BAN_ADD';
+  23: 'MEMBER_BAN_REMOVE';
+  24: 'MEMBER_UPDATE';
+  25: 'MEMBER_ROLE_UPDATE';
+  26: 'MEMBER_MOVE';
+  27: 'MEMBER_DISCONNECT';
+  28: 'BOT_ADD';
+  30: 'ROLE_CREATE';
+  31: 'ROLE_UPDATE';
+  32: 'ROLE_DELETE';
+  40: 'INVITE_CREATE';
+  41: 'INVITE_UPDATE';
+  42: 'INVITE_DELETE';
+  50: 'WEBHOOK_CREATE';
+  51: 'WEBHOOK_UPDATE';
+  52: 'WEBHOOK_DELETE';
+  60: 'EMOJI_CREATE';
+  61: 'EMOJI_UPDATE';
+  62: 'EMOJI_DELETE';
+  72: 'MESSAGE_DELETE';
+  73: 'MESSAGE_BULK_DELETE';
+  74: 'MESSAGE_PIN';
+  75: 'MESSAGE_UNPIN';
+  80: 'INTEGRATION_CREATE';
+  81: 'INTEGRATION_UPDATE';
+  82: 'INTEGRATION_DELETE';
+  83: 'STAGE_INSTANCE_CREATE';
+  84: 'STAGE_INSTANCE_UPDATE';
+  85: 'STAGE_INSTANCE_DELETE';
+  90: 'STICKER_CREATE';
+  91: 'STICKER_UPDATE';
+  92: 'STICKER_DELETE';
+  110: 'THREAD_CREATE';
+  111: 'THREAD_UPDATE';
+  112: 'THREAD_DELETE';
+}
+
+export type GuildAuditLogsActions = { [Key in keyof GuildAuditLogsIds as GuildAuditLogsIds[Key]]: Key } & { ALL: null };
+
+export type GuildAuditLogsAction = keyof GuildAuditLogsActions;
+
+export type GuildAuditLogsActionType = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][1] | 'ALL';
+
+export interface GuildAuditLogsEntryExtraField {
+  MEMBER_PRUNE: { removed: number; days: number };
+  MEMBER_MOVE: { channel: GuildChannel | { id: Snowflake }; count: number };
+  MESSAGE_DELETE: { channel: GuildChannel | { id: Snowflake }; count: number };
+  MESSAGE_BULK_DELETE: { channel: GuildChannel | { id: Snowflake }; count: number };
+  MESSAGE_PIN: { channel: GuildChannel | { id: Snowflake }; messageId: Snowflake };
+  MESSAGE_UNPIN: { channel: GuildChannel | { id: Snowflake }; messageId: Snowflake };
+  MEMBER_DISCONNECT: { count: number };
+  CHANNEL_OVERWRITE_CREATE:
+    | Role
+    | GuildMember
+    | { id: Snowflake; name: string; type: OverwriteTypes.role }
+    | { id: Snowflake; type: OverwriteTypes.member };
+  CHANNEL_OVERWRITE_UPDATE:
+    | Role
+    | GuildMember
+    | { id: Snowflake; name: string; type: OverwriteTypes.role }
+    | { id: Snowflake; type: OverwriteTypes.member };
+  CHANNEL_OVERWRITE_DELETE:
+    | Role
+    | GuildMember
+    | { id: Snowflake; name: string; type: OverwriteTypes.role }
+    | { id: Snowflake; type: OverwriteTypes.member };
+  STAGE_INSTANCE_CREATE: GuildChannel | { id: Snowflake };
+  STAGE_INSTANCE_DELETE: GuildChannel | { id: Snowflake };
+  STAGE_INSTANCE_UPDATE: GuildChannel | { id: Snowflake };
+}
+
+export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLogsActionType> {
+  USER: User | null;
+  GUILD: Guild;
+  WEBHOOK: Webhook;
+  INVITE: Invite | { [x: string]: unknown };
+  MESSAGE: TActionType extends 'MESSAGE_BULK_DELETE' ? Guild | { id: Snowflake } : User;
+  INTEGRATION: Integration;
+  CHANNEL: GuildChannel | ThreadChannel | { id: Snowflake; [x: string]: unknown };
+  THREAD: GuildChannel | ThreadChannel | { id: Snowflake; [x: string]: unknown };
+  STAGE_INSTANCE: StageInstance;
+  STICKER: Sticker;
+}
 
 /**
  * Options used to fetch audit logs.
  */
-export interface GuildAuditLogsFetchOptions {
+export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> {
   /**
    * Only return entries before this entry
    */
@@ -15594,27 +15863,16 @@ export interface GuildAuditLogsFetchOptions {
   /**
    * Only return entries for this action type
    */
-  type?: GuildAuditLogsAction | number;
+  type?: T;
 }
 
-export type GuildAuditLogsTarget = keyof GuildAuditLogsTargets;
+export type GuildAuditLogsResolvable = keyof GuildAuditLogsIds | GuildAuditLogsAction | null;
 
-export interface GuildAuditLogsTargets {
-  ALL?: string;
-  GUILD?: string;
-  CHANNEL?: string;
-  USER?: string;
-  ROLE?: string;
-  INVITE?: string;
-  WEBHOOK?: string;
-  EMOJI?: string;
-  MESSAGE?: string;
-  INTEGRATION?: string;
-  STAGE_INSTANCE?: string;
-  STICKER?: string;
-  THREAD?: string;
-  UNKNOWN?: string;
-}
+export type GuildAuditLogsTarget = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][0] | 'ALL' | 'UNKNOWN';
+
+export type GuildAuditLogsTargets = {
+  [key in GuildAuditLogsTarget]?: string;
+};
 
 /**
  * Data that resolves to give a GuildBan object.
@@ -15839,6 +16097,11 @@ export interface GuildEditData {
    * The preferred locale of the guild
    */
   preferredLocale?: string;
+
+  /**
+   * Whether the guild's premium progress bar is enabled
+   */
+  premiumProgressBarEnabled?: boolean;
 
   /**
    * The discovery description of the guild

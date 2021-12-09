@@ -8,6 +8,13 @@ const Permissions = require('../util/Permissions');
 let Structures;
 
 /**
+ * @type {WeakSet<GuildMember>}
+ * @private
+ * @internal
+ */
+const deletedGuildMembers = new WeakSet();
+
+/**
  * Represents a member of a guild on Discord.
  * @implements {TextBasedChannel}
  * @extends {Base}
@@ -38,12 +45,6 @@ class GuildMember extends Base {
      * @type {?number}
      */
     this.premiumSinceTimestamp = null;
-
-    /**
-     * Whether the member has been removed from the guild
-     * @type {boolean}
-     */
-    this.deleted = false;
 
     /**
      * The nickname of this member, if they have one
@@ -92,6 +93,19 @@ class GuildMember extends Base {
     const clone = super._clone();
     clone._roles = this._roles.slice();
     return clone;
+  }
+
+  /**
+   * Whether or not the structure has been deleted
+   * @type {boolean}
+   */
+  get deleted() {
+    return deletedGuildMembers.has(this);
+  }
+
+  set deleted(value) {
+    if (value) deletedGuildMembers.add(this);
+    else deletedGuildMembers.delete(this);
   }
 
   /**
@@ -391,7 +405,8 @@ class GuildMember extends Base {
 
 TextBasedChannel.applyToClass(GuildMember);
 
-module.exports = GuildMember;
+exports.GuildMember = GuildMember;
+exports.deletedGuildMembers = deletedGuildMembers;
 
 /**
  * @external APIGuildMember
