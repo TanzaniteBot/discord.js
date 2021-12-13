@@ -1286,6 +1286,17 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   public constructor(client: Client, data: RawMessageButtonInteractionData);
 
   /**
+   * The component which was interacted with
+   */
+  public readonly component: CacheTypeReducer<
+    Cached,
+    MessageButton,
+    APIButtonComponent,
+    MessageButton | APIButtonComponent,
+    MessageButton | APIButtonComponent
+  >;
+
+  /**
    * The type of component which was interacted with
    */
   public componentType: 'BUTTON';
@@ -5862,8 +5873,10 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public readonly component: CacheTypeReducer<
     Cached,
     MessageActionRowComponent,
-    Exclude<APIMessageComponent, APIActionRowComponent>
-  > | null;
+    Exclude<APIMessageComponent, APIActionRowComponent>,
+    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>,
+    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>
+  >;
 
   /**
    * The type of component which was interacted with
@@ -7414,6 +7427,17 @@ export class Role extends Base {
  */
 export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends MessageComponentInteraction<Cached> {
   public constructor(client: Client, data: RawMessageSelectMenuInteractionData);
+
+  /**
+   * The component which was interacted with
+   */
+  public readonly component: CacheTypeReducer<
+    Cached,
+    MessageSelectMenu,
+    APISelectMenuComponent,
+    MessageSelectMenu | APISelectMenuComponent,
+    MessageSelectMenu | APISelectMenuComponent
+  >;
 
   /**
    * The type of component which was interacted with
