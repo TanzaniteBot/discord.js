@@ -1317,6 +1317,36 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   public inRawGuild(): this is ButtonInteraction<'raw'>;
 }
 
+export type KeyedEnum<K, T> = {
+  [Key in keyof K]: T | string;
+};
+
+export type EnumValueMapped<E extends KeyedEnum<T, number>, T extends Partial<Record<keyof E, unknown>>> = T & {
+  [Key in keyof T as E[Key]]: T[Key];
+};
+
+export type MappedChannelCategoryTypes = EnumValueMapped<
+  typeof ChannelTypes,
+  {
+    GUILD_NEWS: NewsChannel;
+    GUILD_VOICE: VoiceChannel;
+    GUILD_TEXT: TextChannel;
+    GUILD_STORE: StoreChannel;
+    GUILD_STAGE_VOICE: StageChannel;
+  }
+>;
+
+export type CategoryChannelTypes = ExcludeEnum<
+  typeof ChannelTypes,
+  | 'DM'
+  | 'GROUP_DM'
+  | 'UNKNOWN'
+  | 'GUILD_PUBLIC_THREAD'
+  | 'GUILD_NEWS_THREAD'
+  | 'GUILD_PRIVATE_THREAD'
+  | 'GUILD_CATEGORY'
+>;
+
 /**
  * Represents a guild category channel on Discord.
  */
@@ -1336,28 +1366,28 @@ export class CategoryChannel extends GuildChannel {
    * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
    * @param name The name of the new channel
    * @param options Options for creating the new channel
+   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
    */
-  public createChannel(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: 'GUILD_VOICE' },
-  ): Promise<VoiceChannel>;
-  public createChannel(
-    name: string,
-    options?: CategoryCreateChannelOptions & { type?: 'GUILD_TEXT' },
-  ): Promise<TextChannel>;
-  public createChannel(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: 'GUILD_NEWS' },
-  ): Promise<NewsChannel>;
-  /** @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information */
   public createChannel(
     name: string,
     options: CategoryCreateChannelOptions & { type: 'GUILD_STORE' },
   ): Promise<StoreChannel>;
-  public createChannel(
+  /**
+   * Creates a new channel within this category.
+   * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   */
+  public createChannel<T extends CategoryChannelTypes>(
     name: string,
-    options: CategoryCreateChannelOptions & { type: 'GUILD_STAGE_VOICE' },
-  ): Promise<StageChannel>;
+    options: CategoryCreateChannelOptions & { type: T },
+  ): Promise<MappedChannelCategoryTypes[T]>;
+  /**
+   * Creates a new channel within this category.
+   * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   */
   public createChannel(
     name: string,
     options: CategoryCreateChannelOptions,
@@ -1389,14 +1419,9 @@ export class Channel extends Base {
 
   /**
    * Whether the channel has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the channel has been deleted
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The channel's id
@@ -1527,6 +1552,11 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Timestamp of the time the client was last `READY` at
    */
   public readonly readyTimestamp: If<Ready, number>;
+
+  /**
+   * The sweeping functions and their intervals used to periodically sweep caches
+   */
+  public sweepers: Sweepers;
 
   /**
    * Shard helpers for the client (only if the process was spawned from a {@link ShardingManager})
@@ -1688,6 +1718,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * // Remove all messages older than 1800 seconds from the messages cache
    * const amount = client.sweepMessages(1800);
    * console.log(`Successfully removed ${amount} messages from the cache.`);
+   * @deprecated Use {@link Sweepers.sweepMessages} instead
    */
   public sweepMessages(lifetime?: number): number;
 
@@ -1896,6 +1927,15 @@ export class Options extends null {
    * `makeCache: Options.cacheWithLimits({ ...Options.defaultMakeCacheSettings, ReactionManager: 0 })`</info>
    */
   public static defaultMakeCacheSettings: CacheWithLimitsOptions;
+
+  /**
+   * The default settings passed to {@link Options.sweepers} (for v14).
+   * The sweepers that this changes are:
+   * * `threads` - Sweep archived threads every hour, removing those archived more than 4 hours ago
+   * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
+   * `sweepers: { ...Options.defaultSweeperSettings, messages: { interval: 300, lifetime: 600 } })`</info>
+   */
+  public static defaultSweeperSettings: SweeperOptions;
 
   /**
    * The default client options.
@@ -2699,14 +2739,9 @@ export class Emoji extends Base {
 
   /**
    * Whether this emoji has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether this emoji has been deleted
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The emoji's id
@@ -2825,14 +2860,9 @@ export class Guild extends AnonymousGuild {
 
   /**
    * Whether the bot has been removed from the guild
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the bot has been removed from the guild
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The hash of the guild discovery splash image
@@ -3896,14 +3926,9 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
 
   /**
    * Whether the member has been removed from the guild
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the member has been removed from the guild
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The displayed color of this member in base 10
@@ -4860,6 +4885,11 @@ export class Invite extends Base {
   public channel: GuildChannel | PartialGroupDMChannel;
 
   /**
+   * The channel's id this invite is for
+   */
+  public channelId: Snowflake;
+
+  /**
    * The code for this invite
    */
   public code: string;
@@ -4898,6 +4928,11 @@ export class Invite extends Base {
    * The user who created this invite
    */
   public inviter: User | null;
+
+  /**
+   * The user's id who created this invite
+   */
+  public inviterId: Snowflake | null;
 
   /**
    * The maximum age of the invite, in seconds, 0 if never expires
@@ -5070,17 +5105,20 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
 
   /**
    * The id of the interval being used to sweep.
+   * @deprecated Use Global Sweepers instead
    */
   public interval: NodeJS.Timeout | null;
 
   /**
    * A function called every sweep interval that returns a function passed to `sweep`.
+   * @deprecated Use Global Sweepers instead
    */
   public sweepFilter: SweepFilter<K, V> | null;
 
   /**
    * Create a sweepFilter function that uses a lifetime to determine sweepability.
    * @param options The options used to generate the filter function
+   * @deprecated Use `Sweepers.filterByLifetime` instead
    */
   public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): SweepFilter<K, V>;
 }
@@ -5108,17 +5146,16 @@ export interface StringMappedInteractionTypes<Cached extends CacheType = CacheTy
   ACTION_ROW: MessageComponentInteraction<Cached>;
 }
 
-export interface EnumMappedInteractionTypes<Cached extends CacheType = CacheType> {
-  1: MessageComponentInteraction<Cached>;
-  2: ButtonInteraction<Cached>;
-  3: SelectMenuInteraction<Cached>;
-}
-
 export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
-export type MappedInteractionTypes<Cached extends boolean = boolean> = StringMappedInteractionTypes<
-  WrapBooleanCache<Cached>
-> &
-  EnumMappedInteractionTypes<WrapBooleanCache<Cached>>;
+
+export type MappedInteractionTypes<Cached extends boolean = boolean> = EnumValueMapped<
+  typeof MessageComponentTypes,
+  {
+    BUTTON: ButtonInteraction<WrapBooleanCache<Cached>>;
+    SELECT_MENU: SelectMenuInteraction<WrapBooleanCache<Cached>>;
+    ACTION_ROW: MessageComponentInteraction<WrapBooleanCache<Cached>>;
+  }
+>;
 
 /**
  * Represents a message on Discord.
@@ -5201,15 +5238,10 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public readonly deletable: boolean;
 
   /**
-   * Whether the message is editable by the client user
+   * Whether or not the message has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the message is editable by the client user
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * Whether the message is editable by the client user
@@ -5906,7 +5938,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   /**
    * The message to which the component was attached
    */
-  public message: CacheTypeReducer<Cached, Message, APIMessage>;
+  public message: GuildCacheMessage<Cached>;
 
   /**
    * Whether this interaction has already been replied to
@@ -6053,7 +6085,7 @@ export class MessageContextMenuInteraction<
   /**
    * The message this interaction was sent from
    */
-  public readonly targetMessage: CacheTypeReducer<Cached, Message, APIMessage>;
+  public readonly targetMessage: NonNullable<CommandInteractionOption<Cached>['message']>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -7164,14 +7196,9 @@ export class Role extends Base {
 
   /**
    * Whether the role has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the role has been deleted
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * Whether the role is editable by the client user
@@ -7418,6 +7445,7 @@ export class Role extends Base {
    * @param role2 Second role to compare
    * @returns Negative number if the first role's position is lower (second role's is higher),
    * positive number if the first's is higher (second's is lower), 0 if equal
+   * @deprecated Use {@link RoleManager.comparePositions} instead.
    */
   public static comparePositions(role1: Role, role2: Role): number;
 }
@@ -7978,14 +8006,9 @@ export class StageInstance extends Base {
 
   /**
    * Whether the stage instance has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether the stage instance has been deleted
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The id of the guild associated with the stage channel
@@ -8121,14 +8144,9 @@ export class Sticker extends Base {
 
   /**
    * Whether or not the sticker has been deleted
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
-  public get deleted(): boolean;
-
-  /**
-   * Whether or not the sticker has been deleted
-   * @deprecated Will be removed in v14
-   */
-  public set deleted(value: boolean);
+  public deleted: boolean;
 
   /**
    * The timestamp the sticker was created at
@@ -8369,6 +8387,200 @@ export class StoreChannel extends GuildChannel {
    * The type of the channel
    */
   public type: 'GUILD_STORE';
+}
+
+/**
+ * A container for all cache sweeping intervals and their associated sweep methods.
+ */
+export class Sweepers {
+  public constructor(client: Client, options: SweeperOptions);
+
+  /**
+   * The client that instantiated this
+   */
+  public readonly client: Client;
+
+  /**
+   * A record of interval timeout that is used to sweep the indicated items, or null if not being swept
+   */
+  public intervals: Record<SweeperKey, NodeJS.Timeout | null>;
+
+  /**
+   * The options the sweepers were instantiated with
+   */
+  public options: SweeperOptions;
+
+  /**
+   * Sweeps all guild and global application commands and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which commands will be removed from the caches.
+   * @returns Amount of commands that were removed from the caches
+   */
+  public sweepApplicationCommands(
+    filter: CollectionSweepFilter<
+      SweeperDefinitions['applicationCommands'][0],
+      SweeperDefinitions['applicationCommands'][1]
+    >,
+  ): number;
+
+  /**
+   * Sweeps all guild bans and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which bans will be removed from the caches.
+   * @returns Amount of bans that were removed from the caches
+   */
+  public sweepBans(filter: CollectionSweepFilter<SweeperDefinitions['bans'][0], SweeperDefinitions['bans'][1]>): number;
+
+  /**
+   * Sweeps all guild emojis and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which emojis will be removed from the caches.
+   * @returns Amount of emojis that were removed from the caches
+   */
+  public sweepEmojis(
+    filter: CollectionSweepFilter<SweeperDefinitions['emojis'][0], SweeperDefinitions['emojis'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all guild invites and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which invites will be removed from the caches.
+   * @returns Amount of invites that were removed from the caches
+   */
+  public sweepInvites(
+    filter: CollectionSweepFilter<SweeperDefinitions['invites'][0], SweeperDefinitions['invites'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all guild members and removes the ones which are indicated by the filter.
+   * <info>It is highly recommended to keep the client guild member cached</info>
+   * @param filter The function used to determine which guild members will be removed from the caches.
+   * @returns Amount of guild members that were removed from the caches
+   */
+  public sweepGuildMembers(
+    filter: CollectionSweepFilter<SweeperDefinitions['guildMembers'][0], SweeperDefinitions['guildMembers'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all text-based channels' messages and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which messages will be removed from the caches.
+   * @returns Amount of messages that were removed from the caches
+   * @example
+   * // Remove all messages older than 1800 seconds from the messages cache
+   * const amount = sweepers.sweepMessages(
+   *   Sweepers.filterByLifetime({
+   *     lifetime: 1800,
+   *     getComparisonTimestamp: m => m.editedTimestamp ?? m.createdTimestamp,
+   *   })(),
+   * );
+   * console.log(`Successfully removed ${amount} messages from the cache.`);
+   */
+  public sweepMessages(
+    filter: CollectionSweepFilter<SweeperDefinitions['messages'][0], SweeperDefinitions['messages'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all presences and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which presences will be removed from the caches.
+   * @returns Amount of presences that were removed from the caches
+   */
+  public sweepPresences(
+    filter: CollectionSweepFilter<SweeperDefinitions['presences'][0], SweeperDefinitions['presences'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all message reactions and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which reactions will be removed from the caches.
+   * @returns Amount of reactions that were removed from the caches
+   */
+  public sweepReactions(
+    filter: CollectionSweepFilter<SweeperDefinitions['reactions'][0], SweeperDefinitions['reactions'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all guild stage instances and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which stage instances will be removed from the caches.
+   * @returns Amount of stage instances that were removed from the caches
+   */
+  public sweepStageInstances(
+    filter: CollectionSweepFilter<SweeperDefinitions['stageInstances'][0], SweeperDefinitions['stageInstances'][1]>,
+  ): number;
+
+  public sweepStickers(
+    filter: CollectionSweepFilter<SweeperDefinitions['stickers'][0], SweeperDefinitions['stickers'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all thread members and removes the ones which are indicated by the filter.
+   * <info>It is highly recommended to keep the client thread member cached</info>
+   * @param filter The function used to determine which thread members will be removed from the caches.
+   * @returns Amount of thread members that were removed from the caches
+   */
+  public sweepThreadMembers(
+    filter: CollectionSweepFilter<SweeperDefinitions['threadMembers'][0], SweeperDefinitions['threadMembers'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all threads and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which threads will be removed from the caches.
+   * @returns Amount of threads that were removed from the caches
+   * @example
+   * // Remove all threads archived greater than 1 day ago from all the channel caches
+   * const amount = sweepers.sweepThreads(
+   *   Sweepers.filterByLifetime({
+   *     getComparisonTimestamp: t => t.archivedTimestamp,
+   *     excludeFromSweep: t => !t.archived,
+   *   })(),
+   * );
+   * console.log(`Successfully removed ${amount} threads from the cache.`);
+   */
+  public sweepThreads(
+    filter: CollectionSweepFilter<SweeperDefinitions['threads'][0], SweeperDefinitions['threads'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all users and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which users will be removed from the caches.
+   * @returns Amount of users that were removed from the caches
+   */
+  public sweepUsers(
+    filter: CollectionSweepFilter<SweeperDefinitions['users'][0], SweeperDefinitions['users'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all guild voice states and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which voice states will be removed from the caches.
+   * @returns Amount of voice states that were removed from the caches
+   */
+  public sweepVoiceStates(
+    filter: CollectionSweepFilter<SweeperDefinitions['voiceStates'][0], SweeperDefinitions['voiceStates'][1]>,
+  ): number;
+
+  /**
+   * Creates a sweep filter that sweeps archived threads
+   * @param lifetime How long a thread has to be archived to be valid for sweeping
+   */
+  public static archivedThreadSweepFilter(
+    lifetime?: number,
+  ): GlobalSweepFilter<SweeperDefinitions['threads'][0], SweeperDefinitions['threads'][1]>;
+
+  /**
+   * Creates a sweep filter that sweeps expired invites
+   * @param lifetime How long ago an invite has to have expired to be valid for sweeping
+   */
+  public static expiredInviteSweepFilter(
+    lifetime?: number,
+  ): GlobalSweepFilter<SweeperDefinitions['invites'][0], SweeperDefinitions['invites'][1]>;
+
+  /**
+   * Create a sweepFilter function that uses a lifetime to determine sweepability.
+   * @param options The options used to generate the filter function
+   */
+  public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): GlobalSweepFilter<K, V>;
+
+  /**
+   * Creates a sweep filter that sweeps outdated messages (edits taken into account)
+   * @param lifetime How long ago a message has to have been sent or edited to be valid for sweeping
+   */
+  public static outdatedMessageSweepFilter(
+    lifetime?: number,
+  ): GlobalSweepFilter<SweeperDefinitions['messages'][0], SweeperDefinitions['messages'][1]>;
 }
 
 /**
@@ -9145,6 +9357,7 @@ export class Util extends null {
   /**
    * Creates a sweep filter that sweeps archived threads
    * @param lifetime How long a thread has to be archived to be valid for sweeping
+   * @deprecated When not using with `makeCache` use `Sweepers.archivedThreadSweepFilter` instead
    */
   public static archivedThreadSweepFilter<K, V>(lifetime?: number): SweepFilter<K, V>;
 
@@ -11242,6 +11455,16 @@ export class GuildApplicationCommandManager extends ApplicationCommandManager<Ap
   public set(commands: ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommand>>;
 }
 
+export type MappedGuildChannelTypes = EnumValueMapped<
+  typeof ChannelTypes,
+  {
+    GUILD_CATEGORY: CategoryChannel;
+  }
+> &
+  MappedChannelCategoryTypes;
+
+export type GuildChannelTypes = CategoryChannelTypes | ChannelTypes.GUILD_CATEGORY | 'GUILD_CATEGORY';
+
 /**
  * Manages API methods for GuildChannels and stores their cache.
  */
@@ -11283,20 +11506,23 @@ export class GuildChannelManager extends CachedManager<
    *     },
    *   ],
    * })
+   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
    */
-  public create(name: string, options: GuildChannelCreateOptions & { type: 'GUILD_VOICE' }): Promise<VoiceChannel>;
-  public create(
-    name: string,
-    options: GuildChannelCreateOptions & { type: 'GUILD_CATEGORY' },
-  ): Promise<CategoryChannel>;
-  public create(name: string, options?: GuildChannelCreateOptions & { type?: 'GUILD_TEXT' }): Promise<TextChannel>;
-  public create(name: string, options: GuildChannelCreateOptions & { type: 'GUILD_NEWS' }): Promise<NewsChannel>;
-  /** @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information */
   public create(name: string, options: GuildChannelCreateOptions & { type: 'GUILD_STORE' }): Promise<StoreChannel>;
-  public create(
+  /**
+   * Creates a new channel in the guild.
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   */
+  public create<T extends GuildChannelTypes>(
     name: string,
-    options: GuildChannelCreateOptions & { type: 'GUILD_STAGE_VOICE' },
-  ): Promise<StageChannel>;
+    options: GuildChannelCreateOptions & { type: T },
+  ): Promise<MappedGuildChannelTypes[T]>;
+  /**
+   * Creates a new channel in the guild.
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   */
   public create(
     name: string,
     options: GuildChannelCreateOptions,
@@ -12241,6 +12467,18 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
   public edit(role: RoleResolvable, options: RoleData, reason?: string): Promise<Role>;
 
   /**
+   * Deletes a role.
+   * @param role The role to delete
+   * @param reason Reason for deleting the role
+   * @example
+   * // Delete a role
+   * guild.roles.delete('222079219327434752', 'The role needed to go')
+   *   .then(deleted => console.log(`Deleted role ${deleted.name}`))
+   *   .catch(console.error);
+   */
+  public delete(role: RoleResolvable, reason?: string): Promise<void>;
+
+  /**
    * Batch-updates the guild's role positions
    * @param rolePositions Role positions to update
    * @example
@@ -12249,6 +12487,15 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
    *  .catch(console.error);
    */
   public setPositions(rolePositions: readonly RolePosition[]): Promise<Guild>;
+
+  /**
+   * Compares the positions of two roles.
+   * @param role1 First role to compare
+   * @param role2 Second role to compare
+   * @returns Negative number if the first role's position is lower (second role's is higher),
+   * positive number if the first's is higher (second's is lower), 0 if equal
+   */
+  public comparePositions(role1: RoleResolvable, role2: RoleResolvable): number;
 }
 
 /**
@@ -12989,6 +13236,7 @@ export interface APIErrors {
   GUILD_NOT_AVAILABLE_IN_LOCATION: 50095;
   GUILD_MONETIZATION_REQUIRED: 50097;
   INSUFFICIENT_BOOSTS: 50101;
+  INVALID_JSON: 50109;
   TWO_FACTOR_REQUIRED: 60003;
   NO_USERS_WITH_DISCORDTAG_EXIST: 80004;
   REACTION_BLOCKED: 90001;
@@ -13993,6 +14241,8 @@ export interface ClientEvents extends BaseClientEvents {
    */
   applicationCommandUpdate: [oldCommand: ApplicationCommand | null, newCommand: ApplicationCommand];
 
+  cacheSweep: [message: string];
+
   /**
    * Emitted whenever a guild channel is created.
    * @param channel The channel that was created
@@ -14443,13 +14693,13 @@ export interface ClientOptions {
 
   /**
    * How long a message should stay in the cache until it is considered sweepable (in seconds, 0 for forever)
-   * @deprecated Use `makeCache` with a `LimitedCollection` for `MessageManager` instead.
+   * @deprecated Pass the value of this property as `lifetime` to `sweepers.messages` instead.
    */
   messageCacheLifetime?: number;
 
   /**
    * How frequently to remove messages from the cache that are older than the message cache lifetime (in seconds, 0 for never)
-   * @deprecated Use `makeCache` with a `LimitedCollection` for `MessageManager` instead.
+   * @deprecated Pass the value of this property as `interval` to `sweepers.messages` instead.
    */
   messageSweepInterval?: number;
 
@@ -14524,6 +14774,8 @@ export interface ClientOptions {
    * Intents to enable for this connection
    */
   intents: BitFieldResolvable<IntentsString, number>;
+
+  sweepers?: SweeperOptions;
 
   /**
    * Options for the WebSocket
@@ -14723,7 +14975,7 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   /**
    * The resolved message
    */
-  message?: CacheTypeReducer<Cached, Message, APIMessage>;
+  message?: GuildCacheMessage<Cached>;
 }
 
 /**
@@ -15087,6 +15339,8 @@ export interface ConstantsEvents {
    * Emitted for general debugging information.
    */
   DEBUG: 'debug';
+
+  CACHE_SWEEP: 'cacheSweep';
 
   /**
    * Emitted when a shard's WebSocket disconnects and will no longer reconnect.
@@ -15710,6 +15964,13 @@ export interface FileOptions {
 }
 
 /**
+ * @returns Return `null` to skip sweeping, otherwise a function passed to `sweep()`,
+ * See {@link [Collection.sweep](https://discord.js.org/#/docs/collection/main/class/Collection?scrollTo=sweep)}
+ * for the definition of this function.
+ */
+export type GlobalSweepFilter<K, V> = () => ((value: V, key: K, collection: Collection<K, V>) => boolean) | null;
+
+/**
  * Data used for overwriting the permissions for all application commands in a guild.
  */
 export interface GuildApplicationCommandPermissionData {
@@ -15856,7 +16117,7 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
   USER: User | null;
   GUILD: Guild;
   WEBHOOK: Webhook;
-  INVITE: Invite | { [x: string]: unknown };
+  INVITE: Invite;
   MESSAGE: TActionType extends 'MESSAGE_BULK_DELETE' ? Guild | { id: Snowflake } : User;
   INTEGRATION: Integration;
   CHANNEL: GuildChannel | { id: Snowflake; [x: string]: unknown };
@@ -18129,6 +18390,10 @@ export interface StageInstanceEditOptions {
   privacyLevel?: PrivacyLevel | number;
 }
 
+export type SweeperKey = keyof SweeperDefinitions;
+
+export type CollectionSweepFilter<K, V> = (value: V, key: K, collection: Collection<K, V>) => boolean;
+
 /**
  * @param collection The collection being swept
  * @returns Return `null` to skip sweeping, otherwise a function passed to `sweep()`, See {@link Collection.sweep} for the
@@ -18137,6 +18402,71 @@ export interface StageInstanceEditOptions {
 export type SweepFilter<K, V> = (
   collection: LimitedCollection<K, V>,
 ) => ((value: V, key: K, collection: LimitedCollection<K, V>) => boolean) | null;
+
+/**
+ * Options for sweeping a single type of item from cache
+ */
+export interface SweepOptions<K, V> {
+  /**
+   * The interval (in seconds) at which to perform sweeping of the item
+   */
+  interval: number;
+
+  /**
+   * The function used to determine the function passed to the sweep method
+   * <info>This property is optional when the key is `invites`, `messages`, or `threads` and `lifetime` is set</info>
+   */
+  filter: GlobalSweepFilter<K, V>;
+}
+
+/**
+ * Options for sweeping a single type of item from cache
+ */
+export interface LifetimeSweepOptions {
+  /**
+   * The interval (in seconds) at which to perform sweeping of the item
+   */
+  interval: number;
+
+  /**
+   * How long an item should stay in cache until it is considered sweepable.
+   * <warn>This property is only valid for the `invites`, `messages`, and `threads` keys. The `filter` property
+   * is mutually exclusive to this property and takes priority</warn>
+   */
+  lifetime: number;
+
+  /**
+   * The function used to determine the function passed to the sweep method
+   * <info>This property is optional when the key is `invites`, `messages`, or `threads` and `lifetime` is set</info>
+   */
+  filter?: never;
+}
+
+export interface SweeperDefinitions {
+  applicationCommands: [Snowflake, ApplicationCommand];
+  bans: [Snowflake, GuildBan];
+  emojis: [Snowflake, GuildEmoji];
+  invites: [string, Invite, true];
+  guildMembers: [Snowflake, GuildMember];
+  messages: [Snowflake, Message, true];
+  presences: [Snowflake, Presence];
+  reactions: [string | Snowflake, MessageReaction];
+  stageInstances: [Snowflake, StageInstance];
+  stickers: [Snowflake, Sticker];
+  threadMembers: [Snowflake, ThreadMember];
+  threads: [Snowflake, ThreadChannel, true];
+  users: [Snowflake, User];
+  voiceStates: [Snowflake, VoiceState];
+}
+
+/**
+ * Options for {@link Sweepers} defining the behavior of cache sweeping
+ */
+export type SweeperOptions = {
+  [K in keyof SweeperDefinitions]?: SweeperDefinitions[K][2] extends true
+    ? SweepOptions<SweeperDefinitions[K][0], SweeperDefinitions[K][1]> | LifetimeSweepOptions
+    : SweepOptions<SweeperDefinitions[K][0], SweeperDefinitions[K][1]>;
+};
 
 /**
  * Options for defining the behavior of a LimitedCollection
@@ -18154,11 +18484,13 @@ export interface LimitedCollectionOptions<K, V> {
 
   /**
    * A function ran every `sweepInterval` to determine how to sweep
+   * @deprecated Use Global Sweepers instead
    */
   sweepFilter?: SweepFilter<K, V>;
 
   /**
    * How frequently, in seconds, to sweep the collection.
+   * @deprecated Use Global Sweepers instead
    */
   sweepInterval?: number;
 }

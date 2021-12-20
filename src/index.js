@@ -27,6 +27,7 @@ exports.Permissions = require('./util/Permissions');
 exports.RateLimitError = require('./rest/RateLimitError');
 exports.SnowflakeUtil = require('./util/SnowflakeUtil');
 exports.Structures = require('./util/Structures');
+exports.Sweepers = require('./util/Sweepers');
 exports.SystemChannelFlags = require('./util/SystemChannelFlags');
 exports.ThreadMemberFlags = require('./util/ThreadMemberFlags');
 exports.UserFlags = require('./util/UserFlags');

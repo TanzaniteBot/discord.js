@@ -13,6 +13,7 @@ let Structures;
  * @internal
  */
 const deletedGuildMembers = new WeakSet();
+let deprecationEmittedForDeleted = false;
 
 /**
  * Represents a member of a guild on Discord.
@@ -98,12 +99,29 @@ class GuildMember extends Base {
   /**
    * Whether or not the structure has been deleted
    * @type {boolean}
+   * @deprecated This will be removed in the next major version, see https://github.com/discordjs/discord.js/issues/7091
    */
   get deleted() {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'GuildMember#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
     return deletedGuildMembers.has(this);
   }
 
   set deleted(value) {
+    if (!deprecationEmittedForDeleted) {
+      deprecationEmittedForDeleted = true;
+      process.emitWarning(
+        'GuildMember#deleted is deprecated, see https://github.com/discordjs/discord.js/issues/7091.',
+        'DeprecationWarning',
+      );
+    }
+
     if (value) deletedGuildMembers.add(this);
     else deletedGuildMembers.delete(this);
   }
