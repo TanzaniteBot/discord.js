@@ -80,6 +80,9 @@ import {
   StickerTypes,
   VerificationLevels,
   WebhookTypes,
+  GuildScheduledEventEntityTypes,
+  GuildScheduledEventStatuses,
+  GuildScheduledEventPrivacyLevels,
 } from './enums';
 import {
   RawActivityData,
@@ -99,6 +102,7 @@ import {
   RawGuildEmojiData,
   RawGuildMemberData,
   RawGuildPreviewData,
+  RawGuildScheduledEventData,
   RawGuildTemplateData,
   RawIntegrationApplicationData,
   RawIntegrationData,
@@ -978,7 +982,7 @@ export class BaseGuildEmoji extends Emoji {
 /**
  * Represents a text-based guild channel on Discord.
  */
-export class BaseGuildTextChannel extends TextBasedChannel(GuildChannel) {
+export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   /**
    * @param guild The guild the text channel is part of
    * @param data The data for the text channel
@@ -1354,7 +1358,7 @@ export class CategoryChannel extends GuildChannel {
   /**
    * Channels that are a part of this category
    */
-  public readonly children: Collection<Snowflake, GuildChannel>;
+  public readonly children: Collection<Snowflake, Exclude<NonThreadGuildBasedChannel, CategoryChannel>>;
 
   /**
    * The type of the channel
@@ -1366,19 +1370,8 @@ export class CategoryChannel extends GuildChannel {
    * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
    * @param name The name of the new channel
    * @param options Options for creating the new channel
-   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
    */
-  public createChannel(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: 'GUILD_STORE' },
-  ): Promise<StoreChannel>;
-  /**
-   * Creates a new channel within this category.
-   * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   */
-  public createChannel<T extends CategoryChannelTypes>(
+  public createChannel<T extends Exclude<CategoryChannelTypes, 'GUILD_STORE'>>(
     name: string,
     options: CategoryCreateChannelOptions & { type: T },
   ): Promise<MappedChannelCategoryTypes[T]>;
@@ -1387,11 +1380,13 @@ export class CategoryChannel extends GuildChannel {
    * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
    * @param name The name of the new channel
    * @param options Options for creating the new channel
+   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
    */
   public createChannel(
     name: string,
-    options: CategoryCreateChannelOptions,
-  ): Promise<TextChannel | VoiceChannel | NewsChannel | StoreChannel | StageChannel>;
+    options: CategoryCreateChannelOptions & { type: 'GUILD_STORE' | ChannelTypes.GUILD_STORE },
+  ): Promise<StoreChannel>;
+  public createChannel(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
 /**
@@ -1447,18 +1442,18 @@ export class Channel extends Base {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public delete(): Promise<Channel>;
+  public delete(): Promise<this>;
 
   /**
    * Fetches this channel.
    * @param force Whether to skip the cache check and request the API
    */
-  public fetch(force?: boolean): Promise<Channel>;
+  public fetch(force?: boolean): Promise<this>;
 
   /**
    * Indicates whether this channel is {@link TextBasedChannels text-based}.
    */
-  public isText(): this is TextBasedChannels;
+  public isText(): this is TextBasedChannel;
 
   /**
    * Indicates whether this channel is {@link BaseGuildVoiceChannel voice-based}.
@@ -1609,12 +1604,13 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   /**
    * Obtains an invite from Discord.
    * @param invite Invite code or URL
+   * @param options Options for fetching the invite
    * @example
    * client.fetchInvite('https://discord.gg/djs')
    *   .then(invite => console.log(`Obtained invite with code: ${invite.code}`))
    *   .catch(console.error);
    */
-  public fetchInvite(invite: InviteResolvable): Promise<Invite>;
+  public fetchInvite(invite: InviteResolvable, options?: ClientFetchInviteOptions): Promise<Invite>;
 
   /**
    * Obtains a template from Discord.
@@ -2687,7 +2683,7 @@ export class DiscordAPIError extends Error {
 /**
  * Represents a direct message channel between two users.
  */
-export class DMChannel extends TextBasedChannel(Channel, ['bulkDelete']) {
+export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
   /**
    * @param client The instantiating client
    * @param data The data for the DM channel
@@ -2799,7 +2795,7 @@ export class Guild extends AnonymousGuild {
    * Creates a collection of this guild's or a specific category's channels, sorted by their position and ids.
    * @param channel Category to get the channels of
    */
-  private _sortedChannels(channel: Channel): Collection<Snowflake, GuildChannel>;
+  private _sortedChannels(channel: NonThreadGuildBasedChannel): Collection<Snowflake, NonThreadGuildBasedChannel>;
 
   /**
    * The id of the voice channel where AFK members are moved
@@ -2985,6 +2981,11 @@ export class Guild extends AnonymousGuild {
    * The rules channel's id for the guild
    */
   public rulesChannelId: Snowflake | null;
+
+  /**
+   * A manager of the scheduled events of this guild
+   */
+  public scheduledEvents: GuildScheduledEventManager;
 
   /**
    * The Shard this Guild belongs to.
@@ -3961,6 +3962,16 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public pending: boolean;
 
   /**
+   * The time this member's timeout will be removed
+   */
+  public readonly communicationDisabledUntil: Date | null;
+
+  /**
+   * The timestamp this member's timeout will be removed
+   */
+  public communicationDisabledUntilTimestamp: number | null;
+
+  /**
    * The time this member joined the guild
    */
   public readonly joinedAt: Date | null;
@@ -3980,6 +3991,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * This is a prerequisite for many moderative actions.
    */
   public readonly manageable: boolean;
+
+  /**
+   * Whether this member is moderatable by the client user
+   */
+  public readonly moderatable: boolean;
 
   /**
    * The nickname of this member, if they have one
@@ -4043,6 +4059,32 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    *   .catch(console.error);
    */
   public ban(options?: BanOptions): Promise<GuildMember>;
+
+  /**
+   * Times this guild member out.
+   * @param communicationDisabledUntil The date or timestamp
+   * for the member's communication to be disabled until. Provide `null` to remove the timeout.
+   * @param reason The reason for this timeout.
+   * @example
+   * // Time a guild member out for 5 minutes
+   * guildMember.disableCommunicationUntil(Date.now() + (5 * 60 * 1000), 'They deserved it')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  public disableCommunicationUntil(timeout: DateResolvable | null, reason?: string): Promise<GuildMember>;
+
+  /**
+   * Times this guild member out.
+   * @param timeout The time in milliseconds
+   * for the member's communication to be disabled until. Provide `null` to remove the timeout.
+   * @param reason The reason for this timeout.
+   * @example
+   * // Time a guild member out for 5 minutes
+   * guildMember.timeout(5 * 60 * 1000, 'They deserved it')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  public timeout(timeout: number | null, reason?: string): Promise<GuildMember>;
 
   /**
    * Fetches this GuildMember.
@@ -4214,6 +4256,268 @@ export class GuildPreview extends Base {
    * console.log(`Hello from ${previewGuild}!`);
    */
   public toString(): string;
+}
+
+/**
+ * Represents a scheduled event in a {@link Guild}.
+ */
+export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildScheduledEventStatus> extends Base {
+  private constructor(client: Client, data: RawGuildScheduledEventData);
+
+  /**
+   * The id of the guild scheduled event
+   */
+  public id: Snowflake;
+
+  /**
+   * The id of the guild this guild scheduled event belongs to
+   */
+  public guildId: Snowflake;
+
+  /**
+   * The channel id in which the scheduled event will be hosted, or `null` if entity type is `EXTERNAL`
+   */
+  public channelId: Snowflake | null;
+
+  /**
+   * The id of the user that created this guild scheduled event
+   */
+  public creatorId: Snowflake | null;
+
+  /**
+   * The name of the guild scheduled event
+   */
+  public name: string;
+
+  /**
+   * The description of the guild scheduled event
+   */
+  public description: string | null;
+
+  /**
+   * The timestamp the guild scheduled event will start at
+   * <info>This can be potentially `null` only when it's an {@link AuditLogEntryTarget}</info>
+   */
+  public scheduledStartTimestamp: number | null;
+
+  /**
+   * The timestamp the guild scheduled event will end at,
+   * or `null` if the event does not have a scheduled time to end
+   */
+  public scheduledEndTimestamp: number | null;
+
+  /**
+   * The privacy level of the guild scheduled event
+   */
+  public privacyLevel: GuildScheduledEventPrivacyLevel;
+
+  /**
+   * The status of the guild scheduled event
+   */
+  public status: S;
+
+  /**
+   * The type of hosting entity associated with the scheduled event
+   */
+  public entityType: GuildScheduledEventEntityType;
+
+  /**
+   * The id of the hosting entity associated with the scheduled event
+   */
+  public entityId: Snowflake | null;
+
+  /**
+   * Additional metadata
+   */
+  public entityMetadata: GuildScheduledEventEntityMetadata;
+
+  /**
+   * The number of users who are subscribed to this guild scheduled event
+   */
+  public userCount: number | null;
+
+  /**
+   * The user that created this guild scheduled event
+   */
+  public creator: User | null;
+
+  /**
+   * The timestamp the guild scheduled event was created at
+   */
+  public readonly createdTimestamp: number;
+
+  /**
+   * The time the guild scheduled event was created at
+   */
+  public readonly createdAt: Date;
+
+  /**
+   * The time the guild scheduled event will start at
+   */
+  public readonly scheduledStartAt: Date;
+
+  /**
+   * The time the guild scheduled event will end at,
+   * or `null` if the event does not have a scheduled time to end
+   */
+  public readonly scheduledEndAt: Date | null;
+
+  /**
+   * The channel associated with this scheduled event
+   */
+  public readonly channel: VoiceChannel | StageChannel | null;
+
+  /**
+   * The guild this scheduled event belongs to
+   */
+  public readonly guild: Guild | null;
+
+  /**
+   * The URL to the guild scheduled event
+   */
+  public readonly url: string;
+
+  /**
+   * Creates an invite URL to this guild scheduled event.
+   * @param options The options to create the invite
+   */
+  public createInviteURL(options?: CreateGuildScheduledEventInviteURLOptions): Promise<string>;
+
+  /**
+   * Edits this guild scheduled event.
+   * @param options The options to edit the guild scheduled event
+   * @example
+   * // Edit a guild scheduled event
+   * guildScheduledEvent.edit({ name: 'Party' })
+   *  .then(guildScheduledEvent => console.log(guildScheduledEvent))
+   *  .catch(console.error);
+   */
+  public edit<T extends GuildScheduledEventSetStatusArg<S>>(
+    options: GuildScheduledEventEditOptions<S, T>,
+  ): Promise<GuildScheduledEvent<T>>;
+
+  /**
+   * Deletes this guild scheduled event.
+   * @example
+   * // Delete a guild scheduled event
+   * guildScheduledEvent.delete()
+   *  .then(guildScheduledEvent => console.log(guildScheduledEvent))
+   *  .catch(console.error);
+   */
+  public delete(): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Sets a new name for the guild scheduled event.
+   * @param name The new name of the guild scheduled event
+   * @param reason The reason for changing the name
+   * @example
+   * // Set name of a guild scheduled event
+   * guildScheduledEvent.setName('Birthday Party')
+   *  .then(guildScheduledEvent => console.log(`Set the name to: ${guildScheduledEvent.name}`))
+   *  .catch(console.error);
+   */
+  public setName(name: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Sets a new time to schedule the event at.
+   * @param scheduledStartTime The time to schedule the event at
+   * @param reason The reason for changing the scheduled start time
+   * @example
+   * // Set start time of a guild scheduled event
+   * guildScheduledEvent.setScheduledStartTime('2022-09-24T00:00:00+05:30')
+   *  .then(guildScheduledEvent => console.log(`Set the start time to: ${guildScheduledEvent.scheduledStartTime}`))
+   *  .catch(console.error);
+   */
+  public setScheduledStartTime(scheduledStartTime: DateResolvable, reason?: string): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Sets a new time to end the event at.
+   * @param scheduledEndTime The time to end the event at
+   * @param reason The reason for changing the scheduled end time
+   * @example
+   * // Set end time of a guild scheduled event
+   * guildScheduledEvent.setScheduledEndTime('2022-09-25T00:00:00+05:30')
+   *  .then(guildScheduledEvent => console.log(`Set the end time to: ${guildScheduledEvent.scheduledEndTime}`))
+   *  .catch(console.error);
+   */
+  public setScheduledEndTime(scheduledEndTime: DateResolvable, reason?: string): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Sets the new description of the guild scheduled event.
+   * @param description The description of the guild scheduled event
+   * @param reason The reason for changing the description
+   * @example
+   * // Set description of a guild scheduled event
+   * guildScheduledEvent.setDescription('A virtual birthday party')
+   *  .then(guildScheduledEvent => console.log(`Set the description to: ${guildScheduledEvent.description}`))
+   *  .catch(console.error);
+   */
+  public setDescription(description: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Sets the new status of the guild scheduled event.
+   * <info>If you're working with TypeScript, use this method in conjunction with status type-guards
+   * like {@link GuildScheduledEvent#isScheduled} to get only valid status as suggestion</info>
+   * @param status The status of the guild scheduled event
+   * @param reason The reason for changing the status
+   * @example
+   * // Set status of a guild scheduled event
+   * guildScheduledEvent.setStatus('ACTIVE')
+   *  .then(guildScheduledEvent => console.log(`Set the status to: ${guildScheduledEvent.status}`))
+   *  .catch(console.error);
+   */
+  public setStatus<T extends GuildScheduledEventSetStatusArg<S>>(
+    status: T,
+    reason?: string,
+  ): Promise<GuildScheduledEvent<T>>;
+
+  /**
+   * Sets the new location of the guild scheduled event.
+   * @param location The location of the guild scheduled event
+   * @param reason The reason for changing the location
+   * @example
+   * // Set location of a guild scheduled event
+   * guildScheduledEvent.setLocation('Earth')
+   *  .then(guildScheduledEvent => console.log(`Set the location to: ${guildScheduledEvent.entityMetadata.location}`))
+   *  .catch(console.error);
+   */
+  public setLocation(location: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+
+  /**
+   * Fetches subscribers of this guild scheduled event.
+   * @param options Options for fetching the subscribers
+   */
+  public fetchSubscribers<T extends FetchGuildScheduledEventSubscribersOptions>(
+    options?: T,
+  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<T>>;
+
+  /**
+   * When concatenated with a string, this automatically concatenates the event's URL instead of the object.
+   * @example
+   * // Logs: Event: https://discord.com/events/412345678901234567/499876543211234567
+   * console.log(`Event: ${guildScheduledEvent}`);
+   */
+  public toString(): string;
+
+  /**
+   * Indicates whether this guild scheduled event has an `ACTIVE` status.
+   */
+  public isActive(): this is GuildScheduledEvent<'ACTIVE'>;
+
+  /**
+   * Indicates whether this guild scheduled event has a `CANCELED` status.
+   */
+  public isCanceled(): this is GuildScheduledEvent<'CANCELED'>;
+
+  /**
+   * Indicates whether this guild scheduled event has a `COMPLETED` status.
+   */
+  public isCompleted(): this is GuildScheduledEvent<'COMPLETED'>;
+
+  /**
+   * Indicates whether this guild scheduled event has a `SCHEDULED` status.
+   */
+  public isScheduled(): this is GuildScheduledEvent<'SCHEDULED'>;
 }
 
 /**
@@ -4593,7 +4897,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
     GuildTextBasedChannel | null,
     GuildTextBasedChannel | null,
     GuildTextBasedChannel | null,
-    TextBasedChannels | null
+    TextBasedChannel | null
   >;
 
   /**
@@ -4743,13 +5047,7 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
    * Handles checking if the channel has been deleted, and if so, stops the collector with the reason 'channelDelete'.
    * @param channel The channel that was deleted
    */
-  private _handleChannelDeletion(channel: GuildChannel): void;
-
-  /**
-   * Handles checking if the thread has been deleted, and if so, stops the collector with the reason 'threadDelete'.
-   * @param thread The thread that was deleted
-   */
-  private handleThreadDeletion(thread: ThreadChannel): void;
+  private _handleChannelDeletion(channel: NonThreadGuildBasedChannel): void;
 
   /**
    * Handles checking if the guild has been deleted, and if so, stops the collector with the reason 'guildDelete'.
@@ -4882,7 +5180,7 @@ export class Invite extends Base {
   /**
    * The channel this invite is for
    */
-  public channel: GuildChannel | PartialGroupDMChannel;
+  public channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
 
   /**
    * The channel's id this invite is for
@@ -5022,6 +5320,11 @@ export class Invite extends Base {
    * The stage instance data if there is a public {@link StageInstance} in the stage channel this invite is for
    */
   public stageInstance: InviteStageInstance | null;
+
+  /**
+   * The guild scheduled event data if there is a {@link GuildScheduledEvent} in the channel this invite is for
+   */
+  public guildScheduledEvent: GuildScheduledEvent | null;
 }
 
 /**
@@ -5123,23 +5426,28 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): SweepFilter<K, V>;
 }
 
-export type MessageCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
+export type MessageCollectorOptionsParams<T extends MessageComponentTypeResolvable, Cached extends boolean = boolean> =
   | {
       componentType?: T;
-    } & MessageComponentCollectorOptions<MappedInteractionTypes[T]>;
+    } & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type MessageChannelCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
+export type MessageChannelCollectorOptionsParams<
+  T extends MessageComponentTypeResolvable,
+  Cached extends boolean = boolean,
+> =
   | {
       componentType?: T;
-    } & MessageChannelComponentCollectorOptions<MappedInteractionTypes[T]>;
+    } & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type AwaitMessageCollectorOptionsParams<T extends MessageComponentTypeResolvable> =
+export type AwaitMessageCollectorOptionsParams<
+  T extends MessageComponentTypeResolvable,
+  Cached extends boolean = boolean,
+> =
   | { componentType?: T } & Pick<
-      InteractionCollectorOptions<MappedInteractionTypes[T]>,
+      InteractionCollectorOptions<MappedInteractionTypes<Cached>[T]>,
       keyof AwaitMessageComponentOptions<any>
     >;
 
-export type GuildTextBasedChannel = Exclude<TextBasedChannels, PartialDMChannel | DMChannel>;
 export interface StringMappedInteractionTypes<Cached extends CacheType = CacheType> {
   BUTTON: ButtonInteraction<Cached>;
   SELECT_MENU: SelectMenuInteraction<Cached>;
@@ -5194,7 +5502,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The channel that the message was sent in
    */
-  public readonly channel: If<Cached, GuildTextBasedChannel, TextBasedChannels>;
+  public readonly channel: If<Cached, GuildTextBasedChannel, TextBasedChannel>;
 
   /**
    * The id of the channel the message was sent in
@@ -5390,7 +5698,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .catch(console.error);
    */
   public awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
-    options?: AwaitMessageCollectorOptionsParams<T>,
+    options?: AwaitMessageCollectorOptionsParams<T, Cached>,
   ): Promise<MappedInteractionTypes<Cached>[T]>;
 
   /**
@@ -5429,7 +5737,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
   public createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
-    options?: MessageCollectorOptionsParams<T>,
+    options?: MessageCollectorOptionsParams<T, Cached>,
   ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
 
   /**
@@ -5844,15 +6152,15 @@ export class MessageCollector extends Collector<Snowflake, Message> {
   /**
    * @param channel The channel
    * @param options The options to be applied to this collector
-   * @emits MessageCollector#message
+   * @emits MessageCollector.message
    */
-  public constructor(channel: TextBasedChannels, options?: MessageCollectorOptions);
+  public constructor(channel: TextBasedChannel, options?: MessageCollectorOptions);
 
   /**
    * Handles checking if the channel has been deleted, and if so, stops the collector with the reason 'channelDelete'.
    * @param channel The channel that was deleted
    */
-  private _handleChannelDeletion(channel: GuildChannel): void;
+  private _handleChannelDeletion(channel: NonThreadGuildBasedChannel): void;
 
   /**
    * Handles checking if the guild has been deleted, and if so, stops the collector with the reason 'guildDelete'.
@@ -5863,7 +6171,7 @@ export class MessageCollector extends Collector<Snowflake, Message> {
   /**
    * The channel
    */
-  public channel: TextBasedChannels;
+  public channel: TextBasedChannel;
 
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
@@ -6354,7 +6662,7 @@ export class MessageMentions {
   /**
    * Cached channels for {@link MessageMentions.channels}
    */
-  private _channels: Collection<Snowflake, Channel> | null;
+  private _channels: Collection<Snowflake, TextBasedChannel> | null;
 
   /**
    * The initial message content
@@ -6370,7 +6678,7 @@ export class MessageMentions {
    * Any channels that were mentioned
    * <info>Order as they appear first in the message content</info>
    */
-  public readonly channels: Collection<Snowflake, Channel>;
+  public readonly channels: Collection<Snowflake, TextBasedChannel>;
 
   /**
    * The client the message is from
@@ -6793,7 +7101,7 @@ export class PartialGroupDMChannel extends Channel {
  * Represents a permission overwrite for a role or member in a guild channel.
  */
 export class PermissionOverwrites extends Base {
-  public constructor(client: Client, data: RawPermissionOverwriteData, channel: GuildChannel);
+  public constructor(client: Client, data: RawPermissionOverwriteData, channel: NonThreadGuildBasedChannel);
 
   /**
    * The permissions that are allowed for the user or role.
@@ -6803,7 +7111,7 @@ export class PermissionOverwrites extends Base {
   /**
    * The GuildChannel this overwrite is for
    */
-  public readonly channel: GuildChannel;
+  public readonly channel: NonThreadGuildBasedChannel;
 
   /**
    * The permissions that are denied for the user or role.
@@ -7002,7 +7310,7 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
    * Handles checking if the channel has been deleted, and if so, stops the collector with the reason 'channelDelete'.
    * @param channel The channel that was deleted
    */
-  private _handleChannelDeletion(channel: GuildChannel): void;
+  private _handleChannelDeletion(channel: NonThreadGuildBasedChannel): void;
 
   /**
    * Handles checking if the guild has been deleted, and if so, stops the collector with the reason 'guildDelete'.
@@ -7326,7 +7634,7 @@ export class Role extends Base {
    * @param channel The guild channel to use as context
    * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
    */
-  public permissionsIn(channel: GuildChannel | Snowflake, checkAdmin?: boolean): Readonly<Permissions>;
+  public permissionsIn(channel: NonThreadGuildBasedChannel | Snowflake, checkAdmin?: boolean): Readonly<Permissions>;
 
   /**
    * Sets a new color for the role.
@@ -8297,7 +8605,7 @@ export class StickerPack extends Base {
   /**
    * The id of the sticker pack's banner image
    */
-  public bannerId: Snowflake;
+  public bannerId: Snowflake | null;
 
   /**
    * The sticker which is shown as the pack's icon
@@ -8338,7 +8646,7 @@ export class StickerPack extends Base {
    * The URL to this sticker pack's banner.
    * @param options Options for the Image URL
    */
-  public bannerURL(options?: StaticImageURLOptions): string;
+  public bannerURL(options?: StaticImageURLOptions): string | null;
 }
 
 /**
@@ -8740,7 +9048,7 @@ export class TextChannel extends BaseGuildTextChannel {
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel extends TextBasedChannel(Channel) {
+export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * @param guild The guild the thread channel is part of
    * @param data The data for the thread channel
@@ -8896,7 +9204,7 @@ export class ThreadChannel extends TextBasedChannel(Channel) {
    *   .then(deletedThread => console.log(deletedThread))
    *   .catch(console.error);
    */
-  public delete(reason?: string): Promise<ThreadChannel>;
+  public delete(reason?: string): Promise<this>;
 
   /**
    * Edits this thread.
@@ -9100,12 +9408,12 @@ export class Typing extends Base {
    * @param user The user that started typing
    * @param data The raw data received
    */
-  public constructor(channel: TextBasedChannels, user: PartialUser, data?: RawTypingData);
+  public constructor(channel: TextBasedChannel, user: PartialUser, data?: RawTypingData);
 
   /**
    * The channel the status is from
    */
-  public channel: TextBasedChannels;
+  public channel: TextBasedChannel;
 
   /**
    * The user who is typing
@@ -9258,7 +9566,7 @@ export class User extends PartialTextBasedChannel(Base) {
    * Creates a DM channel between the client and the user.
    * @param force Whether to skip the cache check and request the API
    */
-  public createDM(): Promise<DMChannel>;
+  public createDM(force?: boolean): Promise<DMChannel>;
 
   /**
    * Deletes a DM channel (if one exists) between the client and the user. Resolves with the channel if successful.
@@ -9376,7 +9684,7 @@ export class Util extends null {
    * @param str The string to be converted
    * @param channel The channel the string was sent in
    */
-  public static cleanContent(str: string, channel: TextBasedChannels): string;
+  public static cleanContent(str: string, channel: TextBasedChannel): string;
 
   /**
    * Breaks user, role and everyone/here mentions by adding a zero width space after every @ character
@@ -9539,7 +9847,7 @@ export class Util extends null {
    * @param reason Reason for the change
    * @returns Updated item list, with `id` and `position` properties
    */
-  public static setPosition<T extends Channel | Role>(
+  public static setPosition<T extends AnyChannel | Role>(
     item: T,
     position: number,
     relative: boolean,
@@ -9787,7 +10095,7 @@ export class VoiceState extends Base {
   /**
    * The channel that the member is connected to
    */
-  public readonly channel: VoiceChannel | StageChannel | null;
+  public readonly channel: VoiceBasedChannel | null;
 
   /**
    * The {@link VoiceChannel} or {@link StageChannel} id the member is in
@@ -10684,7 +10992,8 @@ export const Constants: {
   UserAgent: string;
   Endpoints: {
     botGateway: string;
-    invite: (root: string, code: string) => string;
+    invite: (root: string, code: string, eventId?: Snowflake) => string;
+    scheduledEvent: (root: string, guildId: Snowflake, eventId: Snowflake) => string;
     CDN: (root: string) => {
       Emoji: (emojiId: Snowflake, format: DynamicImageFormat) => string;
       Asset: (name: string) => string;
@@ -10741,14 +11050,18 @@ export const Constants: {
       RoleIcon: (roleId: Snowflake, hash: string, format: AllowedImageFormat, size: AllowedImageSize) => string;
     };
   };
+
   WSCodes: {
     1000: 'WS_CLOSE_REQUESTED';
     4004: 'TOKEN_INVALID';
     4010: 'SHARDING_INVALID';
     4011: 'SHARDING_REQUIRED';
   };
+
   Events: ConstantsEvents;
+
   ShardEvents: ConstantsShardEvents;
+
   /**
    * The type of Structure allowed to be a partial
    * <warn>Partials require you to put checks in place when handling data. See the "Partial Structures" topic on the
@@ -10757,6 +11070,7 @@ export const Constants: {
   PartialTypes: {
     [K in PartialTypes]: K;
   };
+
   /**
    * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
    * @see {@link [Gateway Events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
@@ -10764,17 +11078,22 @@ export const Constants: {
   WSEvents: {
     [K in WSEventType]: K;
   };
+
   Colors: ConstantsColors;
+
   /**
    * The current status of the client.
    */
   Status: ConstantsStatus;
+
   Opcodes: ConstantsOpcodes;
+
   /**
    * An error encountered while performing an API request.
    * @see {@link [JSON Error Codes](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes)}
    */
   APIErrors: APIErrors;
+
   /**
    * All available channel types:
    * * `GUILD_TEXT` - a guild text channel
@@ -10795,24 +11114,30 @@ export const Constants: {
    * @see {@link [Channel Types](https://discord.com/developers/docs/resources/channel#channel-object-channel-types)}
    */
   ChannelTypes: EnumHolder<typeof ChannelTypes>;
+
   /**
    * The types of channels that are threads.
    */
   ThreadChannelTypes: ThreadChannelTypes[];
+
   /**
    * The types of channels that are text-based.
    */
   TextBasedChannelTypes: TextBasedChannelTypes[];
+
   /**
    * The types of channels that are voice-based.
    */
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
+
   ClientApplicationAssetTypes: ConstantsClientApplicationAssetTypes;
+
   /**
    * The behavior of expiring subscribers for Integrations.
    * @see {@link [Integration Expire Behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
    */
   IntegrationExpireBehaviors: IntegrationExpireBehaviors[];
+
   /**
    * A valid scope to request when generating an invite link.
    * <warn>Scopes that require whitelist are not considered valid for this generator</warn>
@@ -10831,116 +11156,156 @@ export const Constants: {
    * @see {@link [OAuth2 Scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
    */
   InviteScopes: InviteScope[];
+
   /**
    * The type of a message, e.g. `DEFAULT`.
    * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
    */
   MessageTypes: MessageType[];
+
   /**
    * The types of messages that are `System`.
    */
   SystemMessageTypes: SystemMessageType[];
+
   /**
    * <info>Bots cannot set a `CUSTOM` activity type, it is only for custom statuses received from users</info>
    * The type of an activity of a user's presence.
    * @see {@link [ActivityType Enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
    */
   ActivityTypes: EnumHolder<typeof ActivityTypes>;
+
   /**
    * The value set for a sticker's type
    * @see {@link [Sticker Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
    */
   StickerTypes: EnumHolder<typeof StickerTypes>;
+
   /**
    * The value set for a sticker's format type
    * @see {@link [Sticker Format Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
    */
   StickerFormatTypes: EnumHolder<typeof StickerFormatTypes>;
+
   /**
    * An overwrite type
    * @see {@link [Overwrite Structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
    */
   OverwriteTypes: EnumHolder<typeof OverwriteTypes>;
+
   /**
    * The value set for the explicit content filter levels for a guild
    * @see {@link [Explicit Content Filter Level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
    */
   ExplicitContentFilterLevels: EnumHolder<typeof ExplicitContentFilterLevels>;
+
   /**
    * The value set for a guild's default message notifications, e.g. `ALL_MESSAGES`.
    * @see {@link [Default Message Notification Level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
    */
   DefaultMessageNotificationLevels: EnumHolder<typeof DefaultMessageNotificationLevels>;
+
   /**
    * The value set for the verification levels for a guild
    * @see {@link [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
    */
   VerificationLevels: EnumHolder<typeof VerificationLevels>;
+
   /**
    * The value set for a team member's membership state
    * @see {@link [Membership State Enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
    */
   MembershipStates: EnumHolder<typeof MembershipStates>;
+
   /**
    * The type of an {@link ApplicationCommandOption} object
    * @see {@link [Application Command Option Type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
    */
   ApplicationCommandOptionTypes: EnumHolder<typeof ApplicationCommandOptionTypes>;
+
   /**
    * The type of an {@link ApplicationCommandPermissions} object
    * @see {@link [Application Command Permission Type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
    */
   ApplicationCommandPermissionTypes: EnumHolder<typeof ApplicationCommandPermissionTypes>;
+
   /**
    * The type of an {@link Interaction} object
    * @see {@link [interaction-object-interaction-type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
    */
   InteractionTypes: EnumHolder<typeof InteractionTypes>;
+
   /**
    * The type of an interaction response
    * @see {@link [Interaction Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
    */
   InteractionResponseTypes: EnumHolder<typeof InteractionResponseTypes>;
+
   /**
    * The type of a message component
    * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
    */
   MessageComponentTypes: EnumHolder<typeof MessageComponentTypes>;
+
   /**
    * The style of a message button
    * @see {@link [Button Styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
    */
   MessageButtonStyles: EnumHolder<typeof MessageButtonStyles>;
+
   /**
    * The required MFA level for a guild
    * @see {@link [MFA Level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
    */
   MFALevels: EnumHolder<typeof MFALevels>;
+
   /**
    * NSFW level of a Guild
    * @see {@link [Guild NSFW Level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
    */
   NSFWLevels: EnumHolder<typeof NSFWLevels>;
+
   /**
    * Privacy level of a {@link StageInstance} object
    * @see {@link [Privacy Level](https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level)}
    */
   PrivacyLevels: EnumHolder<typeof PrivacyLevels>;
+
   /**
    * The value set for a webhook's type
    * @see {@link [Webhook Types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
    */
   WebhookTypes: EnumHolder<typeof WebhookTypes>;
+
   /**
    * The premium tier (Server Boost level) of a guild
    * @see {@link [Premium Tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
    */
   PremiumTiers: EnumHolder<typeof PremiumTiers>;
+
   /**
    * The type of an {@link ApplicationCommand} object
    * @see {@link [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
    */
   ApplicationCommandTypes: EnumHolder<typeof ApplicationCommandTypes>;
+
+  /**
+   * The entity type of a {@link GuildScheduledEvent}
+   * @see {@link [Guild Scheduled Event Entity Types](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-types)}
+   */
+  GuildScheduledEventEntityTypes: EnumHolder<typeof GuildScheduledEventEntityTypes>;
+
+  /**
+   * The status of a {@link GuildScheduledEvent}
+   * @see {@link https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-status}
+   */
+  GuildScheduledEventStatuses: EnumHolder<typeof GuildScheduledEventStatuses>;
+
+  /**
+   * Privacy level of a {@link GuildScheduledEvent} object
+   * @see {@link [Guild Scheduled Event Privacy Level](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-privacy-level)}
+   */
+  GuildScheduledEventPrivacyLevels: EnumHolder<typeof GuildScheduledEventPrivacyLevels>;
 };
 
 export const version: string;
@@ -11337,8 +11702,8 @@ export class BaseGuildEmojiManager extends CachedManager<Snowflake, GuildEmoji, 
 /**
  * A manager of channels belonging to a client
  */
-export class ChannelManager extends CachedManager<Snowflake, Channel, ChannelResolvable> {
-  public constructor(client: Client, iterable: Iterable<RawChannelData>);
+export class ChannelManager extends CachedManager<Snowflake, AnyChannel, ChannelResolvable> {
+  private constructor(client: Client, iterable: Iterable<RawChannelData>);
 
   /**
    * Obtains a channel from Discord, or the channel cache if it's already available.
@@ -11350,7 +11715,7 @@ export class ChannelManager extends CachedManager<Snowflake, Channel, ChannelRes
    *   .then(channel => console.log(channel.name))
    *   .catch(console.error);
    */
-  public fetch(id: Snowflake, options?: FetchChannelOptions): Promise<Channel | null>;
+  public fetch(id: Snowflake, options?: FetchChannelOptions): Promise<AnyChannel | null>;
 }
 
 /**
@@ -11468,11 +11833,7 @@ export type GuildChannelTypes = CategoryChannelTypes | ChannelTypes.GUILD_CATEGO
 /**
  * Manages API methods for GuildChannels and stores their cache.
  */
-export class GuildChannelManager extends CachedManager<
-  Snowflake,
-  GuildChannel | ThreadChannel,
-  GuildChannelResolvable
-> {
+export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChannel, GuildChannelResolvable> {
   public constructor(guild: Guild, iterable?: Iterable<RawGuildChannelData>);
 
   /**
@@ -11518,15 +11879,13 @@ export class GuildChannelManager extends CachedManager<
     name: string,
     options: GuildChannelCreateOptions & { type: T },
   ): Promise<MappedGuildChannelTypes[T]>;
+
   /**
    * Creates a new channel in the guild.
    * @param name The name of the new channel
    * @param options Options for creating the new channel
    */
-  public create(
-    name: string,
-    options: GuildChannelCreateOptions,
-  ): Promise<TextChannel | VoiceChannel | CategoryChannel | NewsChannel | StoreChannel | StageChannel>;
+  public create(name: string, options: GuildChannelCreateOptions): Promise<NonThreadGuildBasedChannel>;
 
   /**
    * Obtains one or more guild channels from Discord, or the channel cache if they're already available.
@@ -11543,16 +11902,8 @@ export class GuildChannelManager extends CachedManager<
    *   .then(channel => console.log(`The channel name is: ${channel.name}`))
    *   .catch(console.error);
    */
-  public fetch(
-    id: Snowflake,
-    options?: BaseFetchOptions,
-  ): Promise<TextChannel | VoiceChannel | CategoryChannel | NewsChannel | StoreChannel | StageChannel | null>;
-  public fetch(
-    id?: undefined,
-    options?: BaseFetchOptions,
-  ): Promise<
-    Collection<Snowflake, TextChannel | VoiceChannel | CategoryChannel | NewsChannel | StoreChannel | StageChannel>
-  >;
+  public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<NonThreadGuildBasedChannel | null>;
+  public fetch(id?: undefined, options?: BaseFetchOptions): Promise<Collection<Snowflake, NonThreadGuildBasedChannel>>;
 
   /**
    * Batch-updates the guild's channels' positions.
@@ -11995,6 +12346,63 @@ export class GuildInviteManager extends DataManager<string, Invite, InviteResolv
 }
 
 /**
+ * Manages API methods for GuildScheduledEvents and stores their cache.
+ */
+export class GuildScheduledEventManager extends CachedManager<
+  Snowflake,
+  GuildScheduledEvent,
+  GuildScheduledEventResolvable
+> {
+  private constructor(guild: Guild, iterable?: Iterable<RawGuildScheduledEventData>);
+
+  /**
+   * The guild this manager belongs to
+   */
+  public guild: Guild;
+
+  /**
+   * Creates a new guild scheduled event.
+   * @param options Options for creating the guild scheduled event
+   */
+  public create(options: GuildScheduledEventCreateOptions): Promise<GuildScheduledEvent>;
+
+  /**
+   * Obtains one or more guild scheduled events from Discord, or the guild cache if it's already available.
+   * @param options The id of the guild scheduled event or options
+   */
+  public fetch(): Promise<Collection<Snowflake, GuildScheduledEvent>>;
+  public fetch<
+    T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
+  >(options?: T): Promise<GuildScheduledEventManagerFetchResult<T>>;
+
+  /**
+   * Edits a guild scheduled event.
+   * @param guildScheduledEvent The guild scheduled event to edit
+   * @param options Options to edit the guild scheduled event
+   */
+  public edit<S extends GuildScheduledEventStatus, T extends GuildScheduledEventSetStatusArg<S>>(
+    guildScheduledEvent: GuildScheduledEventResolvable,
+    options: GuildScheduledEventEditOptions<S, T>,
+  ): Promise<GuildScheduledEvent<T>>;
+
+  /**
+   * Deletes a guild scheduled event.
+   * @param guildScheduledEvent The guild scheduled event to delete
+   */
+  public delete(guildScheduledEvent: GuildScheduledEventResolvable): Promise<void>;
+
+  /**
+   * Fetches subscribers of a guild scheduled event.
+   * @param guildScheduledEvent The guild scheduled event to fetch subscribers of
+   * @param options Options for fetching the subscribers
+   */
+  public fetchSubscribers<T extends FetchGuildScheduledEventSubscribersOptions>(
+    guildScheduledEvent: GuildScheduledEventResolvable,
+    options?: T,
+  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<T>>;
+}
+
+/**
  * Manages API methods for Guild Stickers and stores their cache.
  */
 export class GuildStickerManager extends CachedManager<Snowflake, Sticker, StickerResolvable> {
@@ -12153,12 +12561,12 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
  * Manages API methods for Messages and holds their cache.
  */
 export class MessageManager extends CachedManager<Snowflake, Message, MessageResolvable> {
-  public constructor(channel: TextBasedChannels, iterable?: Iterable<RawMessageData>);
+  public constructor(channel: TextBasedChannel, iterable?: Iterable<RawMessageData>);
 
   /**
    * The channel that the messages belong to
    */
-  public channel: TextBasedChannels;
+  public channel: TextBasedChannel;
 
   /**
    * The cache of Messages
@@ -12270,7 +12678,7 @@ export class PermissionOverwriteManager extends CachedManager<
   public set(
     overwrites: readonly OverwriteResolvable[] | Collection<Snowflake, OverwriteResolvable>,
     reason?: string,
-  ): Promise<GuildChannel>;
+  ): Promise<NonThreadGuildBasedChannel>;
 
   /**
    * Creates or edits permission overwrites for a user or role in this channel.
@@ -12285,7 +12693,7 @@ export class PermissionOverwriteManager extends CachedManager<
     options: PermissionOverwriteOptions,
     overwriteOptions?: GuildChannelOverwriteOptions,
     existing?: PermissionOverwrites,
-  ): Promise<GuildChannel>;
+  ): Promise<NonThreadGuildBasedChannel>;
 
   /**
    * Creates permission overwrites for a user or role in this channel, or replaces them if already present.
@@ -12304,7 +12712,7 @@ export class PermissionOverwriteManager extends CachedManager<
     userOrRole: RoleResolvable | UserResolvable,
     options: PermissionOverwriteOptions,
     overwriteOptions?: GuildChannelOverwriteOptions,
-  ): Promise<GuildChannel>;
+  ): Promise<NonThreadGuildBasedChannel>;
 
   /**
    * Edits permission overwrites for a user or role in this channel, or creates an entry if not already present.
@@ -12323,14 +12731,14 @@ export class PermissionOverwriteManager extends CachedManager<
     userOrRole: RoleResolvable | UserResolvable,
     options: PermissionOverwriteOptions,
     overwriteOptions?: GuildChannelOverwriteOptions,
-  ): Promise<GuildChannel>;
+  ): Promise<NonThreadGuildBasedChannel>;
 
   /**
    * Deletes permission overwrites for a user or role in this channel.
    * @param userOrRole The user or role to delete
    * @param reason The reason for deleting the overwrite
    */
-  public delete(userOrRole: RoleResolvable | UserResolvable, reason?: string): Promise<GuildChannel>;
+  public delete(userOrRole: RoleResolvable | UserResolvable, reason?: string): Promise<NonThreadGuildBasedChannel>;
 }
 
 /**
@@ -12668,11 +13076,44 @@ export class UserManager extends CachedManager<Snowflake, User, UserResolvable> 
   public constructor(client: Client, iterable?: Iterable<RawUserData>);
 
   /**
+   * The DM between the client's user and a user
+   * @param userId The user id
+   */
+  private dmChannel(userId: Snowflake): DMChannel | null;
+
+  /**
+   * Creates a {@link DMChannel} between the client and a user.
+   * @param user The UserResolvable to identify
+   * @param options Additional options for this fetch
+   */
+  public createDM(user: UserResolvable, options?: BaseFetchOptions): Promise<DMChannel>;
+
+  /**
+   * Deletes a {@link DMChannel} (if one exists) between the client and a user. Resolves with the channel if successful.
+   * @param user The UserResolvable to identify
+   */
+  public deleteDM(user: UserResolvable): Promise<DMChannel>;
+
+  /**
    * Obtains a user from Discord, or the user cache if it's already available.
    * @param user The user to fetch
    * @param options Additional options for this fetch
    */
   public fetch(user: UserResolvable, options?: BaseFetchOptions): Promise<User>;
+
+  /**
+   * Fetches a user's flags.
+   * @param user The UserResolvable to identify
+   * @param options Additional options for this fetch
+   */
+  public fetchFlags(user: UserResolvable, options?: BaseFetchOptions): Promise<UserFlags>;
+
+  /**
+   * Sends a message to a user.
+   * @param user The UserResolvable to identify
+   * @param options The options to provide
+   */
+  public send(user: UserResolvable, options: string | MessagePayload | MessageOptions): Promise<Message>;
 }
 
 /**
@@ -12697,7 +13138,7 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 
 export type Constructable<T> = new (...args: any[]) => T;
 export function PartialTextBasedChannel<T>(Base?: Constructable<T>): Constructable<T & PartialTextBasedChannelFields>;
-export function TextBasedChannel<T, I extends keyof TextBasedChannelFields = never>(
+export function TextBasedChannelMixin<T, I extends keyof TextBasedChannelFields = never>(
   Base?: Constructable<T>,
   ignore?: I[],
 ): Constructable<T & Omit<TextBasedChannelFields, I>>;
@@ -12785,7 +13226,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    *   .catch(console.error);
    */
   awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
-    options?: AwaitMessageCollectorOptionsParams<T>,
+    options?: AwaitMessageCollectorOptionsParams<T, true>,
   ): Promise<MappedInteractionTypes[T]>;
 
   /**
@@ -12829,7 +13270,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
   createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ACTION_ROW'>(
-    options?: MessageChannelCollectorOptionsParams<T>,
+    options?: MessageChannelCollectorOptionsParams<T, true>,
   ): InteractionCollector<MappedInteractionTypes[T]>;
 
   /**
@@ -13183,6 +13624,7 @@ export interface APIErrors {
   MAXIMUM_THREAD_PARICIPANTS: 30033;
   MAXIMUM_NON_GUILD_MEMBERS_BANS: 30035;
   MAXIMUM_BAN_FETCHES: 30037;
+  MAXIMUM_NUMBER_OF_UNCOMPLETED_GUILD_SCHEDULED_EVENTS_REACHED: 30038;
   MAXIMUM_NUMBER_OF_STICKERS_REACHED: 30039;
   MAXIMUM_PRUNE_REQUESTS: 30040;
   MAXIMUM_GUILD_WIDGET_SETTINGS_UPDATE: 30042;
@@ -13254,6 +13696,8 @@ export interface APIErrors {
   LOTTIE_ANIMATION_MAXIMUM_DIMENSIONS_EXCEEDED: 170005;
   STICKER_FRAME_RATE_IS_TOO_SMALL_OR_TOO_LARGE: 170006;
   STICKER_ANIMATION_DURATION_EXCEEDS_MAXIMUM_OF_5_SECONDS: 170007;
+  CANNOT_UPDATE_A_FINISHED_EVENT: 180000;
+  FAILED_TO_CREATE_STAGE_NEEDED_FOR_STAGE_EVENT: 180002;
 }
 
 /**
@@ -13879,6 +14323,11 @@ export interface Caches {
   GuildInviteManager: [manager: typeof GuildInviteManager, holds: typeof Invite];
 
   /**
+   * Represents a scheduled event in a {@link Guild}.
+   */
+  GuildScheduledEventManager: [manager: typeof GuildScheduledEventManager, holds: typeof GuildScheduledEvent];
+
+  /**
    * Manages API methods for Guild Stickers and stores their cache.
    */
   GuildStickerManager: [manager: typeof GuildStickerManager, holds: typeof Sticker];
@@ -13887,6 +14336,7 @@ export interface Caches {
    * Manages API methods for Messages and holds their cache.
    */
   MessageManager: [manager: typeof MessageManager, holds: typeof Message];
+
   /**
    * Manages API methods for guild channel permission overwrites and stores their cache.
    */
@@ -14135,7 +14585,7 @@ export interface ChannelPosition {
   /**
    * Channel to update
    */
-  channel: GuildChannel | Snowflake;
+  channel: NonThreadGuildBasedChannel | Snowflake;
 
   /**
    * If the overwrites should be locked to the parents overwrites
@@ -14161,7 +14611,7 @@ export type GuildTextChannelResolvable = TextChannel | NewsChannel | Snowflake;
 /**
  * Data that can be resolved to give a Channel object.
  */
-export type ChannelResolvable = Channel | Snowflake;
+export type ChannelResolvable = AnyChannel | Snowflake;
 
 /**
  * Options used to create a {@link Webhook} in a {@link TextChannel} or a {@link NewsChannel}.
@@ -14247,13 +14697,13 @@ export interface ClientEvents extends BaseClientEvents {
    * Emitted whenever a guild channel is created.
    * @param channel The channel that was created
    */
-  channelCreate: [channel: GuildChannel];
+  channelCreate: [channel: NonThreadGuildBasedChannel];
 
   /**
    * Emitted whenever a channel is deleted.
    * @param channel The channel that was deleted
    */
-  channelDelete: [channel: DMChannel | GuildChannel];
+  channelDelete: [channel: DMChannel | NonThreadGuildBasedChannel];
 
   /**
    * Emitted whenever the pins of a channel are updated. Due to the nature of the WebSocket event,
@@ -14261,14 +14711,17 @@ export interface ClientEvents extends BaseClientEvents {
    * @param channel The channel that the pins update occurred in
    * @param date The time of the pins update
    */
-  channelPinsUpdate: [channel: TextBasedChannels, date: Date];
+  channelPinsUpdate: [channel: TextBasedChannel, date: Date];
 
   /**
    * Emitted whenever a channel is updated - e.g. name change, topic change, channel type change.
    * @param oldChannel The channel before the update
    * @param newChannel The channel after the update
    */
-  channelUpdate: [oldChannel: DMChannel | GuildChannel, newChannel: DMChannel | GuildChannel];
+  channelUpdate: [
+    oldChannel: DMChannel | NonThreadGuildBasedChannel,
+    newChannel: DMChannel | NonThreadGuildBasedChannel,
+  ];
 
   /**
    * Emitted for general warnings.
@@ -14664,6 +15117,49 @@ export interface ClientEvents extends BaseClientEvents {
    * @param newSticker The new sticker
    */
   stickerUpdate: [oldSticker: Sticker, newSticker: Sticker];
+
+  /**
+   * Emitted whenever a guild scheduled event is created.
+   * @param guildScheduledEvent The created guild scheduled event
+   */
+  guildScheduledEventCreate: [guildScheduledEvent: GuildScheduledEvent];
+
+  /**
+   * Emitted whenever a guild scheduled event gets updated.
+   * @param oldGuildScheduledEvent The guild scheduled event object before the update
+   * @param newGuildScheduledEvent The guild scheduled event object after the update
+   */
+  guildScheduledEventUpdate: [oldGuildScheduledEvent: GuildScheduledEvent, newGuildScheduledEvent: GuildScheduledEvent];
+
+  /**
+   * Emitted whenever a guild scheduled event is deleted.
+   * @param guildScheduledEvent The deleted guild scheduled event
+   */
+  guildScheduledEventDelete: [guildScheduledEvent: GuildScheduledEvent];
+
+  /**
+   * Emitted whenever a user subscribes to a guild scheduled event
+   * @param guildScheduledEvent The guild scheduled event
+   * @param user The user who subscribed
+   */
+  guildScheduledEventUserAdd: [guildScheduledEvent: GuildScheduledEvent, user: User];
+
+  /**
+   * Emitted whenever a user unsubscribes from a guild scheduled event
+   * @param guildScheduledEvent The guild scheduled event
+   * @param user The user who unsubscribed
+   */
+  guildScheduledEventUserRemove: [guildScheduledEvent: GuildScheduledEvent, user: User];
+}
+
+/**
+ * Options used when fetching an invite from Discord.
+ */
+export interface ClientFetchInviteOptions {
+  /**
+   * The id of the guild scheduled event to include with the invite
+   */
+  guildScheduledEventId?: Snowflake;
 }
 
 /**
@@ -14775,6 +15271,15 @@ export interface ClientOptions {
    */
   intents: BitFieldResolvable<IntentsString, number>;
 
+  /**
+   * Time in milliseconds that Clients with the GUILDS intent should wait for
+   * missing guilds to be recieved before starting the bot. If not specified, the default is 15 seconds.
+   */
+  waitGuildTimeout?: number;
+
+  /**
+   * Options for cache sweeping
+   */
   sweepers?: SweeperOptions;
 
   /**
@@ -14825,6 +15330,9 @@ export interface ClientUserEditData {
   avatar?: BufferResolvable | Base64Resolvable | null;
 }
 
+/**
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
+ */
 export interface CloseEvent {
   wasClean: boolean;
   code: number;
@@ -14965,7 +15473,7 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   /**
    * The resolved channel
    */
-  channel?: CacheTypeReducer<Cached, GuildChannel | ThreadChannel, APIInteractionDataResolvedChannel>;
+  channel?: CacheTypeReducer<Cached, GuildBasedChannel, APIInteractionDataResolvedChannel>;
 
   /**
    * The resolved role
@@ -15000,7 +15508,7 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
   /**
    * The resolved channels
    */
-  channels?: Collection<Snowflake, CacheTypeReducer<Cached, Channel, APIInteractionDataResolvedChannel>>;
+  channels?: Collection<Snowflake, CacheTypeReducer<Cached, AnyChannel, APIInteractionDataResolvedChannel>>;
 
   /**
    * The resolved messages
@@ -15405,6 +15913,31 @@ export interface ConstantsEvents {
    * Emitted whenever a custom sticker is updated in a guild.
    */
   GUILD_STICKER_UPDATE: 'stickerUpdate';
+
+  /**
+   * Emitted whenever a guild scheduled event is created.
+   */
+  GUILD_SCHEDULED_EVENT_CREATE: 'guildScheduledEventCreate';
+
+  /**
+   * Emitted whenever a guild scheduled event gets updated.
+   */
+  GUILD_SCHEDULED_EVENT_UPDATE: 'guildScheduledEventUpdate';
+
+  /**
+   * Emitted whenever a guild scheduled event is deleted.
+   */
+  GUILD_SCHEDULED_EVENT_DELETE: 'guildScheduledEventDelete';
+
+  /**
+   * Emitted whenever a user subscribes to a guild scheduled event
+   */
+  GUILD_SCHEDULED_EVENT_USER_ADD: 'guildScheduledEventUserAdd';
+
+  /**
+   * Emitted whenever a user unsubscribes from a guild scheduled event
+   */
+  GUILD_SCHEDULED_EVENT_USER_REMOVE: 'guildScheduledEventUserRemove';
 }
 
 export interface ConstantsOpcodes {
@@ -15437,6 +15970,18 @@ export interface ConstantsStatus {
   IDLE: 3;
   NEARLY: 4;
   DISCONNECTED: 5;
+}
+
+/**
+ * Options used to create an invite URL to a {@link GuildScheduledEvent}
+ * @property channel
+ */
+export interface CreateGuildScheduledEventInviteURLOptions extends CreateInviteOptions {
+  /**
+   * The channel to create the invite in.
+   * <warn>This is required when the `entityType` of `GuildScheduledEvent` is `EXTERNAL`, gets ignored otherwise</warn>
+   */
+  channel?: GuildInvitableChannelResolvable;
 }
 
 /**
@@ -15842,6 +16387,51 @@ export interface FetchGuildsOptions {
 }
 
 /**
+ * Options used to fetch a single guild scheduled event from a guild.
+ */
+export interface FetchGuildScheduledEventOptions extends BaseFetchOptions {
+  /**
+   * The guild scheduled event to fetch
+   */
+  guildScheduledEvent: GuildScheduledEventResolvable;
+
+  /**
+   * Whether to fetch the number of users subscribed to the scheduled event
+   */
+  withUserCount?: boolean;
+}
+
+/**
+ * Options used to fetch multiple guild scheduled events from a guild.
+ */
+export interface FetchGuildScheduledEventsOptions {
+  /**
+   * Whether or not to cache the fetched guild scheduled events
+   */
+  cache?: boolean;
+
+  /**
+   * Whether to fetch the number of users subscribed to each scheduled event should be returned
+   */
+  withUserCount?: boolean;
+}
+
+/**
+ * Options used to fetch subscribers of a guild scheduled event
+ */
+export interface FetchGuildScheduledEventSubscribersOptions {
+  /**
+   * The maximum numbers of users to fetch
+   */
+  limit?: number;
+
+  /**
+   * Whether to fetch guild member data of the users
+   */
+  withMember?: boolean;
+}
+
+/**
  * Options used to fetch a single invite from a guild.
  */
 interface FetchInviteOptions extends BaseFetchOptions {
@@ -16027,6 +16617,9 @@ interface GuildAuditLogsTypes {
   STICKER_CREATE: ['STICKER', 'CREATE'];
   STICKER_UPDATE: ['STICKER', 'UPDATE'];
   STICKER_DELETE: ['STICKER', 'DELETE'];
+  GUILD_SCHEDULED_EVENT_CREATE: ['GUILD_SCHEDULED_EVENT', 'CREATE'];
+  GUILD_SCHEDULED_EVENT_UPDATE: ['GUILD_SCHEDULED_EVENT', 'UPDATE'];
+  GUILD_SCHEDULED_EVENT_DELETE: ['GUILD_SCHEDULED_EVENT', 'DELETE'];
   THREAD_CREATE: ['THREAD', 'CREATE'];
   THREAD_UPDATE: ['THREAD', 'UPDATE'];
   THREAD_DELETE: ['THREAD', 'DELETE'];
@@ -16074,6 +16667,9 @@ export interface GuildAuditLogsIds {
   90: 'STICKER_CREATE';
   91: 'STICKER_UPDATE';
   92: 'STICKER_DELETE';
+  100: 'GUILD_SCHEDULED_EVENT_CREATE';
+  101: 'GUILD_SCHEDULED_EVENT_UPDATE';
+  102: 'GUILD_SCHEDULED_EVENT_DELETE';
   110: 'THREAD_CREATE';
   111: 'THREAD_UPDATE';
   112: 'THREAD_DELETE';
@@ -16087,7 +16683,7 @@ export type GuildAuditLogsActionType = GuildAuditLogsTypes[keyof GuildAuditLogsT
 
 export interface GuildAuditLogsEntryExtraField {
   MEMBER_PRUNE: { removed: number; days: number };
-  MEMBER_MOVE: { channel: VoiceChannel | StageChannel | { id: Snowflake }; count: number };
+  MEMBER_MOVE: { channel: VoiceBasedChannel | { id: Snowflake }; count: number };
   MESSAGE_DELETE: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
   MESSAGE_BULK_DELETE: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
   MESSAGE_PIN: { channel: GuildTextBasedChannel | { id: Snowflake }; messageId: Snowflake };
@@ -16120,10 +16716,11 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
   INVITE: Invite;
   MESSAGE: TActionType extends 'MESSAGE_BULK_DELETE' ? Guild | { id: Snowflake } : User;
   INTEGRATION: Integration;
-  CHANNEL: GuildChannel | { id: Snowflake; [x: string]: unknown };
+  CHANNEL: NonThreadGuildBasedChannel | { id: Snowflake; [x: string]: unknown };
   THREAD: ThreadChannel | { id: Snowflake; [x: string]: unknown };
   STAGE_INSTANCE: StageInstance;
   STICKER: Sticker;
+  GUILD_SCHEDULED_EVENT: GuildScheduledEvent;
 }
 
 /**
@@ -16183,7 +16780,7 @@ export interface GuildChannelOverwriteOptions {
 /**
  * Data that can be resolved to give a Guild Channel object.
  */
-export type GuildChannelResolvable = Snowflake | GuildChannel | ThreadChannel;
+export type GuildChannelResolvable = Snowflake | GuildBasedChannel;
 
 /**
  * Options used to create a new channel in a guild.
@@ -16296,7 +16893,7 @@ export interface GuildWidgetSettings {
   /**
    * The widget invite channel
    */
-  channel: GuildChannel | null;
+  channel: NonThreadGuildBasedChannel | null;
 }
 
 /**
@@ -16516,6 +17113,12 @@ export interface GuildMemberEditData {
    * Channel to move the member to (if they are connected to voice), or `null` if you want to disconnect them from voice
    */
   channel?: GuildVoiceChannelResolvable | null;
+
+  /**
+   * The date or timestamp for the member's communication to be disabled until.
+   * Provide `null` to enable communication again.
+   */
+  communicationDisabledUntil?: DateResolvable | null;
 }
 
 /**
@@ -16526,7 +17129,7 @@ export type GuildMemberResolvable = GuildMember | UserResolvable;
 /**
  * Data that resolves to give a Guild object.
  */
-export type GuildResolvable = Guild | GuildChannel | GuildMember | GuildEmoji | Invite | Role | Snowflake;
+export type GuildResolvable = Guild | NonThreadGuildBasedChannel | GuildMember | GuildEmoji | Invite | Role | Snowflake;
 
 /**
  * Options used for pruning guild members.
@@ -16616,6 +17219,154 @@ export interface GuildListMembersOptions {
 }
 
 /**
+ * Options used to create a guild scheduled event.
+ */
+// TODO: use conditional types for better TS support
+export interface GuildScheduledEventCreateOptions {
+  /**
+   * The name of the guild scheduled event
+   */
+  name: string;
+
+  /**
+   * The time to schedule the event at
+   */
+  scheduledStartTime: DateResolvable;
+
+  /**
+   * The time to end the event at
+   * <warn>This is required if `entityType` is 'EXTERNAL'</warn>
+   */
+  scheduledEndTime?: DateResolvable;
+
+  /**
+   * The privacy level of the guild scheduled event
+   */
+  privacyLevel: GuildScheduledEventPrivacyLevel | number;
+
+  /**
+   * The scheduled entity type of the event
+   */
+  entityType: GuildScheduledEventEntityType | number;
+
+  /**
+   * The description of the guild scheduled event
+   */
+  description?: string;
+
+  /**
+   * The channel of the guild scheduled event
+   * <warn>This is required if `entityType` is 'STAGE_INSTANCE' or `VOICE`</warn>
+   */
+  channel?: GuildVoiceChannelResolvable;
+
+  /**
+   * The entity metadata of the guild scheduled event
+   */
+  entityMetadata?: GuildScheduledEventEntityMetadataOptions;
+
+  /**
+   * The reason for creating the guild scheduled event
+   */
+  reason?: string;
+}
+
+/**
+ * Options used to edit a guild scheduled event.
+ */
+export interface GuildScheduledEventEditOptions<
+  S extends GuildScheduledEventStatus,
+  T extends GuildScheduledEventSetStatusArg<S>,
+> extends Omit<Partial<GuildScheduledEventCreateOptions>, 'channel'> {
+  /**
+   * The channel of the guild scheduled event
+   */
+  channel?: GuildVoiceChannelResolvable | null;
+
+  /**
+   * The status of the guild scheduled event
+   */
+  status?: T | number;
+}
+
+/**
+ * Represents the additional metadata for a {@link GuildScheduledEvent}
+ * @see {@link [Guild Scheduled Event Entity Metadata](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-metadata)}
+ */
+export interface GuildScheduledEventEntityMetadata {
+  /**
+   * The location of the guild scheduled event
+   */
+  location: string | null;
+}
+
+/**
+ * Options used to set entity metadata of a guild scheduled event.
+ */
+export interface GuildScheduledEventEntityMetadataOptions {
+  /**
+   * The location of the guild scheduled event
+   * <warn>This is required if `entityType` is 'EXTERNAL'</warn>
+   */
+  location?: string;
+}
+
+/**
+ * The entity type of a {@link GuildScheduledEvent}
+ * @see {@link [Guild Scheduled Event Entity Types](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-types)}
+ */
+export type GuildScheduledEventEntityType = keyof typeof GuildScheduledEventEntityTypes;
+
+export type GuildScheduledEventManagerFetchResult<
+  T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
+> = T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions
+  ? GuildScheduledEvent
+  : Collection<Snowflake, GuildScheduledEvent>;
+
+export type GuildScheduledEventManagerFetchSubscribersResult<T extends FetchGuildScheduledEventSubscribersOptions> =
+  T extends { withMember: true }
+    ? Collection<Snowflake, GuildScheduledEventUser<true>>
+    : Collection<Snowflake, GuildScheduledEventUser<false>>;
+
+/**
+ * Privacy level of a {@link GuildScheduledEvent} object:
+ * * GUILD_ONLY
+ * @typedef {string} GuildScheduledEventPrivacyLevel
+ * @see {@link https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-privacy-level}
+ */
+export type GuildScheduledEventPrivacyLevel = keyof typeof GuildScheduledEventPrivacyLevels;
+
+export type GuildScheduledEventResolvable = Snowflake | GuildScheduledEvent;
+
+export type GuildScheduledEventSetStatusArg<T extends GuildScheduledEventStatus> = T extends 'SCHEDULED'
+  ? 'ACTIVE' | 'CANCELED'
+  : T extends 'ACTIVE'
+  ? 'COMPLETED'
+  : never;
+
+export type GuildScheduledEventStatus = keyof typeof GuildScheduledEventStatuses;
+
+/**
+ * Represents a subscriber of a {@link GuildScheduledEvent}
+ */
+export interface GuildScheduledEventUser<T> {
+  /**
+   * The id of the guild scheduled event which the user subscribed to
+   */
+  guildScheduledEventId: Snowflake;
+
+  /**
+   * The user that subscribed to the guild scheduled event
+   */
+  user: User;
+
+  /**
+   * The guild member associated with the user, if any
+   */
+  member: T extends true ? GuildMember : null;
+}
+
+/**
  * Data that can be resolved to give a template code.
  */
 export type GuildTemplateResolvable = string;
@@ -16623,7 +17374,7 @@ export type GuildTemplateResolvable = string;
 /**
  * Data that can be resolved to a GuildVoiceChannel object.
  */
-export type GuildVoiceChannelResolvable = VoiceChannel | StageChannel | Snowflake;
+export type GuildVoiceChannelResolvable = VoiceBasedChannel | Snowflake;
 
 export type HexColorString = `#${string}`;
 
@@ -16702,6 +17453,7 @@ export interface HTTPOptions {
    * Additional headers to send for all API requests
    */
   headers?: Record<string, string>;
+  scheduledEvent?: string;
 }
 
 /**
@@ -16744,7 +17496,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The channel to listen to interactions from
    */
-  channel?: TextBasedChannels;
+  channel?: TextBasedChannel;
 
   /**
    * The type of component to listen for
@@ -16878,7 +17630,8 @@ export type IntentsString =
   | 'GUILD_MESSAGE_TYPING'
   | 'DIRECT_MESSAGES'
   | 'DIRECT_MESSAGE_REACTIONS'
-  | 'DIRECT_MESSAGE_TYPING';
+  | 'DIRECT_MESSAGE_TYPING'
+  | 'GUILD_SCHEDULED_EVENTS';
 
 /**
  * Options for {@link Client.generateInvite}.
@@ -17714,7 +18467,7 @@ export interface MessageSelectOptionData {
 export type MessageTarget =
   | Interaction
   | InteractionWebhook
-  | TextBasedChannels
+  | TextBasedChannel
   | User
   | GuildMember
   | Webhook
@@ -17878,7 +18631,9 @@ export type PermissionString =
   | 'CREATE_PRIVATE_THREADS'
   | 'USE_EXTERNAL_STICKERS'
   | 'SEND_MESSAGES_IN_THREADS'
-  | 'START_EMBEDDED_ACTIVITIES';
+  | 'START_EMBEDDED_ACTIVITIES'
+  | 'MODERATE_MEMBERS'
+  | 'MANAGE_EVENTS';
 
 export type RecursiveArray<T> = ReadonlyArray<T | RecursiveArray<T>>;
 
@@ -17969,7 +18724,7 @@ export interface PartialRoleData extends RoleData {
   id?: Snowflake | number;
 }
 
-export type PartialTypes = 'USER' | 'CHANNEL' | 'GUILD_MEMBER' | 'MESSAGE' | 'REACTION';
+export type PartialTypes = 'USER' | 'CHANNEL' | 'GUILD_MEMBER' | 'MESSAGE' | 'REACTION' | 'GUILD_SCHEDULED_EVENT';
 
 export interface PartialUser extends Partialize<User, 'username' | 'tag' | 'discriminator'> {}
 
@@ -18495,15 +19250,34 @@ export interface LimitedCollectionOptions<K, V> {
   sweepInterval?: number;
 }
 
+export type AnyChannel =
+  | CategoryChannel
+  | DMChannel
+  | PartialDMChannel
+  | NewsChannel
+  | StageChannel
+  | StoreChannel
+  | TextChannel
+  | ThreadChannel
+  | VoiceChannel;
+
 /**
  * The channels that are text-based.
  */
-export type TextBasedChannels = PartialDMChannel | DMChannel | TextChannel | NewsChannel | ThreadChannel;
+export type TextBasedChannel = Extract<AnyChannel, { messages: MessageManager }>;
 
 /**
  * The types of channels that are text-based.
  */
-export type TextBasedChannelTypes = TextBasedChannels['type'];
+export type TextBasedChannelTypes = TextBasedChannel['type'];
+
+export type VoiceBasedChannel = Extract<AnyChannel, { bitrate: number }>;
+
+export type GuildBasedChannel = Extract<AnyChannel, { guild: Guild }>;
+
+export type NonThreadGuildBasedChannel = Exclude<GuildBasedChannel, ThreadChannel>;
+
+export type GuildTextBasedChannel = Extract<GuildBasedChannel, TextBasedChannel>;
 
 /**
  * Data that can be resolved to a Text Channel object.
@@ -18648,7 +19422,7 @@ export type VerificationLevel = keyof typeof VerificationLevels;
 /**
  * The types of channels that are voice-based.
  */
-export type VoiceBasedChannelTypes = 'GUILD_VOICE' | 'GUILD_STAGE_VOICE';
+export type VoiceBasedChannelTypes = VoiceBasedChannel['type'];
 
 /**
  * Data that can be resolved to a Voice Channel object.

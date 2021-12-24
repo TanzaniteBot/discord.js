@@ -59,6 +59,12 @@ class GuildMember extends Base {
      */
     this.pending = false;
 
+    /**
+     * The timestamp this member's timeout will be removed
+     * @type {?number}
+     */
+    this.communicationDisabledUntilTimestamp = null;
+
     this._roles = [];
     if (data) this._patch(data);
   }
@@ -88,6 +94,11 @@ class GuildMember extends Base {
     }
     if ('roles' in data) this._roles = data.roles;
     this.pending = data.pending ?? false;
+
+    if ('communication_disabled_until' in data) {
+      this.communicationDisabledUntilTimestamp =
+        data.communication_disabled_until && Date.parse(data.communication_disabled_until);
+    }
   }
 
   _clone() {
@@ -182,6 +193,15 @@ class GuildMember extends Base {
    */
   get joinedAt() {
     return this.joinedTimestamp ? new Date(this.joinedTimestamp) : null;
+  }
+
+  /**
+   * The time this member's timeout will be removed
+   * @type {?Date}
+   * @readonly
+   */
+  get communicationDisabledUntil() {
+    return this.communicationDisabledUntilTimestamp && new Date(this.communicationDisabledUntilTimestamp);
   }
 
   /**
@@ -281,6 +301,15 @@ class GuildMember extends Base {
   }
 
   /**
+   * Whether this member is moderatable by the client user
+   * @type {boolean}
+   * @readonly
+   */
+  get moderatable() {
+    return this.manageable && (this.guild.me?.permissions.has(Permissions.FLAGS.MODERATE_MEMBERS) ?? false);
+  }
+
+  /**
    * Returns `channel.permissionsFor(guildMember)`. Returns permissions for a member in a guild channel,
    * taking into account roles and permission overwrites.
    * @param {GuildChannelResolvable} channel The guild channel to use as context
@@ -291,17 +320,6 @@ class GuildMember extends Base {
     if (!channel) throw new Error('GUILD_CHANNEL_RESOLVE');
     return channel.permissionsFor(this);
   }
-
-  /**
-   * The data for editing a guild member.
-   * @typedef {Object} GuildMemberEditData
-   * @property {?string} [nick] The nickname to set for the member
-   * @property {Collection<Snowflake, Role>|RoleResolvable[]} [roles] The roles or role ids to apply
-   * @property {boolean} [mute] Whether or not the member should be muted
-   * @property {boolean} [deaf] Whether or not the member should be deafened
-   * @property {GuildVoiceChannelResolvable|null} [channel] Channel to move the member to
-   * (if they are connected to voice), or `null` if you want to disconnect them from voice
-   */
 
   /**
    * Edits this member.
@@ -325,10 +343,11 @@ class GuildMember extends Base {
 
   /**
    * Creates a DM channel between the client and this member.
+   * @param {boolean} [force=false] Whether to skip the cache check and request the API
    * @returns {Promise<DMChannel>}
    */
-  createDM() {
-    return this.user.createDM();
+  createDM(force = false) {
+    return this.user.createDM(force);
   }
 
   /**
@@ -363,6 +382,38 @@ class GuildMember extends Base {
   }
 
   /**
+   * Times this guild member out.
+   * @param {DateResolvable|null} communicationDisabledUntil The date or timestamp
+   * for the member's communication to be disabled until. Provide `null` to remove the timeout.
+   * @param {string} [reason] The reason for this timeout.
+   * @returns {Promise<GuildMember>}
+   * @example
+   * // Time a guild member out for 5 minutes
+   * guildMember.disableCommunicationUntil(Date.now() + (5 * 60 * 1000), 'They deserved it')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  disableCommunicationUntil(communicationDisabledUntil, reason) {
+    return this.edit({ communicationDisabledUntil }, reason);
+  }
+
+  /**
+   * Times this guild member out.
+   * @param {number|null} timeout The time in milliseconds
+   * for the member's communication to be disabled until. Provide `null` to remove the timeout.
+   * @param {string} [reason] The reason for this timeout.
+   * @returns {Promise<GuildMember>}
+   * @example
+   * // Time a guild member out for 5 minutes
+   * guildMember.timeout(5 * 60 * 1000, 'They deserved it')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  timeout(timeout, reason) {
+    return this.disableCommunicationUntil(timeout && Date.now() + timeout, reason);
+  }
+
+  /**
    * Fetches this GuildMember.
    * @param {boolean} [force=true] Whether to skip the cache check and request the API
    * @returns {Promise<GuildMember>}
@@ -388,6 +439,7 @@ class GuildMember extends Base {
       this.nickname === member.nickname &&
       this.avatar === member.avatar &&
       this.pending === member.pending &&
+      this.communicationDisabledUntilTimestamp === member.communicationDisabledUntilTimestamp &&
       (this._roles === member._roles ||
         (this._roles.length === member._roles.length && this._roles.every((role, i) => role === member._roles[i])))
     );

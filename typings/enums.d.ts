@@ -167,6 +167,35 @@ export const enum ExplicitContentFilterLevels {
 }
 
 /**
+ * The entity type of a {@link GuildScheduledEvent}
+ * @see {@link [Guild Scheduled Event Entity Types](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-types)}
+ */
+export const enum GuildScheduledEventEntityTypes {
+  STAGE_INSTANCE = 1,
+  VOICE = 2,
+  EXTERNAL = 3,
+}
+
+/**
+ * Privacy level of a {@link GuildScheduledEvent} object
+ * @see {@link [Guild Scheduled Event Privacy Level](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-privacy-level)}
+ */
+export const enum GuildScheduledEventPrivacyLevels {
+  GUILD_ONLY = 2,
+}
+
+/**
+ * The status of a {@link GuildScheduledEvent}
+ * @see {@link https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-status}
+ */
+export const enum GuildScheduledEventStatuses {
+  SCHEDULED = 1,
+  ACTIVE = 2,
+  COMPLETED = 3,
+  CANCELED = 4,
+}
+
+/**
  * The type of an interaction response
  * @see {@link [Interaction Callback Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
  */
