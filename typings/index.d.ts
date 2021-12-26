@@ -1831,6 +1831,10 @@ export class ClientUser extends User {
    * If the bot's {@link ClientApplication.owner Owner} has MFA enabled on their account
    */
   public mfaEnabled: boolean;
+
+  /**
+   * Represents the client user's presence
+   */
   public readonly presence: ClientPresence;
 
   /**
