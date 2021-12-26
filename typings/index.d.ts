@@ -707,7 +707,14 @@ export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
  * Represents a command interaction.
  */
 export abstract class BaseCommandInteraction<Cached extends CacheType = CacheType> extends Interaction<Cached> {
+  /**
+   * The invoked application command, if it was fetched before
+   */
   public readonly command: ApplicationCommand | ApplicationCommand<{ guild: GuildResolvable }> | null;
+
+  /**
+   * The options passed to the command.
+   */
   public options: Omit<
     CommandInteractionOptionResolver<Cached>,
     | 'getMessage'
@@ -1375,6 +1382,7 @@ export class CategoryChannel extends GuildChannel {
     name: string,
     options: CategoryCreateChannelOptions & { type: T },
   ): Promise<MappedChannelCategoryTypes[T]>;
+
   /**
    * Creates a new channel within this category.
    * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
@@ -2108,6 +2116,11 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * @param options Options for resetting
    */
   public resetTimer(options?: CollectorResetTimerOptions): void;
+
+  /**
+   * Allows collectors to be consumed with for-await-of loops
+   * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of}
+   */
   public [Symbol.asyncIterator](): AsyncIterableIterator<V>;
 
   /**
