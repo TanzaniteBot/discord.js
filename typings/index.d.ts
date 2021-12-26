@@ -13078,8 +13078,9 @@ export class UserManager extends CachedManager<Snowflake, User, UserResolvable> 
   /**
    * The DM between the client's user and a user
    * @param userId The user id
+   * @private
    */
-  private dmChannel(userId: Snowflake): DMChannel | null;
+  public dmChannel(userId: Snowflake): DMChannel | null;
 
   /**
    * Creates a {@link DMChannel} between the client and a user.
