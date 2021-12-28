@@ -7223,10 +7223,9 @@ export class Permissions extends BitField<PermissionString, bigint> {
   public serialize(checkAdmin?: boolean): Record<PermissionString, boolean>;
 
   /**
-   * Gets an array of bitfield names based on the bits available.
-   * @param hasParams Additional parameters for the has method, if any
+   * Gets an {@link Array} of bitfield names based on the permissions available.
    */
-  public toArray(checkAdmin?: boolean): PermissionString[];
+  public toArray(): PermissionString[];
 
   /**
    * Bitfield representing every permission combined
@@ -9709,6 +9708,8 @@ export class Util extends null {
    * @deprecated Use {@link MessageOptions.allowedMentions} instead.
    */
   public static removeMentions(str: string): string;
+
+  private static _removeMentions(str: string): string;
 
   /**
    * Shallow-copies an object with its class/prototype intact.
