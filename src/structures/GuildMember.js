@@ -1,5 +1,6 @@
 'use strict';
 
+const process = require('node:process');
 const Base = require('./Base');
 const TextBasedChannel = require('./interfaces/TextBasedChannel');
 const { Error } = require('../errors');
