@@ -4134,6 +4134,14 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public edit(data: GuildMemberEditData, reason?: string): Promise<GuildMember>;
 
   /**
+   * Whether this member is currently timed out
+   */
+  public isCommunicationDisabled(): this is GuildMember & {
+    communicationDisabledUntilTimestamp: number;
+    readonly communicationDisabledUntil: Date;
+  };
+
+  /**
    * Kicks this member from the guild.
    * @param reason Reason for kicking user
    */
@@ -6549,10 +6557,9 @@ export class MessageEmbed {
   /**
    * Sets the author of this embed.
    * @param options The options to provide for the author.
-   * A string may simply be provided if only the author name is desirable.
    * Provide `null` to remove the author data.
    */
-  public setAuthor(options: string | EmbedAuthorData | null): this;
+  public setAuthor(options: EmbedAuthorData | null): this;
 
   /**
    * Sets the author of this embed.
@@ -6577,8 +6584,15 @@ export class MessageEmbed {
 
   /**
    * Sets the footer of this embed.
+   * @param options The options to provide for the footer. Provide `null` to remove the footer data.
+   */
+  public setFooter(options: EmbedFooterData | null): this;
+
+  /**
+   * Sets the footer of this embed.
    * @param text The text of the footer
    * @param iconURL The icon URL of the footer
+   * @deprecated Supply a lone object of interface {@link EmbedFooterData} instead.
    */
   public setFooter(text: string, iconURL?: string): this;
 
@@ -16174,6 +16188,21 @@ export interface EmbedFieldData {
    * If this field will be displayed inline
    */
   inline?: boolean;
+}
+
+/**
+ * The options to provide for setting a footer for a {@link MessageEmbed}.
+ */
+export interface EmbedFooterData {
+  /**
+   * The text of the footer.
+   */
+  text: string;
+
+  /**
+   * The icon URL of the footer.
+   */
+  iconURL?: string;
 }
 
 /**

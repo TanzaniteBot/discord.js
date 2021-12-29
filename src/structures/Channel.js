@@ -1,5 +1,6 @@
 'use strict';
 
+const process = require('node:process');
 const Base = require('./Base');
 const { ChannelTypes, ThreadChannelTypes, VoiceBasedChannelTypes } = require('../util/Constants');
 const SnowflakeUtil = require('../util/SnowflakeUtil');
