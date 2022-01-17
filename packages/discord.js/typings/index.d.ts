@@ -1,8 +1,12 @@
 import {
+  ActionRow,
+  ActionRowComponent,
   blockQuote,
   bold,
+  ButtonComponent,
   channelMention,
   codeBlock,
+  Component,
   formatEmoji,
   hideLinkEmbed,
   hyperlink,
@@ -11,6 +15,7 @@ import {
   memberNicknameMention,
   quote,
   roleMention,
+  SelectMenuComponent,
   spoiler,
   strikethrough,
   time,
@@ -28,7 +33,6 @@ import {
   APIApplicationCommandPermission,
   APIAuditLogChange,
   APIButtonComponent,
-  APIChannel,
   APIEmbed,
   APIEmoji,
   APIInteractionDataResolvedChannel,
@@ -1168,35 +1172,6 @@ export class BaseGuildVoiceChannel extends GuildChannel {
 }
 
 /**
- * Represents an interactive component of a Message. It should not be necessary to construct this directly.
- * See {@link MessageComponent}
- */
-export class BaseMessageComponent {
-  /**
-   * @param data The options for this component
-   */
-  public constructor(data?: BaseMessageComponent | BaseMessageComponentOptions);
-
-  /**
-   * The type of this component
-   */
-  public type: MessageComponentTypeKey | null;
-
-  /**
-   * Constructs a MessageComponent based on the type of the incoming data
-   * @param data Data for a MessageComponent
-   * @param client Client constructing this component
-   */
-  private static create(data: MessageComponentOptions, client?: Client | WebhookClient): MessageComponent | undefined;
-
-  /**
-   * Resolves the type of a MessageComponent
-   * @param type The type to resolve
-   */
-  private static resolveType(type: MessageComponentTypeResolvable): MessageComponentTypeKey;
-}
-
-/**
  * Data structure that makes it easy to interact with a bitfield.
  */
 export class BitField<S extends string, N extends number | bigint = number> {
@@ -1297,10 +1272,10 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
    */
   public readonly component: CacheTypeReducer<
     Cached,
-    MessageButton,
+    ButtonComponent,
     APIButtonComponent,
-    MessageButton | APIButtonComponent,
-    MessageButton | APIButtonComponent
+    ButtonComponent | APIButtonComponent,
+    ButtonComponent | APIButtonComponent
   >;
 
   /**
@@ -2246,11 +2221,9 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a member option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
+   * @returns The value of the option, or null if the user is not present in the guild or the option is not set.
    */
-  getMember(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['member']>;
-  getMember(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['member']> | null;
+  getMember(name: string): NonNullable<CommandInteractionOption<Cached>['member']> | null;
 
   /**
    * Gets a role option.
@@ -2519,11 +2492,9 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a member option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
+   * @returns The value of the option, or null if the user is not present in the guild or the option is not set.
    */
-  public getMember(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['member']>;
-  public getMember(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['member']> | null;
+  public getMember(name: string): NonNullable<CommandInteractionOption<Cached>['member']> | null;
 
   /**
    * Gets a role option.
@@ -5192,12 +5163,12 @@ export class Invite extends Base {
   /**
    * The channel this invite is for
    */
-  public channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
+  public readonly channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
 
   /**
    * The channel's id this invite is for
    */
-  public channelId: Snowflake;
+  public channelId: Snowflake | null;
 
   /**
    * The code for this invite
@@ -5237,7 +5208,7 @@ export class Invite extends Base {
   /**
    * The user who created this invite
    */
-  public inviter: User | null;
+  public readonly inviter: User | null;
 
   /**
    * The user's id who created this invite
@@ -5511,7 +5482,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * A list of MessageActionRows in the message
    */
-  public components: MessageActionRow[];
+  public components: ActionRow<ActionRowComponent>[];
 
   /**
    * The content of the message
@@ -5831,7 +5802,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Resolves a component by a custom id.
    * @param customId The custom id to resolve against
    */
-  public resolveComponent(customId: string): MessageActionRowComponent | null;
+  public resolveComponent(customId: string): ActionRowComponent | null;
 
   /**
    * Create a new public thread from this message
@@ -5873,60 +5844,6 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Whether this message is from a guild.
    */
   public inGuild(): this is Message<true> & this;
-}
-
-/**
- * Represents an action row containing message components.
- */
-export class MessageActionRow extends BaseMessageComponent {
-  /**
-   * @param data MessageActionRow to clone or raw data
-   */
-  public constructor(data?: MessageActionRow | MessageActionRowOptions | APIActionRowComponent);
-
-  /**
-   * The type of this component
-   */
-  public type: 'ActionRow';
-
-  /**
-   * The components in this action row
-   */
-  public components: MessageActionRowComponent[];
-
-  /**
-   * Adds components to the action row.
-   * @param components The components to add
-   */
-  public addComponents(
-    ...components: MessageActionRowComponentResolvable[] | MessageActionRowComponentResolvable[][]
-  ): this;
-
-  /**
-   * Sets the components of the action row.
-   * @param components The components to set
-   */
-  public setComponents(
-    ...components: MessageActionRowComponentResolvable[] | MessageActionRowComponentResolvable[][]
-  ): this;
-
-  /**
-   * Removes, replaces, and inserts components in the action row.
-   * @param index The index to start at
-   * @param deleteCount The number of components to remove
-   * @param components The replacing components
-   */
-  public spliceComponents(
-    index: number,
-    deleteCount: number,
-    ...components: MessageActionRowComponentResolvable[] | MessageActionRowComponentResolvable[][]
-  ): this;
-
-  /**
-   * Transforms the action row to a plain object.
-   * @returns The raw data of this action row
-   */
-  public toJSON(): APIActionRowComponent;
 }
 
 /**
@@ -6036,100 +5953,6 @@ export class MessageAttachment {
 }
 
 /**
- * Represents a button message component.
- */
-export class MessageButton extends BaseMessageComponent {
-  /**
-   * @param data MessageButton to clone or raw data
-   */
-  public constructor(data?: MessageButton | MessageButtonOptions | APIButtonComponent);
-
-  /**
-   * A unique string to be sent in the interaction when clicked
-   */
-  public customId: string | null;
-
-  /**
-   * Whether this button is currently disabled
-   */
-  public disabled: boolean;
-
-  /**
-   * Emoji for this button
-   */
-  public emoji: APIPartialEmoji | null;
-
-  /**
-   * The text to be displayed on this button
-   */
-  public label: string | null;
-
-  /**
-   * The style of this button
-   */
-  public style: ButtonStyleKey | null;
-
-  /**
-   * The type of this component
-   */
-  public type: 'Button';
-
-  /**
-   * The URL this button links to, if it is a Link style button
-   */
-  public url: string | null;
-
-  /**
-   * Sets the custom id for this button
-   * @param customId A unique string to be sent in the interaction when clicked
-   */
-  public setCustomId(customId: string): this;
-
-  /**
-   * Sets the interactive status of the button
-   * @param disabled Whether this button should be disabled
-   */
-  public setDisabled(disabled?: boolean): this;
-
-  /**
-   * Set the emoji of this button
-   * @param emoji The emoji to be displayed on this button
-   */
-  public setEmoji(emoji: EmojiIdentifierResolvable): this;
-
-  /**
-   * Sets the label of this button
-   * @param label The text to be displayed on this button
-   */
-  public setLabel(label: string): this;
-
-  /**
-   * Sets the style of this button
-   * @param style The style of this button
-   */
-  public setStyle(style: MessageButtonStyleResolvable): this;
-
-  /**
-   * Sets the URL of this button.
-   * <info>{@link MessageButton.style} must be LINK when setting a URL</info>
-   * @param url The URL of this button
-   */
-  public setURL(url: string): this;
-
-  /**
-   * Transforms the button to a plain object.
-   * @returns The raw data of this button
-   */
-  public toJSON(): APIButtonComponent;
-
-  /**
-   * Resolves the style of a button
-   * @param style The style to resolve
-   */
-  private static resolveStyle(style: MessageButtonStyleResolvable): ButtonStyleKey;
-}
-
-/**
  * Collects messages on a channel.
  * Will automatically stop if the channel ({@link ClientEvents.channelDelete channelDelete}),
  * thread ({@link ClientEvents.threadDelete threadDelete}), or
@@ -6199,10 +6022,10 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    */
   public readonly component: CacheTypeReducer<
     Cached,
-    MessageActionRowComponent,
+    ActionRowComponent,
     Exclude<APIMessageComponent, APIActionRowComponent>,
-    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>,
-    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>,
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>
   >;
 
   /**
@@ -6909,112 +6732,6 @@ export class MessageReaction {
    * Transforms the message reaction to a plain object.
    */
   public toJSON(): unknown;
-}
-
-/**
- * Represents a select menu message component
- */
-export class MessageSelectMenu extends BaseMessageComponent {
-  /**
-   * @param data MessageSelectMenu to clone or raw data
-   */
-  public constructor(data?: MessageSelectMenu | MessageSelectMenuOptions | APISelectMenuComponent);
-
-  /**
-   * A unique string to be sent in the interaction when clicked
-   */
-  public customId: string | null;
-
-  /**
-   * Whether this select menu is currently disabled
-   */
-  public disabled: boolean;
-
-  /**
-   * The maximum number of selections allowed
-   */
-  public maxValues: number | null;
-
-  /**
-   * The minimum number of selections required
-   */
-  public minValues: number | null;
-
-  /**
-   * Options for the select menu
-   */
-  public options: MessageSelectOption[];
-
-  /**
-   * Custom placeholder text to display when nothing is selected
-   */
-  public placeholder: string | null;
-
-  /**
-   * The type of this component
-   */
-  public type: 'SelectMenu';
-
-  /**
-   * Adds options to the select menu.
-   * @param options The options to add
-   */
-  public addOptions(...options: MessageSelectOptionData[] | MessageSelectOptionData[][]): this;
-
-  /**
-   * Sets the options of the select menu.
-   * @param options The options to set
-   */
-  public setOptions(...options: MessageSelectOptionData[] | MessageSelectOptionData[][]): this;
-
-  /**
-   * Sets the custom id of this select menu
-   * @param customId A unique string to be sent in the interaction when clicked
-   */
-  public setCustomId(customId: string): this;
-
-  /**
-   * Sets the interactive status of the select menu
-   * @param disabled Whether this select menu should be disabled
-   */
-  public setDisabled(disabled?: boolean): this;
-
-  /**
-   * Sets the maximum number of selections allowed for this select menu
-   * @param maxValues Number of selections to be allowed
-   */
-  public setMaxValues(maxValues: number): this;
-
-  /**
-   * Sets the minimum number of selections required for this select menu
-   * <info>This will default the maxValues to the number of options, unless manually set</info>
-   * @param minValues Number of selections to be required
-   */
-  public setMinValues(minValues: number): this;
-
-  /**
-   * Sets the placeholder of this select menu
-   * @param placeholder Custom placeholder text to display when nothing is selected
-   */
-  public setPlaceholder(placeholder: string): this;
-
-  /**
-   * Removes, replaces, and inserts options in the select menu.
-   * @param index The index to start at
-   * @param deleteCount The number of options to remove
-   * @param options The replacing option objects
-   */
-  public spliceOptions(
-    index: number,
-    deleteCount: number,
-    ...options: MessageSelectOptionData[] | MessageSelectOptionData[][]
-  ): this;
-
-  /**
-   * Transforms the select menu into a plain object
-   * @returns The raw data of this select menu
-   */
-  public toJSON(): APISelectMenuComponent;
 }
 
 /**
@@ -7745,10 +7462,10 @@ export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends
    */
   public readonly component: CacheTypeReducer<
     Cached,
-    MessageSelectMenu,
+    SelectMenuComponent,
     APISelectMenuComponent,
-    MessageSelectMenu | APISelectMenuComponent,
-    MessageSelectMenu | APISelectMenuComponent
+    SelectMenuComponent | APISelectMenuComponent,
+    SelectMenuComponent | APISelectMenuComponent
   >;
 
   /**
@@ -17014,30 +16731,6 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   message?: CacheTypeReducer<Cached, Message, APIMessage>;
 }
 
-export interface ButtonInteractionCollectorOptions<Cached = boolean>
-  extends MessageComponentCollectorOptions<Cached extends true ? ButtonInteraction<'cached'> : ButtonInteraction> {
-  componentType: 'BUTTON' | MessageComponentTypes.BUTTON;
-}
-
-export interface SelectMenuInteractionCollectorOptions<Cached = boolean>
-  extends MessageComponentCollectorOptions<
-    Cached extends true ? SelectMenuInteraction<'cached'> : SelectMenuInteraction
-  > {
-  componentType: 'SELECT_MENU' | MessageComponentTypes.SELECT_MENU;
-}
-
-export interface MessageInteractionCollectorOptions<Cached = boolean>
-  extends MessageComponentCollectorOptions<
-    Cached extends true ? MessageComponentInteraction<'cached'> : MessageComponentInteraction
-  > {
-  componentType: 'ACTION_ROW' | MessageComponentTypes.ACTION_ROW;
-}
-
-export type InteractionCollectorOptionsResolvable<Cached = boolean> =
-  | MessageInteractionCollectorOptions<Cached>
-  | SelectMenuInteractionCollectorOptions<Cached>
-  | ButtonInteractionCollectorOptions<Cached>;
-
 /**
  * Options for deferring the reply to an {@link Interaction}.
  */
@@ -17289,27 +16982,22 @@ export type MemberMention = UserMention | `<@!${Snowflake}>`;
 export type TeamMemberMembershipStateKey = keyof typeof TeamMemberMembershipState;
 
 /**
- * Components that can be placed in an action row
- */
-export type MessageActionRowComponent = MessageButton | MessageSelectMenu;
-
-/**
  * Options for components that can be placed in an action row
  */
-export type MessageActionRowComponentOptions =
+export type ActionRowComponentOptions =
   | (Required<BaseMessageComponentOptions> & MessageButtonOptions)
   | (Required<BaseMessageComponentOptions> & MessageSelectMenuOptions);
 
 /**
  * Data that can be resolved into components that can be placed in an action row
  */
-export type MessageActionRowComponentResolvable = MessageActionRowComponent | MessageActionRowComponentOptions;
+export type MessageActionRowComponentResolvable = ActionRowComponent | ActionRowComponentOptions;
 
-export interface MessageActionRowOptions extends BaseMessageComponentOptions {
+export interface ActionRowOptions extends BaseMessageComponentOptions {
   /**
    * The components to place in this action row
    */
-  components: MessageActionRowComponentResolvable[];
+  components: ActionRowComponent[];
 }
 
 /**
@@ -17397,7 +17085,7 @@ export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
  * Components that can be sent in a message.
  * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
  */
-export type MessageComponent = BaseMessageComponent | MessageActionRow | MessageButton | MessageSelectMenu;
+export type MessageComponent = Component | ActionRow<ActionRowComponent> | ButtonComponent | SelectMenuComponent;
 
 export type MessageComponentCollectorOptions<T extends MessageComponentInteraction> = Omit<
   InteractionCollectorOptions<T>,
@@ -17414,7 +17102,7 @@ export type MessageChannelComponentCollectorOptions<T extends MessageComponentIn
  */
 export type MessageComponentOptions =
   | BaseMessageComponentOptions
-  | MessageActionRowOptions
+  | ActionRowOptions
   | MessageButtonOptions
   | MessageSelectMenuOptions;
 
@@ -17462,7 +17150,7 @@ export interface MessageEditOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (MessageActionRow | (Required<BaseMessageComponentOptions> & MessageActionRowOptions))[];
+  components?: (ActionRow<ActionRowComponent> | (Required<BaseMessageComponentOptions> & ActionRowOptions))[];
 }
 
 /**
@@ -17783,7 +17471,7 @@ export interface MessageOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (MessageActionRow | (Required<BaseMessageComponentOptions> & MessageActionRowOptions))[];
+  components?: (ActionRow<ActionRowComponent> | (Required<BaseMessageComponentOptions> & ActionRowOptions))[];
 
   /**
    * Which mentions should be parsed from the message content
@@ -19171,3 +18859,10 @@ export {
   StickerFormatType,
   WebhookType,
 } from 'discord-api-types/v9';
+export {
+  ActionRow,
+  ButtonComponent,
+  SelectMenuComponent,
+  SelectMenuOption,
+  ActionRowComponent,
+} from '@discordjs/builders';
