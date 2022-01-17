@@ -295,7 +295,7 @@ export abstract class AnonymousGuild extends BaseGuild {
   /**
    * The NSFW level of this guild
    */
-  public nsfwLevel: GuildNSFWLevel;
+  public nsfwLevel: GuildNSFWLevelKey;
 
   /**
    * The hash of the guild invite splash image
@@ -314,13 +314,13 @@ export abstract class AnonymousGuild extends BaseGuild {
 
   /**
    * The URL to this guild's banner.
-   * @param options Options for the Image URL
+   * @param options Options for the image URL
    */
   public bannerURL(options?: ImageURLOptions): string | null;
 
   /**
    * The URL to this guild's invite splash image.
-   * @param options Options for the Image URL
+   * @param options Options for the image URL
    */
   public splashURL(options?: ImageURLOptions): string | null;
 }
@@ -363,13 +363,13 @@ export abstract class Application extends Base {
 
   /**
    * A link to this application's cover image.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public coverURL(options?: ImageURLOptions): string | null;
 
   /**
    * A link to the application's icon.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
@@ -934,7 +934,7 @@ export abstract class BaseGuild extends Base {
 
   /**
    * The URL to this guild's icon.
-   * @param options Options for the Image URL
+   * @param options Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
@@ -1359,10 +1359,7 @@ export class CategoryChannel extends GuildChannel {
     name: string,
     options: CategoryCreateChannelOptions & { type: 'GuildStore' | ChannelType.GuildStore },
   ): Promise<StoreChannel>;
-  public createChannel(
-    name: string,
-    options?: CategoryCreateChannelOptions,
-  ): Promise<Exclude<NonThreadGuildBasedChannel, CategoryChannel>>;
+  public createChannel(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
 /**
@@ -1939,37 +1936,19 @@ export class Options extends null {
 
   /**
    * Create a cache factory using predefined settings to sweep or limit.
-   * @param settings Settings passed to the relevant constructor.
+   * @param {} [settings={}] Settings passed to the relevant constructor.
    * If no setting is provided for a manager, it uses Collection.
    * If a number is provided for a manager, it uses that number as the max size for a LimitedCollection.
    * If LimitedCollectionOptions are provided for a manager, it uses those settings to form a LimitedCollection.
    * @example
-   * // Store up to 200 messages per channel and discard archived threads if they were archived more than 4 hours ago.
-   * // Note archived threads will remain in the guild and client caches with these settings
+   * // Store up to 200 messages per channel and 200 members per guild, always keeping the client member.
    * Options.cacheWithLimits({
    *    MessageManager: 200,
-   *    ThreadManager: {
-   *      sweepInterval: 3600,
-   *      sweepFilter: LimitedCollection.filterByLifetime({
-   *        getComparisonTimestamp: e => e.archiveTimestamp,
-   *        excludeFromSweep: e => !e.archived,
-   *      }),
+   *    GuildMemberManager: {
+   *      maxSize: 200,
+   *      keepOverLimit: (member) => member.id === client.user.id,
    *    },
    *  });
-   * @example
-   * // Sweep messages every 5 minutes, removing messages that have not been edited or created in the last 30 minutes
-   * Options.cacheWithLimits({
-   *   // Keep default thread sweeping behavior
-   *   ...Options.defaultMakeCacheSettings,
-   *   // Override MessageManager
-   *   MessageManager: {
-   *     sweepInterval: 300,
-   *     sweepFilter: LimitedCollection.filterByLifetime({
-   *       lifetime: 1800,
-   *       getComparisonTimestamp: e => e.editedTimestamp ?? e.createdTimestamp,
-   *     })
-   *   }
-   * });
    */
   public static cacheWithLimits(settings?: CacheWithLimitsOptions): CacheFactory;
 
@@ -2150,7 +2129,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   extends CommandInteractionOptionResolver<Cached> {
   /**
    * Gets the selected subcommand.
-   * @param required Whether to throw an error if there is no subcommand.
+   * @param {} [required=false] Whether to throw an error if there is no subcommand.
    * @returns The name of the selected subcommand, or null if not set and not required.
    */
   getSubcommand(required?: true): string;
@@ -2161,8 +2140,8 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
    * @param required Whether to throw an error if there is no subcommand group.
    * @returns The name of the selected subcommand group, or null if not set and not required.
    */
-  getSubcommandGroup(required?: true): string;
-  getSubcommandGroup(required: boolean): string | null;
+  getSubcommandGroup(required: true): string;
+  getSubcommandGroup(required?: boolean): string | null;
 
   /**
    * Gets a boolean option.
@@ -2432,8 +2411,8 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * @param required Whether to throw an error if there is no subcommand group.
    * @returns The name of the selected subcommand group, or null if not set and not required.
    */
-  public getSubcommandGroup(required?: true): string;
-  public getSubcommandGroup(required: boolean): string | null;
+  public getSubcommandGroup(required: true): string;
+  public getSubcommandGroup(required?: boolean): string | null;
 
   /**
    * Gets a boolean option.
@@ -3066,7 +3045,7 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The URL to this guild's discovery splash image.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public discoverySplashURL(options?: ImageURLOptions): string | null;
 
@@ -4004,7 +3983,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
 
   /**
    * A link to the member's guild avatar.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public avatarURL(options?: ImageURLOptions): string | null;
 
@@ -4190,19 +4169,19 @@ export class GuildPreview extends Base {
 
   /**
    * The URL to this guild's discovery splash.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public discoverySplashURL(options?: ImageURLOptions): string | null;
 
   /**
    * The URL to this guild's icon.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
   /**
    * The URL to this guild's splash.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public splashURL(options?: ImageURLOptions): string | null;
 
@@ -4692,7 +4671,7 @@ export class Integration extends Base {
   public expireBehavior: IntegrationExpireBehaviors | null;
 
   /**
-   * The grace period before expiring subscribers
+   * The grace period (in days) before expiring subscribers
    */
   public expireGracePeriod: number | null;
 
@@ -4727,7 +4706,7 @@ export class Integration extends Base {
   public readonly roles: Collection<Snowflake, Role>;
 
   /**
-   * The last time this integration was last synced
+   * The date at which this integration was last synced at
    */
   public readonly syncedAt: Date | null;
 
@@ -5046,7 +5025,7 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
   /**
    * The type of component to collect
    */
-  public componentType: MessageComponentTypeKey | null;
+  public componentType: ComponentTypeKey | null;
 
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
@@ -5374,8 +5353,8 @@ export class InviteGuild extends AnonymousGuild {
  */
 export class LimitedCollection<K, V> extends Collection<K, V> {
   /**
-   * @param options Options for constructing the Collection.
-   * @param iterable Optional entries passed to the Map constructor.
+   * @param {} [options={}] Options for constructing the Collection.
+   * @param {} [iterable=null] Optional entries passed to the Map constructor.
    */
   public constructor(options?: LimitedCollectionOptions<K, V>, iterable?: Iterable<readonly [K, V]>);
 
@@ -5622,7 +5601,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The type of the message
    */
-  public type: MessageType;
+  public type: MessageTypeKey;
 
   /**
    * The URL to jump to this message
@@ -5685,12 +5664,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public createReactionCollector(options?: ReactionCollectorOptions): ReactionCollector;
 
   /**
-   * Creates a message component interaction collector.
-   * @param options Options to send to the collector
+   * Creates a component interaction collector.
+   * @param {} [options={}] Options to send to the collector
    * @example
-   * // Create a message component interaction collector
+   * // Create a button interaction collector
    * const filter = (interaction) => interaction.customId === 'button' && interaction.user.id === 'someId';
-   * const collector = message.createMessageComponentCollector({ filter, time: 15_000 });
+   * const collector = channel.createMessageComponentCollector({ filter, time: 15_000 });
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
@@ -6191,7 +6170,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    * Resolves the type of a MessageComponent
    * @param type The type to resolve
    */
-  public static resolveType(type: MessageComponentTypeResolvable): MessageComponentTypeKey;
+  public static resolveType(type: MessageComponentTypeResolvable): ComponentTypeKey;
 }
 
 /**
@@ -6802,7 +6781,7 @@ export class PartialGroupDMChannel extends Channel {
 
   /**
    * The URL to this channel's icon.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 }
@@ -7173,14 +7152,14 @@ export class RichPresenceAssets {
   public smallText: string | null;
 
   /**
-   * Gets the URL of the small image asset
-   * @param options Options for the image URL
+   * Gets the URL of the large image asset
+   * @param {} [options={}] Options for the image URL
    */
   public largeImageURL(options?: ImageURLOptions): string | null;
 
   /**
-   * Gets the URL of the large image asset
-   * @param options Options for the image URL
+   * Gets the URL of the small image asset
+   * @param {} [options={}] Options for the image URL
    */
   public smallImageURL(options?: ImageURLOptions): string | null;
 }
@@ -7327,7 +7306,7 @@ export class Role extends Base {
 
   /**
    * A link to the role's icon
-   * @param options Options for the image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
@@ -7704,7 +7683,17 @@ export class ShardClientUtil {
    * @param message Message to send
    */
   private _respond(type: string, message: unknown): void;
+
+  /**
+   * Increments max listeners by one for a given emitter, if they are not zero.
+   * @param emitter The emitter that emits the events.
+   */
   private incrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
+
+  /**
+   * Decrements max listeners by one for a given emitter, if they are not zero.
+   * @param emitter The emitter that emits the events.
+   */
   private decrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
 
   /**
@@ -8313,7 +8302,7 @@ export class StickerPack extends Base {
 
   /**
    * The URL to this sticker pack's banner.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public bannerURL(options?: ImageURLOptions): string | null;
 }
@@ -8479,6 +8468,11 @@ export class Sweepers {
     filter: CollectionSweepFilter<SweeperDefinitions['stageInstances'][0], SweeperDefinitions['stageInstances'][1]>,
   ): number;
 
+  /**
+   * Sweeps all guild stickers and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which stickers will be removed from the caches.
+   * @returns Amount of stickers that were removed from the caches
+   */
   public sweepStickers(
     filter: CollectionSweepFilter<SweeperDefinitions['stickers'][0], SweeperDefinitions['stickers'][1]>,
   ): number;
@@ -8627,7 +8621,7 @@ export class Team extends Base {
 
   /**
    * A link to the team's icon.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
@@ -9219,15 +9213,13 @@ export class User extends PartialTextBasedChannel(Base) {
 
   /**
    * A link to the user's avatar.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the image URL
    */
   public avatarURL(options?: ImageURLOptions): string | null;
 
   /**
-   * A link to the user's banner.
-   * <info>This method will throw an error if called before the user is force fetched.
-   * See {@link User.banner} for more info</info>
-   * @param options Options for the Image URL
+   * A link to the user's banner. See {@link User.banner} for more info
+   * @param {ImageURLOptions} [options={}] Options for the image URL
    */
   public bannerURL(options?: ImageURLOptions): string | null | undefined;
 
@@ -9343,8 +9335,6 @@ export class Util extends null {
 
   /**
    * The content to have all mentions replaced by the equivalent text.
-   * <warn>When {@link Util.removeMentions} is removed, this method will no longer sanitize mentions.
-   * Use {@link MessageOptions.allowedMentions} instead to prevent mentions when sending a message.</warn>
    * @param str The string to be converted
    * @param channel The channel the string was sent in
    */
@@ -9896,8 +9886,7 @@ export class Webhook extends WebhookMixin() {
 
   /**
    * A link to the webhook's avatar.
-   * @param options Options for the Image URL
-   * @returns {?string}
+   * @param {} [options={}] Options for the image URL
    */
   public avatarURL(options?: ImageURLOptions): string | null;
 
@@ -11129,7 +11118,7 @@ export class ApplicationCommandPermissionsManager<
   private static transformPermissions(
     permissions: ApplicationCommandPermissionData,
     received: true,
-  ): Omit<APIApplicationCommandPermission, 'type'> & { type: keyof ApplicationCommandPermissionType };
+  ): Omit<APIApplicationCommandPermission, 'type'> & { type: keyof typeof ApplicationCommandPermissionType };
   private static transformPermissions(permissions: ApplicationCommandPermissionData): APIApplicationCommandPermission;
 }
 
@@ -12501,6 +12490,7 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
    * all members are fetched with `options.cache` set to the boolean value
    */
   public fetch(options?: ThreadMemberFetchOptions): Promise<ThreadMember>;
+  public fetch(cache?: boolean): Promise<Collection<Snowflake, ThreadMember>>;
 
   /**
    * Remove a user from the thread.
@@ -12606,7 +12596,7 @@ export interface PartialTextBasedChannelFields {
    * channel.send({
    *   files: [{
    *     attachment: 'entire/path/to/file.jpg',
-   *     name: 'file.jpg'
+   *     name: 'file.jpg',
    *     description: 'A description of the file'
    *   }]
    * })
@@ -12625,7 +12615,7 @@ export interface PartialTextBasedChannelFields {
    *   ],
    *   files: [{
    *     attachment: 'entire/path/to/file.jpg',
-   *     name: 'file.jpg'
+   *     name: 'file.jpg',
    *     description: 'A description of the file'
    *   }]
    * })
@@ -12982,8 +12972,14 @@ export interface AddGuildMemberOptions {
   fetchWhenExisting?: boolean;
 }
 
+/**
+ * A list of image formats
+ */
 export type AllowedImageFormat = 'webp' | 'png' | 'jpg' | 'jpeg';
 
+/**
+ * A list of image sizes
+ */
 export type AllowedImageSize = 16 | 32 | 56 | 64 | 96 | 128 | 256 | 300 | 512 | 600 | 1024 | 2048 | 4096;
 
 export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction;
@@ -13533,7 +13529,7 @@ export interface BaseMessageComponentOptions {
   /**
    * The type of this component
    */
-  type?: MessageComponentTypeKey | ComponentType;
+  type?: ComponentTypeKey | ComponentType;
 }
 
 /**
@@ -14417,6 +14413,7 @@ export interface ClientOptions {
   /**
    * The total amount of shards used by all processes of this bot
    * (e.g. recommended shard count, shard count of the ShardingManager)
+   * @default 1
    */
   shardCount?: number;
 
@@ -14437,6 +14434,7 @@ export interface ClientOptions {
    * The number of invalid REST requests (those that return 401, 403, or 429) in a 10 minute window between
    * emitted warnings (0 for no warnings). That is, if set to 500, warnings will be emitted at invalid request
    * number 500, 1000, 1500, and so on.
+   * @default 0
    */
   invalidRequestWarningInterval?: number;
 
@@ -14451,31 +14449,37 @@ export interface ClientOptions {
   /**
    * Extra time in milliseconds to wait before continuing to make REST
    * requests (higher values will reduce rate-limiting errors on bad connections)
+   * @default 500
    */
   restTimeOffset?: number;
 
   /**
    * Time to wait before cancelling a REST request, in milliseconds
+   * @default 15_000
    */
   restRequestTimeout?: number;
 
   /**
    * How many requests to allow sending per second (0 for unlimited, 50 for the standard global limit used by Discord)
+   * @default 0
    */
   restGlobalRateLimit?: number;
 
   /**
    * How frequently to delete inactive request buckets, in seconds (or 0 for never)
+   * @default 60
    */
   restSweepInterval?: number;
 
   /**
    * How many times to retry on 5XX errors (Infinity for an indefinite amount of retries)
+   * @default 1
    */
   retryLimit?: number;
 
   /**
    * Default value for {@link ReplyMessageOptions.failIfNotExists}
+   * @default true
    */
   failIfNotExists?: boolean;
 
@@ -14487,6 +14491,7 @@ export interface ClientOptions {
 
   /**
    * Presence data to use upon login
+   * @default {}
    */
   presence?: PresenceData;
 
@@ -14497,12 +14502,14 @@ export interface ClientOptions {
 
   /**
    * Time in milliseconds that Clients with the GUILDS intent should wait for
-   * missing guilds to be recieved before starting the bot. If not specified, the default is 15 seconds.
+   * missing guilds to be received before starting the bot. If not specified, the default is 15 seconds.
+   * @default 15_000
    */
   waitGuildTimeout?: number;
 
   /**
    * Options for cache sweeping
+   * @default {}
    */
   sweepers?: SweeperOptions;
 
@@ -15164,6 +15171,9 @@ export interface ConstantsShardEvents {
   RESUMED: 'resumed';
 }
 
+/**
+ * The current status of the client.
+ */
 export interface ConstantsStatus {
   READY: 0;
   CONNECTING: 1;
@@ -16698,7 +16708,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The type of component to listen for
    */
-  componentType?: ComponentType | MessageComponentTypeKey;
+  componentType?: ComponentType | ComponentTypeKey;
 
   /**
    * The guild to listen to interactions from
@@ -16849,21 +16859,25 @@ export interface CreateInviteOptions {
   /**
    * Whether members that joined via the invite should be automatically
    * kicked after 24 hours if they have not yet received a role
+   * @default false
    */
   temporary?: boolean;
 
   /**
    * How long the invite should last (in seconds, 0 for forever)
+   * @default 86400
    */
   maxAge?: number;
 
   /**
    * Maximum number of uses
+   * @default 0
    */
   maxUses?: number;
 
   /**
    * Create a unique invite, or use an existing one with similar settings
+   * @default false
    */
   unique?: boolean;
 
@@ -16874,12 +16888,13 @@ export interface CreateInviteOptions {
 
   /**
    * The embedded application to open for this invite,
-   * required if `targetType` is 2, the application must have the `EMBEDDED` flag
+   * required if `targetType` is `EMBEDDED_APPLICATION`, the application must have the `EMBEDDED` flag
    */
   targetApplication?: ApplicationResolvable;
 
   /**
-   * The type of the target for this voice channel invite
+   * The user whose stream to display for this invite,
+   * required if `targetType` is `STREAM`, the user must be streaming in the channel
    */
   targetUser?: UserResolvable;
 
@@ -17106,12 +17121,12 @@ export type MessageComponentOptions =
   | MessageButtonOptions
   | MessageSelectMenuOptions;
 
-export type MessageComponentTypeKey = keyof typeof ComponentType;
+export type ComponentTypeKey = keyof typeof ComponentType;
 
 /**
  * Data that can be resolved to a MessageComponentType.
  */
-export type MessageComponentTypeResolvable = MessageComponentTypeKey | ComponentType;
+export type MessageComponentTypeResolvable = ComponentTypeKey | ComponentType;
 
 /**
  * Options that can be passed into {@link Message.edit}.
@@ -17889,6 +17904,11 @@ export interface PartialRoleData extends RoleData {
   id?: Snowflake | number;
 }
 
+/**
+ * The type of Structure allowed to be a partial
+ * <warn>Partials require you to put checks in place when handling data. See the "Partial Structures" topic on the
+ * [guide](https://discordjs.guide/popular-topics/partials.html) for more information.</warn>
+ */
 export type PartialTypes = 'USER' | 'CHANNEL' | 'GUILD_MEMBER' | 'MESSAGE' | 'REACTION' | 'GUILD_SCHEDULED_EVENT';
 
 export interface PartialUser extends Partialize<User, 'username' | 'tag' | 'discriminator'> {}
@@ -17901,7 +17921,7 @@ export type StageInstancePrivacyLevelKey = keyof typeof StageInstancePrivacyLeve
 
 export interface RateLimitData {
   /**
-   * Time until this rate limit ends, in ms
+   * Time until this rate limit ends, in milliseconds
    */
   timeout: number;
 
@@ -17911,7 +17931,7 @@ export interface RateLimitData {
   limit: number;
 
   /**
-   * The HTTP method used for the request
+   * The HTTP method of this request
    */
   method: string;
 
@@ -17938,7 +17958,7 @@ export interface InvalidRequestWarningData {
   count: number;
 
   /**
-   * Time in ms remaining before the count resets
+   * Time in milliseconds remaining before the count resets
    */
   remainingTime: number;
 }
@@ -18137,26 +18157,31 @@ export type ShardingManagerMode = 'process' | 'worker';
 export interface ShardingManagerOptions {
   /**
    * Number of total shards of all shard managers or "auto"
+   * @default 'auto'
    */
   totalShards?: number | 'auto';
 
   /**
    * List of shards to spawn or "auto"
+   * @default 'auto'
    */
   shardList?: number[] | 'auto';
 
   /**
    * Which mode to use for shards
+   * @default 'process'
    */
   mode?: ShardingManagerMode;
 
   /**
    * Whether shards should automatically respawn upon exiting
+   * @default true
    */
   respawn?: boolean;
 
   /**
    * Arguments to pass to the shard script when spawning (only available when mode is set to 'process')
+   * @default []
    */
   shardArgs?: string[];
 
@@ -18167,6 +18192,7 @@ export interface ShardingManagerOptions {
 
   /**
    * Arguments to pass to the shard script executable when spawning (only available when mode is set to 'process')
+   * @default []
    */
   execArgv?: string[];
 }
@@ -18370,11 +18396,13 @@ export type SweeperOptions = {
 export interface LimitedCollectionOptions<K, V> {
   /**
    * The maximum size of the Collection
+   * @default Infinity
    */
   maxSize?: number;
 
   /**
    * A function, which is passed the value and key of an entry, ran to decide to keep an entry past the maximum size
+   * @default null
    */
   keepOverLimit?: (value: V, key: K, collection: LimitedCollection<K, V>) => boolean;
 }

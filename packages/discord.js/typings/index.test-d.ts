@@ -861,8 +861,8 @@ declare const categoryChannel: CategoryChannel;
   expectType<Promise<NewsChannel>>(categoryChannel.createChannel('name', { type: 'GuildNews' }));
   expectDeprecated(categoryChannel.createChannel('name', { type: 'GuildStore' }));
   expectType<Promise<StageChannel>>(categoryChannel.createChannel('name', { type: 'GuildStageVoice' }));
-  expectType<Promise<Exclude<NonThreadGuildBasedChannel, CategoryChannel>>>(categoryChannel.createChannel('name', {}));
-  expectType<Promise<Exclude<NonThreadGuildBasedChannel, CategoryChannel>>>(categoryChannel.createChannel('name'));
+  expectType<Promise<TextChannel>>(categoryChannel.createChannel('name', {}));
+  expectType<Promise<TextChannel>>(categoryChannel.createChannel('name'));
 }
 
 declare const guildChannelManager: GuildChannelManager;
@@ -1119,8 +1119,8 @@ client.on('interactionCreate', async interaction => {
     expectType<string | null>(interaction.options.getSubcommand(booleanValue));
     expectType<string | null>(interaction.options.getSubcommand(false));
 
-    expectType<string>(interaction.options.getSubcommandGroup());
     expectType<string>(interaction.options.getSubcommandGroup(true));
+    expectType<string | null>(interaction.options.getSubcommandGroup());
     expectType<string | null>(interaction.options.getSubcommandGroup(booleanValue));
     expectType<string | null>(interaction.options.getSubcommandGroup(false));
   }
