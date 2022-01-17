@@ -707,6 +707,85 @@ export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
   Message | APIMessage
 >;
 
+export interface InteractionResponseFields<Cached extends CacheType = CacheType> {
+  /**
+   * Creates a reply to this interaction.
+   * <info>Use the `fetchReply` option to get the bot's reply message.</info>
+   * @param options The options for the reply
+   * @example
+   * // Reply to the interaction and fetch the response
+   * interaction.reply({ content: 'Pong!', fetchReply: true })
+   *   .then((message) => console.log(`Reply sent with content ${message.content}`))
+   *   .catch(console.error);
+   * @example
+   * // Create an ephemeral reply with an embed
+   * const embed = new MessageEmbed().setDescription('Pong!');
+   *
+   * interaction.reply({ embeds: [embed], ephemeral: true })
+   *   .then(() => console.log('Reply sent.'))
+   *   .catch(console.error);
+   */
+  reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void>;
+
+  /**
+   * Deletes the initial reply to this interaction.
+   * @see Webhook.deleteMessage
+   * @example
+   * // Delete the reply to this interaction
+   * interaction.deleteReply()
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  deleteReply(): Promise<void>;
+
+  /**
+   * Edits the initial reply to this interaction.
+   * @see Webhook.editMessage
+   * @param options The new options for the message
+   * @example
+   * // Edit the reply to this interaction
+   * interaction.editReply('New content')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Defers the reply to this interaction.
+   * @param options Options for deferring the reply to this interaction
+   * @example
+   * // Defer the reply to this interaction
+   * interaction.deferReply()
+   *   .then(console.log)
+   *   .catch(console.error)
+   * @example
+   * // Defer to send an ephemeral reply later
+   * interaction.deferReply({ ephemeral: true })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  deferReply(options: InteractionDeferReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  deferReply(options?: InteractionDeferReplyOptions): Promise<void>;
+
+  /**
+   * Fetches the initial reply to this interaction.
+   * @see Webhook.fetchMessage
+   * @example
+   * // Fetch the reply to this interaction
+   * interaction.fetchReply()
+   *   .then(reply => console.log(`Replied with ${reply.content}`))
+   *   .catch(console.error);
+   */
+  fetchReply(): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Send a follow-up message to this interaction.
+   * @param options The options for the reply
+   */
+  followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<GuildCacheMessage<Cached>>;
+}
+
 /**
  * Represents a command interaction.
  */
@@ -4987,6 +5066,11 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
    * Indicates whether this interaction is a {@link SelectMenuInteraction}.
    */
   public isSelectMenu(): this is SelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction can be replied to.
+   */
+  public isRepliable(): this is this & InteractionResponseFields<Cached>;
 }
 
 /**
