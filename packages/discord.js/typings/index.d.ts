@@ -601,7 +601,7 @@ export class ApplicationFlags extends BitField<ApplicationFlagsString> {
 /**
  * Represents a data model that is identifiable by a Snowflake (i.e. Discord API data models).
  */
-export class Base {
+export abstract class Base {
   public constructor(client: Client);
 
   /**
@@ -3579,7 +3579,7 @@ export class GuildBan extends Base {
  * - {@link StoreChannel}
  * - {@link StageChannel}
  */
-export class GuildChannel extends Channel {
+export abstract class GuildChannel extends Channel {
   /**
    * @param guild The guild the guild channel is part of
    * @param data The data for the guild channel
@@ -12568,7 +12568,7 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 // to the classes that use these methods without having to manually add them
 // to each of those classes
 
-export type Constructable<T> = new (...args: any[]) => T;
+export type Constructable<T> = abstract new (...args: any[]) => T;
 export function PartialTextBasedChannel<T>(Base?: Constructable<T>): Constructable<T & PartialTextBasedChannelFields>;
 export function TextBasedChannelMixin<T, I extends keyof TextBasedChannelFields = never>(
   Base?: Constructable<T>,
