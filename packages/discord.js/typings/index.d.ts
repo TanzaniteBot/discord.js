@@ -314,13 +314,13 @@ export abstract class AnonymousGuild extends BaseGuild {
 
   /**
    * The URL to this guild's banner.
-   * @param options Options for the image URL
+   * @param {} [options={}] Options for the image URL
    */
   public bannerURL(options?: ImageURLOptions): string | null;
 
   /**
    * The URL to this guild's invite splash image.
-   * @param options Options for the image URL
+   * @param {} [options={}] Options for the image URL
    */
   public splashURL(options?: ImageURLOptions): string | null;
 }
@@ -508,7 +508,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
 
   /**
    * Edits the default permission of this ApplicationCommand
-   * @param defaultPermission The default permission for this command
+   * @param {} [defaultPermission=true] The default permission for this command
    */
   public setDefaultPermission(defaultPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
 
@@ -523,7 +523,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * it is advisable to just compare `command.id === command2.id` as it is much faster and is often
    * what most users need.
    * @param command The command to compare with
-   * @param enforceOptionOrder Whether to strictly check that options and choices are in the same
+   * @param {} [enforceOptionOrder=false] Whether to strictly check that options and choices are in the same
    * order in the array <info>The client may not always respect this ordering!</info>
    */
   public equals(
@@ -537,7 +537,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * @param existing The options on the existing command,
    * should be {@link ApplicationCommand.options}
    * @param options The options to compare against
-   * @param enforceOptionOrder Whether to strictly check that options and choices are in the same
+   * @param {} [enforceOptionOrder=false] Whether to strictly check that options and choices are in the same
    * order in the array <info>The client may not always respect this ordering!</info>
    */
   public static optionsEqual(
@@ -550,10 +550,11 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * Checks that an option for an {@link ApplicationCommand} is equal to the provided option
    * In most cases it is better to compare using {@link ApplicationCommand.equals}
    * @param existing The option on the existing command,
-   * should be from {@link ApplicationCommand.options}
+   * should be from {@link ApplicationCommand#options}
    * @param option The option to compare against
-   * @param enforceOptionOrder Whether to strictly check that options or choices are in the same
+   * @param {} [enforceOptionOrder=false] Whether to strictly check that options or choices are in the same
    * order in their array <info>The client may not always respect this ordering!</info>
+   * @private
    */
   private static _optionEquals(
     existing: ApplicationCommandOption,
@@ -624,6 +625,9 @@ export abstract class Base {
  * The base class for all clients.
  */
 export class BaseClient extends EventEmitter {
+  /**
+   * @param {} [options={}]
+   */
   public constructor(options?: ClientOptions | WebhookClientOptions);
 
   /**
@@ -934,7 +938,7 @@ export abstract class BaseGuild extends Base {
 
   /**
    * The URL to this guild's icon.
-   * @param options Options for the image URL
+   * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
 
@@ -1024,7 +1028,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
 
   /**
    * Creates an invite to this guild channel.
-   * @param options The options for creating the invite
+   * @param {} [options={}] The options for creating the invite
    * @example
    * // Create an invite to a channel
    * channel.createInvite()
@@ -1052,7 +1056,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   /**
    * Fetches a collection of invites to this guild channel.
    * Resolves with a collection mapping invites by their codes.
-   * @param cache Whether or not to cache the fetched invites
+   * @param {} [cache=true] Whether or not to cache the fetched invites
    */
   public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
 
@@ -1068,7 +1072,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
 
   /**
    * Sets whether this channel is flagged as NSFW.
-   * @param nsfw Whether the channel should be considered NSFW
+   * @param {} [nsfw=true] Whether the channel should be considered NSFW
    * @param reason Reason for changing the channel's NSFW flag
    */
   public setNSFW(nsfw?: boolean, reason?: string): Promise<this>;
@@ -1142,7 +1146,7 @@ export class BaseGuildVoiceChannel extends GuildChannel {
 
   /**
    * Creates an invite to this guild channel.
-   * @param options The options for creating the invite
+   * @param {} [options={}] The options for creating the invite
    * @example
    * // Create an invite to a channel
    * channel.createInvite()
@@ -1166,7 +1170,7 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   /**
    * Fetches a collection of invites to this guild channel.
    * Resolves with a collection mapping invites by their codes.
-   * @param cache Whether or not to cache the fetched invites
+   * @param {} [cache=true] Whether or not to cache the fetched invites
    */
   public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
 }
@@ -1413,7 +1417,7 @@ export abstract class Channel extends Base {
 
   /**
    * Fetches this channel.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<this>;
 
@@ -1676,7 +1680,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
 
   /**
    * Generates a link that can be used to invite the bot to a guild.
-   * @param options Options for the invite
+   * @param {} [options={}] Options for the invite
    * @example
    * const link = client.generateInvite({
    *   scopes: ['applications.commands'],
@@ -1697,7 +1701,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
 
   /**
    * Logs the client in, establishing a WebSocket connection to Discord.
-   * @param token Token of the account to log in with
+   * @param {} [token=this.token] Token of the account to log in with
    * @returns Token of the account used
    * @example
    * client.login('my token');
@@ -1853,7 +1857,7 @@ export class ClientUser extends User {
 
   /**
    * Sets/removes the AFK flag for the client user.
-   * @param afk Whether or not the user is AFK
+   * @param {} [afk=true] Whether or not the user is AFK
    * @param shardId Shard Id(s) to have the AFK flag set on
    */
   public setAFK(afk?: boolean, shardId?: number | number[]): ClientPresence;
@@ -2137,7 +2141,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
 
   /**
    * Gets the selected subcommand group.
-   * @param required Whether to throw an error if there is no subcommand group.
+   * @param {} [required=false] Whether to throw an error if there is no subcommand group.
    * @returns The name of the selected subcommand group, or null if not set and not required.
    */
   getSubcommandGroup(required: true): string;
@@ -2146,7 +2150,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a boolean option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getBoolean(name: string, required: true): boolean;
@@ -2155,7 +2159,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a channel option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getChannel(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['channel']>;
@@ -2164,7 +2168,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a string option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getString(name: string, required: true): string;
@@ -2173,7 +2177,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets an integer option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getInteger(name: string, required: true): number;
@@ -2182,7 +2186,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a number option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getNumber(name: string, required: true): number;
@@ -2191,7 +2195,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a user option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getUser(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['user']>;
@@ -2207,7 +2211,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a role option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getRole(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['role']>;
@@ -2216,7 +2220,7 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   /**
    * Gets a mentionable option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   getMentionable(
@@ -2391,16 +2395,17 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   ): CommandInteractionOption<Cached> | null;
 
   /**
-   * Gets the selected subcommand.
-   * @param required Whether to throw an error if there is no subcommand.
-   * @returns The name of the selected subcommand, or null if not set and not required.
+   * Gets an option by its name.
+   * @param name The name of the option.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
+   * @returns The option, if found.
    */
   public get(name: string, required: true): CommandInteractionOption<Cached>;
   public get(name: string, required?: boolean): CommandInteractionOption<Cached> | null;
 
   /**
    * Gets the selected subcommand.
-   * @param required Whether to throw an error if there is no subcommand.
+   * @param {} [required=true] Whether to throw an error if there is no subcommand.
    * @returns The name of the selected subcommand, or null if not set and not required.
    */
   public getSubcommand(required?: true): string;
@@ -2408,7 +2413,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
 
   /**
    * Gets the selected subcommand group.
-   * @param required Whether to throw an error if there is no subcommand group.
+   * @param {} [required=false] Whether to throw an error if there is no subcommand group.
    * @returns The name of the selected subcommand group, or null if not set and not required.
    */
   public getSubcommandGroup(required: true): string;
@@ -2417,7 +2422,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a boolean option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getBoolean(name: string, required: true): boolean;
@@ -2426,7 +2431,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a channel option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getChannel(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['channel']>;
@@ -2435,7 +2440,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a string option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getString(name: string, required: true): string;
@@ -2444,7 +2449,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets an integer option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getInteger(name: string, required: true): number;
@@ -2453,7 +2458,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a number option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getNumber(name: string, required: true): number;
@@ -2462,7 +2467,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a user option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getUser(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['user']>;
@@ -2478,7 +2483,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a role option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getRole(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['role']>;
@@ -2487,7 +2492,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a mentionable option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getMentionable(
@@ -2502,7 +2507,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets a message option.
    * @param name The name of the option.
-   * @param required Whether to throw an error if the option is not found.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
   public getMessage(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['message']>;
@@ -2510,7 +2515,7 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
 
   /**
    * Gets the focused option.
-   * @param getFull Whether to get the full option object
+   * @param {} [getFull=false] Whether to get the full option object
    * @returns The value of the option, or the whole option if getFull is true
    */
   public getFocused(getFull: true): ApplicationCommandOptionChoice;
@@ -2686,7 +2691,7 @@ export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
 
   /**
    * Fetch this DMChannel.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<this>;
 }
@@ -3090,7 +3095,7 @@ export class Guild extends AnonymousGuild {
 
   /**
    * Fetches audit logs for this guild.
-   * @param options Options for fetching audit logs
+   * @param {} [options={}] Options for fetching audit logs
    * @example
    * // Output audit log entries
    * guild.fetchAuditLogs()
@@ -3565,7 +3570,7 @@ export class GuildBan extends Base {
 
   /**
    * Fetches this GuildBan.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<GuildBan>;
 }
@@ -3678,7 +3683,7 @@ export abstract class GuildChannel extends Channel {
 
   /**
    * Clones this channel.
-   * @param options The options for cloning this channel
+   * @param {} [options={}] The options for cloning this channel
    */
   public clone(options?: GuildChannelCloneOptions): Promise<this>;
 
@@ -3720,7 +3725,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * Gets the overall set of permissions for a member or role in this channel, taking into account channel overwrites.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<Permissions>;
   public permissionsFor(
@@ -3743,7 +3748,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * Sets the parent of this channel.
    * @param channel The category channel to set as the parent
-   * @param options The options for setting the parent
+   * @param {} [options={}] The options for setting the parent
    * @example
    * // Add a parent to a channel
    * message.channel.setParent('355908108431917066', { lockPermissions: false })
@@ -3755,7 +3760,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * Sets a new position for the guild channel.
    * @param position The new position for the guild channel
-   * @param options Options for setting position
+   * @param {} [options={}] Options for setting position
    * @example
    * // Set a new channel position
    * channel.setPosition(2)
@@ -4026,12 +4031,13 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
 
   /**
    * Fetches this GuildMember.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<GuildMember>;
 
   /**
    * Creates a DM channel between the client and this member.
+   * @param {} [force=false] Whether to skip the cache check and request the API
    */
   public createDM(force?: boolean): Promise<DMChannel>;
 
@@ -4043,7 +4049,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * A link to the member's guild avatar if they have one.
    * Otherwise, a link to their {@link User.displayAvatarURL} will be returned.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the Image URL
    */
   public displayAvatarURL(options?: ImageURLOptions): string;
 
@@ -4566,7 +4572,7 @@ export class GuildTemplate extends Base {
 
   /**
    * Updates the metadata of this template.
-   * @param options Options for editing the template
+   * @param {} [options={}] Options for editing the template
    */
   public edit(options?: EditGuildTemplateOptions): Promise<GuildTemplate>;
 
@@ -5626,7 +5632,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Collects a single component interaction that passes the filter.
    * The Promise will reject if the time expires.
-   * @param options Options to pass to the internal collector
+   * @param {} [options={}] Options to pass to the internal collector
    * @example
    * // Collect a message component interaction
    * const filter = (interaction) => interaction.customId === 'button' && interaction.user.id === 'someId';
@@ -5641,7 +5647,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Similar to createReactionCollector but in promise form.
    * Resolves with a collection of reactions that pass the specified filter.
-   * @param options Optional options to pass to the internal collector
+   * @param {} [options={}] Optional options to pass to the internal collector
    * @example
    * // Create a reaction collector
    * const filter = (reaction, user) => reaction.emoji.name === '👌' && user.id === 'someId'
@@ -5653,7 +5659,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * Creates a reaction collector.
-   * @param options Options to send to the collector
+   * @param {} [options={}] Options to send to the collector
    * @example
    * // Create a reaction collector
    * const filter = (reaction, user) => reaction.emoji.name === '👌' && user.id === 'someId';
@@ -5731,7 +5737,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * Fetch this message.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<Message>;
 
@@ -5792,7 +5798,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * Suppresses or unsuppresses embeds on a message.
-   * @param suppress If the embeds should be suppressed or not
+   * @param {} [suppress=true] If the embeds should be suppressed or not
    */
   public suppressEmbeds(suppress?: boolean): Promise<Message>;
 
@@ -5920,7 +5926,7 @@ export class MessageAttachment {
 
   /**
    * Sets whether this attachment is a spoiler
-   * @param spoiler Whether the attachment should be marked as a spoiler
+   * @param {} [spoiler=true] Whether the attachment should be marked as a spoiler
    * @returns This attachment
    */
   public setSpoiler(spoiler?: boolean): this;
@@ -6302,7 +6308,7 @@ export class MessageEmbed {
    * Adds a field to the embed (max 25).
    * @param name The name of this field
    * @param value The value of this field
-   * @param inline If this field will be displayed inline
+   * @param {} [inline=false] If this field will be displayed inline
    */
   public addField(name: string, value: string, inline?: boolean): this;
 
@@ -6374,7 +6380,7 @@ export class MessageEmbed {
 
   /**
    * Sets the timestamp of this embed.
-   * @param timestamp The timestamp or date.
+   * @param {} [timestamp=Date.now()] The timestamp or date.
    * If `null` then the timestamp will be unset (i.e. when editing an existing {@link MessageEmbed})
    */
   public setTimestamp(timestamp?: Date | number | null): this;
@@ -6415,7 +6421,7 @@ export class MessageEmbed {
    * Normalizes field input and verifies strings.
    * @param name The name of the field
    * @param value The value of the field
-   * @param inline Set the field to display inline
+   * @param {} [inline=false] Set the field to display inline
    */
   public static normalizeField(name: string, value: string, inline?: boolean): Required<EmbedFieldData>;
 
@@ -6612,7 +6618,7 @@ export class MessagePayload {
    * Creates a {@link MessagePayload} from user-level arguments.
    * @param target Target to send to
    * @param options Options or content to use
-   * @param extra Extra options to add onto specified options
+   * @param {} [extra={}] Extra options to add onto specified options
    */
   public static create(
     target: MessageTarget,
@@ -6869,21 +6875,21 @@ export class Permissions extends BitField<PermissionString, bigint> {
   /**
    * Checks whether the bitfield has a permission, or any of multiple permissions.
    * @param permission Permission(s) to check for
-   * @param checkAdmin Whether to allow the administrator permission to override
+   * @param {} [checkAdmin=true] Whether to allow the administrator permission to override
    */
   public any(permission: PermissionResolvable, checkAdmin?: boolean): boolean;
 
   /**
    * Checks whether the bitfield has a permission, or multiple permissions.
    * @param permission Permission(s) to check for
-   * @param checkAdmin Whether to allow the administrator permission to override
+   * @param {} [checkAdmin=true] Whether to allow the administrator permission to override
    */
   public has(permission: PermissionResolvable, checkAdmin?: boolean): boolean;
 
   /**
    * Gets all given bits that are missing from the bitfield.
    * @param bits Bit(s) to check for
-   * @param checkAdmin Whether to allow the administrator permission to override
+   * @param {} [checkAdmin=true] Whether to allow the administrator permission to override
    */
   public missing(bits: BitFieldResolvable<PermissionString, bigint>, checkAdmin?: boolean): PermissionString[];
 
@@ -7314,7 +7320,7 @@ export class Role extends Base {
    * Returns `channel.permissionsFor(role)`. Returns permissions for a role in a guild channel,
    * taking into account permission overwrites.
    * @param channel The guild channel to use as context
-   * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
   public permissionsIn(channel: NonThreadGuildBasedChannel | Snowflake, checkAdmin?: boolean): Readonly<Permissions>;
 
@@ -7332,7 +7338,7 @@ export class Role extends Base {
 
   /**
    * Sets whether or not the role should be hoisted.
-   * @param hoist Whether or not to hoist the role
+   * @param {} [hoist=true] Whether or not to hoist the role
    * @param reason Reason for setting whether or not the role should be hoisted
    * @example
    * // Set the hoist of the role
@@ -7344,7 +7350,7 @@ export class Role extends Base {
 
   /**
    * Sets whether this role is mentionable.
-   * @param mentionable Whether this role should be mentionable
+   * @param {} [mentionable=true] Whether this role should be mentionable
    * @param reason Reason for setting whether or not this role should be mentionable
    * @example
    * // Make the role mentionable
@@ -7540,7 +7546,7 @@ export class Shard extends EventEmitter {
 
   /**
    * Handles the shard's process/worker exiting.
-   * @param respawn Whether to spawn the shard again
+   * @param {} [respawn=this.manager.respawn] Whether to spawn the shard again
    * @param timeout The amount in milliseconds to wait until the {@link Client}
    * has become ready (`-1` or `Infinity` for no wait)
    */
@@ -7644,7 +7650,7 @@ export class Shard extends EventEmitter {
   /**
    * Forks a child process or creates a worker thread for the shard.
    * <warn>You should not need to call this manually.</warn>
-   * @param timeout The amount in milliseconds to wait until the {@link Client} has become ready
+   * @param {} [timeout=30000] The amount in milliseconds to wait until the {@link Client} has become ready
    * before resolving (`-1` or `Infinity` for no wait)
    */
   public spawn(timeout?: number): Promise<ChildProcess>;
@@ -7918,11 +7924,13 @@ export class ShardingManager extends EventEmitter {
 export interface FetchRecommendedShardsOptions {
   /**
    * Number of guilds assigned per shard
+   * @default 1000
    */
   guildsPerShard?: number;
 
   /**
    * The multiple the shard count should round up to. (16 for large bot sharding)
+   * @default 1
    */
   multipleOf?: number;
 }
@@ -8321,7 +8329,7 @@ export class StoreChannel extends GuildChannel {
 
   /**
    * Creates an invite to this guild channel.
-   * @param options The options for creating the invite
+   * @param {} [options={}] The options for creating the invite
    * @example
    * // Create an invite to a channel
    * channel.createInvite()
@@ -8333,7 +8341,7 @@ export class StoreChannel extends GuildChannel {
   /**
    * Fetches a collection of invites to this guild channel.
    * Resolves with a collection mapping invites by their codes.
-   * @param cache Whether or not to cache the fetched invites
+   * @param {} [cache=true] Whether or not to cache the fetched invites
    */
   public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
 
@@ -8525,7 +8533,7 @@ export class Sweepers {
 
   /**
    * Creates a sweep filter that sweeps archived threads
-   * @param lifetime How long a thread has to be archived to be valid for sweeping
+   * @param {} [lifetime=14400] How long a thread has to be archived to be valid for sweeping
    */
   public static archivedThreadSweepFilter(
     lifetime?: number,
@@ -8533,7 +8541,7 @@ export class Sweepers {
 
   /**
    * Creates a sweep filter that sweeps expired invites
-   * @param lifetime How long ago an invite has to have expired to be valid for sweeping
+   * @param {} [lifetime=14400] How long ago an invite has to have expired to be valid for sweeping
    */
   public static expiredInviteSweepFilter(
     lifetime?: number,
@@ -8541,13 +8549,13 @@ export class Sweepers {
 
   /**
    * Create a sweepFilter function that uses a lifetime to determine sweepability.
-   * @param options The options used to generate the filter function
+   * @param {} [options={}] The options used to generate the filter function
    */
   public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): GlobalSweepFilter<K, V>;
 
   /**
    * Creates a sweep filter that sweeps outdated messages (edits taken into account)
-   * @param lifetime How long ago a message has to have been sent or edited to be valid for sweeping
+   * @param {} [lifetime=3600] How long ago a message has to have been sent or edited to be valid for sweeping
    */
   public static outdatedMessageSweepFilter(
     lifetime?: number,
@@ -8895,7 +8903,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * Gets the overall set of permissions for a member or role in this thread's parent channel, taking overwrites into
    * account.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<Permissions>;
   public permissionsFor(
@@ -8920,7 +8928,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
 
   /**
    * Sets whether the thread is archived.
-   * @param archived Whether the thread is archived
+   * @param {} [archived=true] Whether the thread is archived
    * @param reason Reason for archiving or unarchiving
    * @example
    * // Archive the thread
@@ -8951,7 +8959,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Sets whether members without the `MANAGE_THREADS` permission can invite other members without the
    * `MANAGE_THREADS` permission to this thread.
-   * @param invitable Whether non-moderators can invite non-moderators to this thread
+   * @param {} [invitable=true] Whether non-moderators can invite non-moderators to this thread
    * @param reason Reason for changing invite
    */
   public setInvitable(invitable?: boolean, reason?: string): Promise<ThreadChannel>;
@@ -8959,7 +8967,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Sets whether the thread can be **unarchived** by anyone with `SEND_MESSAGES` permission.
    * When a thread is locked only members with `MANAGE_THREADS` can unarchive it.
-   * @param locked Whether the thread is locked
+   * @param {} [locked=true] Whether the thread is locked
    * @param reason Reason for locking or unlocking the thread
    * @example
    * // Set the thread to locked
@@ -9219,13 +9227,13 @@ export class User extends PartialTextBasedChannel(Base) {
 
   /**
    * A link to the user's banner. See {@link User.banner} for more info
-   * @param {ImageURLOptions} [options={}] Options for the image URL
+   * @param {} [options={}] Options for the image URL
    */
   public bannerURL(options?: ImageURLOptions): string | null | undefined;
 
   /**
    * Creates a DM channel between the client and the user.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=false] Whether to skip the cache check and request the API
    */
   public createDM(force?: boolean): Promise<DMChannel>;
 
@@ -9237,7 +9245,7 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * A link to the user's avatar if they have one.
    * Otherwise a link to their default avatar will be returned.
-   * @param options Options for the Image URL
+   * @param {} [options={}] Options for the Image URL
    */
   public displayAvatarURL(options?: ImageURLOptions): string;
 
@@ -9251,13 +9259,13 @@ export class User extends PartialTextBasedChannel(Base) {
 
   /**
    * Fetches this user.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<User>;
 
   /**
    * Fetches this user's flags.
-   * @param force Whether to skip the cache check and request the API
+   * @param {} [force=false] Whether to skip the cache check and request the API
    */
   public fetchFlags(force?: boolean): Promise<UserFlags>;
 
@@ -9357,7 +9365,7 @@ export class Util extends null {
   /**
    * Escapes any Discord-flavour markdown in a string.
    * @param text Content to escape
-   * @param options Options for escaping the markdown
+   * @param {} [options={}] Options for escaping the markdown
    */
   public static escapeMarkdown(text: string, options?: EscapeMarkdownOptions): string;
 
@@ -9448,7 +9456,7 @@ export class Util extends null {
    * @param array Array to modify
    * @param element Element to move
    * @param newIndex Index or offset to move the element to
-   * @param offset Move the element by an offset amount rather than to a set index
+   * @param {} [offset=false] Move the element by an offset amount rather than to a set index
    */
   public static moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
 
@@ -9480,7 +9488,7 @@ export class Util extends null {
    * @param data The string resolvable to resolve
    * @param error The Error constructor to instantiate. Defaults to Error
    * @param errorMessage The error message to throw with. Defaults to "Expected string, got <data> instead."
-   * @param allowEmpty Whether an empty string should be allowed
+   * @param {} [allowEmpty=true] Whether an empty string should be allowed
    */
   public static verifyString(data: string, error?: typeof Error, errorMessage?: string, allowEmpty?: boolean): string;
 
@@ -9816,14 +9824,14 @@ export class VoiceState extends Base {
 
   /**
    * Deafens/undeafens the member of this voice state.
-   * @param deaf Whether or not the member should be deafened
+   * @param {} [deaf=true] Whether or not the member should be deafened
    * @param reason Reason for deafening or undeafening
    */
   public setDeaf(deaf?: boolean, reason?: string): Promise<GuildMember>;
 
   /**
    * Mutes/unmutes the member of this voice state.
-   * @param mute Whether or not the member should be muted
+   * @param {} [mute=true] Whether or not the member should be muted
    * @param reason Reason for muting or unmuting
    */
   public setMute(mute?: boolean, reason?: string): Promise<GuildMember>;
@@ -9845,20 +9853,19 @@ export class VoiceState extends Base {
   /**
    * Toggles the request to speak in the channel.
    * Only applicable for stage channels and for the client's own voice state.
-   * @param request Whether or not the client is requesting to become a speaker.
+   * @param {} [request=true] Whether or not the client is requesting to become a speaker.
    * @example
    * // Making the client request to speak in a stage channel (raise its hand)
    * guild.me.voice.setRequestToSpeak(true);
    * @example
    * // Making the client cancel a request to speak
    * guild.me.voice.setRequestToSpeak(false);
-   * @returns {Promise<void>}
    */
   public setRequestToSpeak(request?: boolean): Promise<void>;
 
   /**
    * Suppress/unsuppress the user. Only applicable for stage channels.
-   * @param suppressed Whether or not the user should be suppressed.
+   * @param {} [suppressed=true] Whether or not the user should be suppressed.
    * @example
    * // Making the client a speaker
    * guild.me.voice.setSuppressed(false);
@@ -9871,7 +9878,6 @@ export class VoiceState extends Base {
    * @example
    * // Moving another user to the audience, or cancelling their invite to speak
    * voiceState.setSuppressed(true);
-   * @returns {Promise<void>}
    */
   public setSuppressed(suppressed?: boolean): Promise<void>;
 }
@@ -9989,8 +9995,8 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
   /**
    * Gets a message that was sent by this webhook.
    * @param message The id of the message to fetch
-   * @param options The options to provide to fetch the message.
-   * @returns Returns the raw message data if the webhook was instantiated as a
+   * @param {} [cacheOrOptions={}] The options to provide to fetch the message.
+   * @returns The raw message data if the webhook was instantiated as a
    * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
    */
   public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<APIMessage>;
@@ -10000,7 +10006,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    * Gets a message that was sent by this webhook.
    * @param message The id of the message to fetch
    * @param cache boolean passed to specify whether to cache the message
-   * @returns Returns the raw message data if the webhook was instantiated as a
+   * @returns The raw message data if the webhook was instantiated as a
    * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
    * @deprecated
    */
@@ -10380,7 +10386,7 @@ export class WebSocketShard extends EventEmitter {
 
   /**
    * Destroys this shard and closes its WebSocket connection.
-   * @param options Options for destroying the shard
+   * @param {} [options={ closeCode: 1000, reset: false, emit: true, log: true }] Options for destroying the shard
    */
   private destroy(destroyOptions?: { closeCode?: number; reset?: boolean; emit?: boolean; log?: boolean }): void;
 
@@ -10400,7 +10406,7 @@ export class WebSocketShard extends EventEmitter {
    * a full [Payload](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-commands).
    * Do not use this method if you don't know what you're doing.</warn>
    * @param data The full packet to send
-   * @param important If this packet should be added first in queue
+   * @param {} [important=false] If this packet should be added first in queue
    */
   public send(data: unknown, important?: boolean): void;
 
@@ -11354,7 +11360,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
 
   /**
    * Obtains all active thread channels in the guild from Discord
-   * @param cache Whether to cache the fetched data
+   * @param {} [cache=true] Whether to cache the fetched data
    * @example
    * // Fetch all threads from the guild
    * message.guild.channels.fetchActiveThreads()
@@ -12060,7 +12066,7 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    * Fetches the pinned messages of this channel and returns a collection of them.
    * <info>The returned Collection does not contain any reaction data of the messages.
    * Those need to be fetched separately.</info>
-   * @param cache Whether to cache the message(s)
+   * @param {} [cache=true] Whether to cache the message(s)
    * @example
    * // Get pinned messages
    * channel.messages.fetchPinned()
@@ -12455,13 +12461,13 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
   /**
    * Obtains a set of archived threads from Discord, requires `READ_MESSAGE_HISTORY` in the parent channel.
    * @param options The options to fetch archived threads
-   * @param cache Whether to cache the new thread objects if they aren't already
+   * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreads>;
 
   /**
    * Obtains the accessible active threads from Discord, requires `READ_MESSAGE_HISTORY` in the parent channel.
-   * @param cache Whether to cache the new thread objects if they aren't already
+   * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
 }
@@ -12649,7 +12655,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * Collects a single component interaction that passes the filter.
    * The Promise will reject if the time expires.
-   * @param options Options to pass to the internal collector
+   * @param {} [options={}] Options to pass to the internal collector
    * @example
    * // Collect a message component interaction
    * const filter = (interaction) => interaction.customId === 'button' && interaction.user.id === 'someId';
@@ -12664,7 +12670,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * Similar to createMessageCollector but in promise form.
    * Resolves with a collection of messages that pass the specified filter.
-   * @param options Optional options to pass to the internal collector
+   * @param {} [options={}] Optional options to pass to the internal collector
    * @example
    * // Await !vote messages
    * const filter = m => m.content.startsWith('!vote');
@@ -12678,7 +12684,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * Bulk deletes given messages that are newer than two weeks.
    * @param messages Messages or number of messages to delete
-   * @param filterOld Filter messages to remove those which are older than two weeks automatically
+   * @param {} [filterOld=false] Filter messages to remove those which are older than two weeks automatically
    * @returns Returns the deleted messages
    * @example
    * // Bulk delete messages
@@ -12693,7 +12699,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
 
   /**
    * Creates a button interaction collector.
-   * @param options Options to send to the collector
+   * @param {} [options={}] Options to send to the collector
    * @example
    * // Create a button interaction collector
    * const filter = (interaction) => interaction.customId === 'button' && interaction.user.id === 'someId';
@@ -12707,7 +12713,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
 
   /**
    * Creates a Message Collector.
-   * @param options The options to pass to the collector
+   * @param {} [options={}] The options to pass to the collector
    * @example
    * // Create a message collector
    * const filter = m => m.content.includes('discord');
@@ -12967,8 +12973,8 @@ export interface AddGuildMemberOptions {
 
   /**
    * Whether to fetch the user if not cached and already a member
+   * @default true
    */
-
   fetchWhenExisting?: boolean;
 }
 
@@ -13484,6 +13490,7 @@ export interface AwaitReactionsOptions extends ReactionCollectorOptions {
 export interface BanOptions {
   /**
    * Number of days of messages to delete, must be between 0 and 7, inclusive
+   * @default 0
    */
   days?: number;
 
@@ -13506,11 +13513,13 @@ export type Base64String = string;
 export interface BaseFetchOptions {
   /**
    * Whether to cache the fetched data if it wasn't already
+   * @default true
    */
   cache?: boolean;
 
   /**
    * Whether to skip the cache check and request the API
+   * @default false
    */
   force?: boolean;
 }
@@ -13705,6 +13714,7 @@ export interface CategoryCreateChannelOptions {
 
   /**
    * The type of the new channel.
+   * @default 'GuildText'
    */
   type?: ExcludeEnum<
     typeof ChannelType,
@@ -13830,6 +13840,7 @@ export interface ChannelData {
 export interface ChannelLogsQueryOptions {
   /**
    * Number of messages to acquire
+   * @default 50
    */
   limit?: number;
 
@@ -14455,7 +14466,7 @@ export interface ClientOptions {
 
   /**
    * Time to wait before cancelling a REST request, in milliseconds
-   * @default 15_000
+   * @default 15000
    */
   restRequestTimeout?: number;
 
@@ -14599,6 +14610,7 @@ export interface CollectorOptions<T extends unknown[]> {
 
   /**
    * Whether to dispose data when it's deleted
+   * @default false
    */
   dispose?: boolean;
 }
@@ -15376,46 +15388,55 @@ export interface ErrorEvent {
 export interface EscapeMarkdownOptions {
   /**
    * Whether to escape code blocks or not
+   * @default true
    */
   codeBlock?: boolean;
 
   /**
    * Whether to escape inline code or not
+   * @default true
    */
   inlineCode?: boolean;
 
   /**
    * Whether to escape bolds or not
+   * @default true
    */
   bold?: boolean;
 
   /**
    * Whether to escape italics or not
+   * @default true
    */
   italic?: boolean;
 
   /**
    * Whether to escape underlines or not
+   * @default true
    */
   underline?: boolean;
 
   /**
    * Whether to escape underlines or not
+   * @default true
    */
   strikethrough?: boolean;
 
   /**
    * Whether to escape spoilers or not
+   * @default true
    */
   spoiler?: boolean;
 
   /**
    * Whether to escape text inside inline code or not
+   * @default true
    */
   inlineCodeContent?: boolean;
 
   /**
    * Whether to escape text inside code blocks or not
+   * @default true
    */
   codeBlockContent?: boolean;
 }
@@ -15474,11 +15495,13 @@ export interface FetchApplicationCommandOptions extends BaseFetchOptions {
 export interface FetchArchivedThreadOptions {
   /**
    * The type of threads to fetch, either `public` or `private`
+   * @default 'public'
    */
   type?: 'public' | 'private';
 
   /**
    * Whether to fetch **all** archived threads when type is `private`. Requires `MANAGE_THREADS` if true
+   * @default false
    */
   fetchAll?: boolean;
 
@@ -15521,6 +15544,7 @@ export interface FetchChannelOptions extends BaseFetchOptions {
   /**
    * Allows the channel to be returned even if the guild is not in cache,
    * it will not be cached. <warn>Many of the properties and methods on the returned channel will throw errors</warn>
+   * @default false
    */
   allowUnknownGuild?: boolean;
 }
@@ -15551,6 +15575,7 @@ export interface FetchGuildOptions extends BaseFetchOptions {
 
   /**
    * Whether the approximate member and presence counts should be returned
+   * @default true
    */
   withCounts?: boolean;
 }
@@ -15571,6 +15596,7 @@ export interface FetchGuildsOptions {
 
   /**
    * Maximum number of guilds to request (1-200)
+   * @default 200
    */
   limit?: number;
 }
@@ -15586,6 +15612,7 @@ export interface FetchGuildScheduledEventOptions extends BaseFetchOptions {
 
   /**
    * Whether to fetch the number of users subscribed to the scheduled event
+   * @default true
    */
   withUserCount?: boolean;
 }
@@ -15601,6 +15628,7 @@ export interface FetchGuildScheduledEventsOptions {
 
   /**
    * Whether to fetch the number of users subscribed to each scheduled event should be returned
+   * @default true
    */
   withUserCount?: boolean;
 }
@@ -15641,6 +15669,7 @@ interface FetchInvitesOptions {
 
   /**
    * Whether or not to cache the fetched invites
+   * @default true
    */
   cache?: boolean;
 }
@@ -15671,16 +15700,19 @@ export interface FetchMembersOptions {
 
   /**
    * Maximum number of members to request
+   * @default 0
    */
   limit?: number;
 
   /**
    * Whether or not to include the presences
+   * @default false
    */
   withPresences?: boolean;
 
   /**
    * Timeout for receipt of members
+   * @default 120e3
    */
   time?: number;
 
@@ -15691,6 +15723,7 @@ export interface FetchMembersOptions {
 
   /**
    * Whether to skip the cache check and request the API
+   * @default false
    */
   force?: boolean;
 }
@@ -15701,6 +15734,7 @@ export interface FetchMembersOptions {
 export interface FetchReactionUsersOptions {
   /**
    * The maximum amount of users to fetch, defaults to `100`
+   * @default 100
    */
   limit?: number;
 
@@ -15733,6 +15767,7 @@ export interface FileOptions {
 
   /**
    * Filename of the attachment
+   * @default 'file.jpg'
    */
   name?: string;
 
@@ -15995,6 +16030,7 @@ export interface GuildChannelCreateOptions extends Omit<CategoryCreateChannelOpt
 export interface GuildChannelCloneOptions extends GuildChannelCreateOptions {
   /**
    * Name of the new channel
+   * @default this.name
    */
   name?: string;
 }
@@ -16031,6 +16067,7 @@ export interface GuildCreateOptions {
 
   /**
    * The channels for this guild
+   * @default []
    */
   channels?: PartialChannelData[];
 
@@ -16046,11 +16083,13 @@ export interface GuildCreateOptions {
 
   /**
    * The icon for the guild
+   * @default null
    */
   icon?: BufferResolvable | Base64Resolvable | null;
 
   /**
    * The roles for this guild, the first element of this array is used to change properties of the guild's everyone role.
+   * @default []
    */
   roles?: PartialRoleData[];
 
@@ -16328,16 +16367,19 @@ export type GuildResolvable = Guild | NonThreadGuildBasedChannel | GuildMember |
 export interface GuildPruneMembersOptions {
   /**
    * Whether or not to return the number of users that have been kicked.
+   * @default true
    */
   count?: boolean;
 
   /**
    * Number of days of inactivity required to kick
+   * @default 7
    */
   days?: number;
 
   /**
    * Get the number of users that will be kicked, without actually kicking them
+   * @default false
    */
   dry?: boolean;
 
@@ -16378,11 +16420,13 @@ export interface GuildSearchMembersOptions {
 
   /**
    * Maximum number of members to search
+   * @default 1
    */
   limit?: number;
 
   /**
    * Whether or not to cache the fetched member(s)
+   * @default true
    */
   cache?: boolean;
 }
@@ -16398,11 +16442,13 @@ export interface GuildListMembersOptions {
 
   /**
    * Maximum number of members to list
+   * @default 1
    */
   limit?: number;
 
   /**
    * Whether or not to cache the fetched member(s)
+   * @default true
    */
   cache?: boolean;
 }
@@ -16953,17 +16999,20 @@ export interface LifetimeFilterOptions<K, V> {
   /**
    * A function that takes an entry, key, and the collection and returns a boolean, `true` when the entry should
    * not be checked for sweepability.
+   * @default () => false
    */
   excludeFromSweep?: (value: V, key: K, collection: LimitedCollection<K, V>) => boolean;
 
   /**
    * A function that takes an entry, key, and the collection and returns a timestamp to compare against in order
    * to determine the lifetime of the entry.
+   * @default (e) => e?.createdTimestamp
    */
   getComparisonTimestamp?: (value: V, key: K, collection: LimitedCollection<K, V>) => number;
 
   /**
    * How long, in seconds, an entry should stay in the collection before it is considered sweepable.
+   * @default 14400
    */
   lifetime?: number;
 }
@@ -17414,16 +17463,19 @@ export interface MessageInteraction {
 export interface MessageMentionsHasOptions {
   /**
    * Whether to ignore direct mentions to the item
+   * @default false
    */
   ignoreDirect?: boolean;
 
   /**
    * Whether to ignore role mentions to a guild member
+   * @default false
    */
   ignoreRoles?: boolean;
 
   /**
    * Whether to ignore everyone/here mentions
+   * @default false
    */
   ignoreEveryone?: boolean;
 }
@@ -17449,6 +17501,7 @@ export interface MessageMentionOptions {
 
   /**
    * Whether the author of the Message being replied to should be pinged
+   * @default true
    */
   repliedUser?: boolean;
 }
@@ -17464,16 +17517,19 @@ export type MessageMentionTypes = 'roles' | 'users' | 'everyone';
 export interface MessageOptions {
   /**
    * Whether or not the message should be spoken aloud
+   * @default false
    */
   tts?: boolean;
 
   /**
    * The nonce for the message
+   * @default ''
    */
   nonce?: string | number;
 
   /**
    * The content for the message
+   * @default ''
    */
   content?: string | null;
 
@@ -17506,6 +17562,7 @@ export interface MessageOptions {
 
   /**
    * Stickers to send in the message
+   * @default []
    */
   stickers?: StickerResolvable[];
 
@@ -17676,16 +17733,19 @@ export type GuildMFALevelKey = keyof typeof GuildMFALevel;
 export interface MultipleShardRespawnOptions {
   /**
    * How long to wait between shards (in milliseconds)
+   * @default 5000
    */
   shardDelay?: number;
 
   /**
    * How long to wait between killing a shard's process and restarting it (in milliseconds)
+   * @default 500
    */
   respawnDelay?: number;
 
   /**
    * The amount in milliseconds to wait for a shard to become ready before continuing to another (`-1` or `Infinity` for no wait)
+   * @default 30000
    */
   timeout?: number;
 }
@@ -17696,16 +17756,19 @@ export interface MultipleShardRespawnOptions {
 export interface MultipleShardSpawnOptions {
   /**
    * Number of shards to spawn
+   * @default this.totalShards
    */
   amount?: number | 'auto';
 
   /**
    * How long to wait in between spawning each shard (in milliseconds)
+   * @default 5500
    */
   delay?: number;
 
   /**
    * The amount in milliseconds to wait until the {@link Client} has become ready
+   * @default 30000
    */
   timeout?: number;
 }
@@ -17988,6 +18051,7 @@ export interface ReplyOptions {
 
   /**
    * Whether to error if the referenced message does not exist (creates a standard message in this case when false)
+   * @default true
    */
   failIfNotExists?: boolean;
 }
@@ -17998,6 +18062,7 @@ export interface ReplyOptions {
 export interface ReplyMessageOptions extends Omit<MessageOptions, 'reply'> {
   /**
    * Whether to error if the referenced message does not exist (creates a standard message in this case when false)
+   * @default true
    */
   failIfNotExists?: boolean;
 }
@@ -18105,6 +18170,7 @@ export interface RoleTagData {
 export interface SetChannelPositionOptions {
   /**
    * Whether or not to change the position relative to its current value
+   * @default false
    */
   relative?: boolean;
 
@@ -18120,6 +18186,7 @@ export interface SetChannelPositionOptions {
 export interface SetParentOptions {
   /**
    * Whether to lock the permissions to what the parent's permissions are
+   * @default true
    */
   lockPermissions?: boolean;
 
@@ -18135,6 +18202,7 @@ export interface SetParentOptions {
 export interface SetRolePositionOptions {
   /**
    * Whether to change the position relative to its current value or not
+   * @default false
    */
   relative?: boolean;
 
@@ -18205,21 +18273,25 @@ export { Snowflake };
 export interface SplitOptions {
   /**
    * Maximum character length per message piece
+   * @default 2000
    */
   maxLength?: number;
 
   /**
    * Character(s) or Regex(es) to split the message with, an array can be used to split multiple times
+   * @default '\n'
    */
   char?: string | string[] | RegExp | RegExp[];
 
   /**
    * Text to prepend to every piece except the first
+   * @default ''
    */
   prepend?: string;
 
   /**
    * Text to append to every piece except the last
+   * @default ''
    */
   append?: string;
 }
@@ -18237,6 +18309,7 @@ export interface StartThreadOptions {
 
   /**
    * The amount of time (in minutes) after which the thread should automatically archive in case of no recent activity
+   * @default this.channel.defaultAutoArchiveDuration
    */
   autoArchiveDuration?: ThreadAutoArchiveDuration;
 
@@ -18621,6 +18694,7 @@ export type WebhookClientOptions = Pick<
 export interface WebhookEditData {
   /**
    * The new name for the webhook
+   * @default this.name
    */
   name?: string;
 
@@ -18649,6 +18723,7 @@ export type WebhookEditMessageOptions = Pick<
 export interface WebhookFetchMessageOptions {
   /**
    * Whether to cache the message.
+   * @default true
    */
   cache?: boolean;
 
@@ -18664,6 +18739,7 @@ export interface WebhookFetchMessageOptions {
 export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 'stickers'> {
   /**
    * Username override for the message
+   * @default this.name
    */
   username?: string;
 
@@ -18684,7 +18760,15 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 's
  */
 export type WebhookTypeKey = keyof typeof WebhookType;
 
+/**
+ * WebSocket options (these are left as snake_case to match the API)
+ */
 export interface WebSocketOptions {
+  /**
+   * Number of members in a guild after which offline users will no longer be
+   * sent in the initial guild member list, must be between 50 and 250
+   * @default 50
+   */
   large_threshold?: number;
   compress?: boolean;
   properties?: WebSocketProperties;
