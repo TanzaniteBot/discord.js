@@ -1,0 +1,248 @@
+'use strict';
+
+const { DiscordSnowflake } = require('@sapphire/snowflake');
+const { ChannelType } = require('discord-api-types/v9');
+const Base = require('./Base');
+const { ThreadChannelTypes } = require('../util/Constants');
+
+/**
+ * Represents any channel on Discord.
+ * @extends {Base}
+ * @abstract
+ */
+class Channel extends Base {
+  constructor(client, data, immediatePatch = true) {
+    super(client);
+
+    const type = ChannelType[data?.type];
+    /**
+     * The type of the channel
+     * @type {ChannelType}
+     */
+    this.type = type ?? 'UNKNOWN';
+
+    if (data && immediatePatch) this._patch(data);
+  }
+
+  _patch(data) {
+    /**
+     * The channel's id
+     * @type {Snowflake}
+     */
+    this.id = data.id;
+  }
+
+  /**
+   * The timestamp the channel was created at
+   * @type {number}
+   * @readonly
+   */
+  get createdTimestamp() {
+    return DiscordSnowflake.timestampFrom(this.id);
+  }
+
+  /**
+   * The time the channel was created at
+   * @type {Date}
+   * @readonly
+   */
+  get createdAt() {
+    return new Date(this.createdTimestamp);
+  }
+
+  /**
+   * Whether this Channel is a partial
+   * <info>This is always false outside of DM channels.</info>
+   * @type {boolean}
+   * @readonly
+   */
+  get partial() {
+    return false;
+  }
+
+  /**
+   * When concatenated with a string, this automatically returns the channel's mention instead of the Channel object.
+   * @returns {string}
+   * @example
+   * // Logs: Hello from <#123456789012345678>!
+   * console.log(`Hello from ${channel}!`);
+   */
+  toString() {
+    return `<#${this.id}>`;
+  }
+
+  /**
+   * Deletes this channel.
+   * @returns {Promise<Channel>}
+   * @example
+   * // Delete the channel
+   * channel.delete()
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  async delete() {
+    await this.client.api.channels(this.id).delete();
+    return this;
+  }
+
+  /**
+   * Fetches this channel.
+   * @param {boolean} [force=true] Whether to skip the cache check and request the API
+   * @returns {Promise<Channel>}
+   */
+  fetch(force = true) {
+    return this.client.channels.fetch(this.id, { force });
+  }
+
+  /**
+   * Indicates whether this channel is a {@link TextChannel}.
+   * @returns {boolean}
+   */
+  isText() {
+    return this.type === ChannelType[ChannelType.GuildText];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link DMChannel}.
+   * @returns {boolean}
+   */
+  isDM() {
+    return this.type === ChannelType[ChannelType.DM];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link VoiceChannel}.
+   * @returns {boolean}
+   */
+  isVoice() {
+    return this.type === ChannelType[ChannelType.GuildVoice];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link PartialGroupDMChannel}.
+   * @returns {boolean}
+   */
+  isGroupDM() {
+    return this.type === ChannelType[ChannelType.GroupDM];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link CategoryChannel}.
+   * @returns {boolean}
+   */
+  isCategory() {
+    return this.type === ChannelType[ChannelType.GuildCategory];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link NewsChannel}.
+   * @returns {boolean}
+   */
+  isNews() {
+    return this.type === ChannelType[ChannelType.GuildNews];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link StoreChannel}.
+   * @returns {boolean}
+   */
+  isStore() {
+    return this.type === ChannelType[ChannelType.GuildStore];
+  }
+
+  /**
+   * Indicates whether this channel is a {@link ThreadChannel}.
+   * @returns {boolean}
+   */
+  isThread() {
+    return ThreadChannelTypes.includes(this.type);
+  }
+
+  /**
+   * Indicates whether this channel is a {@link StageChannel}.
+   * @returns {boolean}
+   */
+  isStage() {
+    return this.type === ChannelType[ChannelType.GuildStageVoice];
+  }
+
+  /**
+   * Indicates whether this channel is {@link TextBasedChannels text-based}.
+   * @returns {boolean}
+   */
+  isTextBased() {
+    return 'messages' in this;
+  }
+
+  /**
+   * Indicates whether this channel is {@link BaseGuildVoiceChannel voice-based}.
+   * @returns {boolean}
+   */
+  isVoiceBased() {
+    return 'bitrate' in this;
+  }
+
+  static create(client, data, guild, { allowUnknownGuild, fromInteraction } = {}) {
+    const Structures = require('../util/Structures');
+    let channel;
+    if (!data.guild_id && !guild) {
+      if ((data.recipients && data.type !== ChannelType.GroupDM) || data.type === ChannelType.DM) {
+        channel = new Structures.get('DMChannel')(client, data);
+      } else if (data.type === ChannelType.GroupDM) {
+        const PartialGroupDMChannel = require('./PartialGroupDMChannel');
+        channel = new PartialGroupDMChannel(client, data);
+      }
+    } else {
+      guild ??= client.guilds.cache.get(data.guild_id);
+
+      if (guild || allowUnknownGuild) {
+        switch (data.type) {
+          case ChannelType.GuildText: {
+            channel = new Structures.get('TextChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildVoice: {
+            channel = new Structures.get('VoiceChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildCategory: {
+            channel = new Structures.get('CategoryChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildNews: {
+            channel = new Structures.get('NewsChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildStore: {
+            channel = new Structures.get('StoreChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildStageVoice: {
+            channel = new Structures.get('StageChannel')(guild, data, client);
+            break;
+          }
+          case ChannelType.GuildNewsThread:
+          case ChannelType.GuildPublicThread:
+          case ChannelType.GuildPrivateThread: {
+            channel = new Structures.get('ThreadChannel')(guild, data, client, fromInteraction);
+            if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
+            break;
+          }
+        }
+        if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
+      }
+    }
+    return channel;
+  }
+
+  toJSON(...props) {
+    return super.toJSON({ createdTimestamp: true }, ...props);
+  }
+}
+
+exports.Channel = Channel;
+
+/**
+ * @external APIChannel
+ * @see {@link https://discord.com/developers/docs/resources/channel#channel-object}
+ */
