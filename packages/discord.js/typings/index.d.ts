@@ -11505,7 +11505,20 @@ export class GuildEmojiManager extends BaseGuildEmojiManager {
    */
   public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<GuildEmoji>;
   public fetch(id?: undefined, options?: BaseFetchOptions): Promise<Collection<Snowflake, GuildEmoji>>;
+
+  /**
+   * Deletes an emoji.
+   * @param emoji The Emoji resolvable to delete
+   * @param reason Reason for deleting the emoji
+   */
   public delete(emoji: EmojiResolvable, reason?: string): Promise<void>;
+
+  /**
+   * Edits an emoji.
+   * @param emoji The Emoji resolvable to edit
+   * @param data The new data for the emoji
+   * @param reason Reason for editing this emoji
+   */
   public edit(emoji: EmojiResolvable, data: GuildEmojiEditData, reason?: string): Promise<GuildEmoji>;
 }
 
@@ -14099,6 +14112,9 @@ export interface ClientEvents extends BaseClientEvents {
   /**
    * Emitted when the client encounters an error.
    * @param error The error encountered
+   *  <warn>Errors thrown within this event do not have a catch handler, it is
+   * recommended to not use async functions as `error` event handlers. See the
+   * [Node.js docs](https://nodejs.org/api/events.html#capture-rejections-of-promises) for details.</warn>
    */
   error: [error: Error];
 
