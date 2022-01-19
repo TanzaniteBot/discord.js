@@ -2,10 +2,12 @@ import { type APIActionRowComponent, ComponentType, APIMessageComponent } from '
 import type { ButtonComponent, SelectMenuComponent } from '..';
 import { Component } from './Component';
 import { createComponent } from './Components';
+import type { InputTextComponent } from './TextInput';
 
 export type MessageComponent = ActionRowComponent | ActionRow;
 
 export type ActionRowComponent = ButtonComponent | SelectMenuComponent;
+export type ModalActionRowComponent = InputTextComponent;
 
 // TODO: Add valid form component types
 /**
