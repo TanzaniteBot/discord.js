@@ -1,5 +1,6 @@
 'use strict';
 
+const { ChannelType } = require('discord-api-types/v9');
 const { Channel } = require('./Channel');
 const TextBasedChannel = require('./interfaces/TextBasedChannel');
 const { RangeError } = require('../errors');
@@ -85,7 +86,7 @@ class ThreadChannel extends Channel {
        * <info>Always `null` in public threads</info>
        * @type {?boolean}
        */
-      this.invitable = this.type === 'GUILD_PRIVATE_THREAD' ? data.thread_metadata.invitable ?? false : null;
+      this.invitable = this.type === ChannelType.GuildPrivateThread ? data.thread_metadata.invitable ?? false : null;
 
       /**
        * Whether the thread is archived
@@ -308,7 +309,7 @@ class ThreadChannel extends Channel {
         auto_archive_duration: autoArchiveDuration,
         rate_limit_per_user: data.rateLimitPerUser,
         locked: data.locked,
-        invitable: this.type === 'GUILD_PRIVATE_THREAD' ? data.invitable : undefined,
+        invitable: this.type === ChannelType.GuildPrivateThread ? data.invitable : undefined,
       },
       reason,
     });
@@ -357,7 +358,9 @@ class ThreadChannel extends Channel {
    * @returns {Promise<ThreadChannel>}
    */
   setInvitable(invitable = true, reason) {
-    if (this.type !== 'GUILD_PRIVATE_THREAD') return Promise.reject(new RangeError('THREAD_INVITABLE_TYPE', this.type));
+    if (this.type !== ChannelType.GuildPrivateThread) {
+      return Promise.reject(new RangeError('THREAD_INVITABLE_TYPE', this.type));
+    }
     return this.edit({ invitable }, reason);
   }
 
@@ -418,7 +421,8 @@ class ThreadChannel extends Channel {
    */
   get editable() {
     return (
-      (this.ownerId === this.client.user.id && (this.type !== 'GUILD_PRIVATE_THREAD' || this.joined)) || this.manageable
+      (this.ownerId === this.client.user.id && (this.type !== ChannelType.GuildPrivateThread || this.joined)) ||
+      this.manageable
     );
   }
 
@@ -432,7 +436,9 @@ class ThreadChannel extends Channel {
       !this.archived &&
       !this.joined &&
       this.permissionsFor(this.client.user)?.has(
-        this.type === 'GUILD_PRIVATE_THREAD' ? Permissions.FLAGS.MANAGE_THREADS : Permissions.FLAGS.VIEW_CHANNEL,
+        this.type === ChannelType.GuildPrivateThread
+          ? Permissions.FLAGS.MANAGE_THREADS
+          : Permissions.FLAGS.VIEW_CHANNEL,
         false,
       )
     );
@@ -480,7 +486,7 @@ class ThreadChannel extends Channel {
 
     return (
       !(this.archived && this.locked && !this.manageable) &&
-      (this.type !== 'GUILD_PRIVATE_THREAD' || this.joined || this.manageable) &&
+      (this.type !== ChannelType.GuildPrivateThread || this.joined || this.manageable) &&
       permissions.has(Permissions.FLAGS.SEND_MESSAGES_IN_THREADS, false) &&
       this.guild.me.communicationDisabledUntilTimestamp < Date.now()
     );

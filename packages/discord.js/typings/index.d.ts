@@ -245,7 +245,7 @@ export class Activity {
   /**
    * The activity status's type
    */
-  public type: ActivityTypeKey;
+  public type: ActivityType;
 
   /**
    * If the activity is being streamed, a link to the stream
@@ -464,7 +464,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   /**
    * The type of this application command
    */
-  public type: ApplicationCommandTypeKey;
+  public type: ApplicationCommandType;
 
   /**
    * Autoincrementing version identifier updated during substantial record changes
@@ -1382,28 +1382,22 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   public inRawGuild(): this is ButtonInteraction<'raw'>;
 }
 
-export type KeyedEnum<K, T> = {
-  [Key in keyof K]: T | string;
-};
+export interface MappedChannelCategoryTypes {
+  [ChannelType.GuildNews]: NewsChannel;
+  [ChannelType.GuildVoice]: VoiceChannel;
+  [ChannelType.GuildText]: TextChannel;
+  [ChannelType.GuildStore]: StoreChannel;
+  [ChannelType.GuildStageVoice]: StageChannel;
+}
 
-export type EnumValueMapped<E extends KeyedEnum<T, number>, T extends Partial<Record<keyof E, unknown>>> = T & {
-  [Key in keyof T as E[Key]]: T[Key];
-};
-
-export type MappedChannelCategoryTypes = EnumValueMapped<
-  typeof ChannelType,
-  {
-    GuildNews: NewsChannel;
-    GuildVoice: VoiceChannel;
-    GuildText: TextChannel;
-    GuildStore: StoreChannel;
-    GuildStageVoice: StageChannel;
-  }
->;
-
-export type CategoryChannelTypes = ExcludeEnum<
-  typeof ChannelType,
-  'DM' | 'GroupDM' | 'GuildPublicThread' | 'GuildNewsThread' | 'GuildPrivateThread' | 'GuildCategory'
+export type CategoryChannelType = Exclude<
+  ChannelType,
+  | ChannelType.DM
+  | ChannelType.GroupDM
+  | ChannelType.GuildPublicThread
+  | ChannelType.GuildNewsThread
+  | ChannelType.GuildPrivateThread
+  | ChannelType.GuildCategory
 >;
 
 /**
@@ -1418,7 +1412,7 @@ export class CategoryChannel extends GuildChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildCategory';
+  public type: ChannelType.GuildCategory;
 
   /**
    * Creates a new channel within this category.
@@ -1426,7 +1420,7 @@ export class CategoryChannel extends GuildChannel {
    * @param name The name of the new channel
    * @param options Options for creating the new channel
    */
-  public createChannel<T extends Exclude<CategoryChannelTypes, 'GuildStore'>>(
+  public createChannel<T extends Exclude<CategoryChannelType, ChannelType.GuildStore>>(
     name: string,
     options: CategoryCreateChannelOptions & { type: T },
   ): Promise<MappedChannelCategoryTypes[T]>;
@@ -1440,8 +1434,9 @@ export class CategoryChannel extends GuildChannel {
    */
   public createChannel(
     name: string,
-    options: CategoryCreateChannelOptions & { type: 'GuildStore' | ChannelType.GuildStore },
+    options: CategoryCreateChannelOptions & { type: ChannelType.GuildStore },
   ): Promise<StoreChannel>;
+
   public createChannel(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
@@ -1482,7 +1477,7 @@ export abstract class Channel extends Base {
   /**
    * The type of the channel
    */
-  public type: keyof typeof ChannelType;
+  public type: ChannelType;
 
   /**
    * Deletes this channel.
@@ -1929,7 +1924,7 @@ export class ClientUser extends User {
    * @param options Options for setting the activity
    * @example
    * // Set the client user's activity
-   * client.user.setActivity('discord.js', { type: 'WATCHING' });
+   * client.user.setActivity('discord.js', { type: ActivityType.Watching });
    */
   public setActivity(options?: ActivityOptions): ClientPresence;
   public setActivity(name: string, options?: ActivityOptions): ClientPresence;
@@ -2393,12 +2388,6 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
   public inRawGuild(): this is AutocompleteInteraction<'raw'>;
 
   /**
-   * Transforms an option received from the API.
-   * @param option The received option
-   */
-  private transformOption(option: APIApplicationCommandOption): CommandInteractionOption;
-
-  /**
    * Sends results for the autocomplete of this interaction.
    * @param options The options for the autocomplete
    * @example
@@ -2462,13 +2451,13 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    */
   private _getTypedOption(
     name: string,
-    type: ApplicationCommandOptionTypeKey,
+    type: ApplicationCommandOptionType,
     properties: (keyof ApplicationCommandOption)[],
     required: true,
   ): CommandInteractionOption<Cached>;
   private _getTypedOption(
     name: string,
-    type: ApplicationCommandOptionTypeKey,
+    type: ApplicationCommandOptionType,
     properties: (keyof ApplicationCommandOption)[],
     required: boolean,
   ): CommandInteractionOption<Cached> | null;
@@ -2628,9 +2617,9 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
   public targetId: Snowflake;
 
   /**
-   * The type of the target of the interaction
+   * The type of the target of the interaction; either `.User` or `.Message`
    */
-  public targetType: Exclude<ApplicationCommandTypeKey, 'ChatInput'>;
+  public targetType: Exclude<ApplicationCommandType, ApplicationCommandType.ChatInput>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -2704,6 +2693,62 @@ export class DataResolver extends null {
   public static resolveGuildTemplateCode(data: GuildTemplateResolvable): string;
 }
 
+export class EnumResolvers extends null {
+  private constructor();
+
+  /**
+   * Resolves enum key to `ChannelType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveChannelType(key: string | ChannelType): ChannelType;
+
+  /**
+   * Resolves enum key to `InteractionType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveInteractionType(key: string | InteractionType): InteractionType;
+
+  /**
+   * Resolves enum key to `ApplicationCommandType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveApplicationCommandType(key: string | ApplicationCommandType): ApplicationCommandType;
+
+  /**
+   * Resolves enum key to `ApplicationCommandOptionType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveApplicationCommandOptionType(
+    key: string | ApplicationCommandOptionType,
+  ): ApplicationCommandOptionType;
+
+  /**
+   * Resolves enum key to `ApplicationCommandPermissionType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveApplicationCommandPermissionType(
+    key: string | ApplicationCommandPermissionType,
+  ): ApplicationCommandPermissionType;
+
+  /**
+   * Resolves enum key to `ComponentType` enum value
+   * @param key The key to resolve
+   */
+  public static resolveComponentType(key: string | ComponentType): ComponentType;
+
+  /**
+   * Resolves enum key to `ButtonStyle` enum value
+   * @param key The key to resolve
+   */
+  public static resolveButtonStyle(key: string | ButtonStyle): ButtonStyle;
+
+  /**
+   * Resolves enum key to `MessageType` enum value
+   * @param key The key to lookup
+   */
+  public static resolveMessageType(key: string | MessageType): MessageType;
+}
+
 /**
  * Represents an error from the Discord API.
  */
@@ -2766,7 +2811,7 @@ export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
   /**
    * The type of the channel
    */
-  public type: 'DM';
+  public type: ChannelType.DM;
 
   /**
    * Fetch this DMChannel.
@@ -2975,7 +3020,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The required MFA level for this guild
    */
-  public mfaLevel: GuildMFALevelKey;
+  public mfaLevel: GuildMFALevel;
 
   /**
    * The user id of this guild's owner
@@ -3753,7 +3798,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * The type of the channel
    */
-  public type: Exclude<keyof typeof ChannelType, 'DM' | 'GroupDM'>;
+  public type: Exclude<ChannelType, ChannelType.DM | ChannelType.GroupDM>;
 
   /**
    * Whether the channel is viewable by the client user
@@ -4228,6 +4273,11 @@ export class GuildPreview extends Base {
   public emojis: Collection<Snowflake, GuildPreviewEmoji>;
 
   /**
+   * Collection of stickers belonging to this guild
+   */
+  public stickers: Collection<Snowflake, Sticker>;
+
+  /**
    * An array of enabled guild features
    */
   public features: GuildFeatures[];
@@ -4493,7 +4543,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatusKey = GuildS
    * @param reason The reason for changing the status
    * @example
    * // Set status of a guild scheduled event
-   * guildScheduledEvent.setStatus('ACTIVE')
+   * guildScheduledEvent.setStatus(GuildScheduledEventStatus.Active)
    *  .then(guildScheduledEvent => console.log(`Set the status to: ${guildScheduledEvent.status}`))
    *  .catch(console.error);
    */
@@ -5115,7 +5165,7 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
   /**
    * The type of component to collect
    */
-  public componentType: ComponentTypeKey | null;
+  public componentType: ComponentType | null;
 
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
@@ -5459,23 +5509,17 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   public keepOverLimit: ((value: V, key: K, collection: this) => boolean) | null;
 }
 
-export type MessageCollectorOptionsParams<T extends MessageComponentTypeResolvable, Cached extends boolean = boolean> =
+export type MessageCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
   | {
       componentType?: T;
     } & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type MessageChannelCollectorOptionsParams<
-  T extends MessageComponentTypeResolvable,
-  Cached extends boolean = boolean,
-> =
+export type MessageChannelCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
   | {
       componentType?: T;
     } & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type AwaitMessageCollectorOptionsParams<
-  T extends MessageComponentTypeResolvable,
-  Cached extends boolean = boolean,
-> =
+export type AwaitMessageCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
   | { componentType?: T } & Pick<
       InteractionCollectorOptions<MappedInteractionTypes<Cached>[T]>,
       keyof AwaitMessageComponentOptions<any>
@@ -5489,14 +5533,11 @@ export interface StringMappedInteractionTypes<Cached extends CacheType = CacheTy
 
 export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
 
-export type MappedInteractionTypes<Cached extends boolean = boolean> = EnumValueMapped<
-  typeof ComponentType,
-  {
-    Button: ButtonInteraction<WrapBooleanCache<Cached>>;
-    SelectMenu: SelectMenuInteraction<WrapBooleanCache<Cached>>;
-    ActionRow: MessageComponentInteraction<WrapBooleanCache<Cached>>;
-  }
->;
+export interface MappedInteractionTypes<Cached extends boolean = boolean> {
+  [ComponentType.Button]: ButtonInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.SelectMenu]: SelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.ActionRow]: MessageComponentInteraction<WrapBooleanCache<Cached>>;
+}
 
 /**
  * Represents a message on Discord.
@@ -5691,7 +5732,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The type of the message
    */
-  public type: MessageTypeKey;
+  public type: MessageType;
 
   /**
    * The URL to jump to this message
@@ -5724,7 +5765,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  public awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ActionRow'>(
+  public awaitMessageComponent<T extends ComponentType = ComponentType.ActionRow>(
     options?: AwaitMessageCollectorOptionsParams<T, Cached>,
   ): Promise<MappedInteractionTypes<Cached>[T]>;
 
@@ -5763,7 +5804,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  public createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ActionRow'>(
+  public createMessageComponentCollector<T extends ComponentType = ComponentType.ActionRow>(
     options?: MessageCollectorOptionsParams<T, Cached>,
   ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
 
@@ -5811,7 +5852,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Publishes a message in an announcement channel to all channels following it.
    * @example
    * // Crosspost a message
-   * if (message.channel.type === 'GUILD_NEWS') {
+   * if (message.channel.type === ChannelType.GuildNews) {
    *   message.crosspost()
    *     .then(() => console.log('Crossposted message'))
    *     .catch(console.error);
@@ -6255,12 +6296,6 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    */
   public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public update(options: string | MessagePayload | InteractionUpdateOptions): Promise<void>;
-
-  /**
-   * Resolves the type of a MessageComponent
-   * @param type The type to resolve
-   */
-  public static resolveType(type: MessageComponentTypeResolvable): ComponentTypeKey;
 }
 
 /**
@@ -6815,14 +6850,14 @@ export class NewsChannel extends BaseGuildTextChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildNews';
+  public type: ChannelType.GuildNews;
 
   /**
    * Adds the target to this channel's followers.
    * @param channel The channel where the webhook should be created
    * @param reason Reason for creating the webhook
    * @example
-   * if (channel.type === 'GUILD_NEWS') {
+   * if (channel.type === ChannelType.GuildNews) {
    *   channel.addFollower('222197033908436994', 'Important announcements')
    *     .then(() => console.log('Added follower'))
    *     .catch(console.error);
@@ -8037,7 +8072,7 @@ export class StageChannel extends BaseGuildVoiceChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildStageVoice';
+  public type: ChannelType.GuildStageVoice;
 
   /**
    * The stage instance of this stage channel, if it exists
@@ -8096,6 +8131,7 @@ export class StageInstance extends Base {
 
   /**
    * Whether or not stage discovery is disabled
+   * @deprecated See https://github.com/discord/discord-api-docs/pull/4296 for more information
    */
   public discoverableDisabled: boolean | null;
 
@@ -8444,7 +8480,7 @@ export class StoreChannel extends GuildChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildStore';
+  public type: ChannelType.GuildStore;
 }
 
 /**
@@ -8790,7 +8826,7 @@ export class TextChannel extends BaseGuildTextChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildText';
+  public type: ChannelType.GuildText;
 
   /**
    * Sets the rate limit per user (slowmode) for this channel.
@@ -8943,7 +8979,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * The type of the channel
    */
-  public type: ThreadChannelTypeKey;
+  public type: ThreadChannelType;
 
   /**
    * Whether the thread is unarchivable by the client user
@@ -9739,12 +9775,6 @@ export class Formatters extends null {
  */
 export class VoiceChannel extends BaseGuildVoiceChannel {
   /**
-   * Whether the channel is editable by the client user
-   * @deprecated Use {@link VoiceChannel.manageable} instead
-   */
-  public readonly editable: boolean;
-
-  /**
    * Checks if the client has permission to send audio to the voice channel
    */
   public readonly speakable: boolean;
@@ -9752,7 +9782,7 @@ export class VoiceChannel extends BaseGuildVoiceChannel {
   /**
    * The type of the channel
    */
-  public type: 'GuildVoice';
+  public type: ChannelType.GuildVoice;
 
   /**
    * Sets the bitrate of the channel.
@@ -10084,18 +10114,6 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
    */
   public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<APIMessage>;
-
-  /* tslint:disable:unified-signatures */
-  /**
-   * Gets a message that was sent by this webhook.
-   * @param message The id of the message to fetch
-   * @param cache boolean passed to specify whether to cache the message
-   * @returns The raw message data if the webhook was instantiated as a
-   * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
-   * @deprecated
-   */
-  public fetchMessage(message: Snowflake, cache?: boolean): Promise<APIMessage>;
-  /* tslint:enable:unified-signatures */
 
   /**
    * Sends a message with this webhook.
@@ -10698,10 +10716,6 @@ export class WelcomeScreen extends Base {
 
 //#region Constants
 
-export type EnumHolder<T> = { [P in keyof T]: T[P] };
-
-export type ExcludeEnum<T, K extends keyof T> = Exclude<keyof T | T[keyof T], K | T[K]>;
-
 export const Constants: {
   Package: {
     name: string;
@@ -10785,7 +10799,7 @@ export const Constants: {
   /**
    * The types of channels that are threads.
    */
-  ThreadChannelTypes: ThreadChannelTypeKey[];
+  ThreadChannelTypes: ThreadChannelType[];
 
   /**
    * The types of channels that are text-based.
@@ -11087,7 +11101,7 @@ export class ApplicationCommandPermissionsManager<
    * guild.commands.permissions.add({ command: '123456789012345678', permissions: [
    *   {
    *     id: '876543211234567890',
-   *     type: 'ROLE',
+   *     type: ApplicationCommandPermissionType.Role,
    *     permission: false
    *   },
    * ]})
@@ -11163,7 +11177,7 @@ export class ApplicationCommandPermissionsManager<
    *  permissions: [
    *    {
    *      id: '876543210987654321',
-   *      type: 'USER',
+   *      type: ApplicationCommandOptionType.User,
    *      permission: false,
    *    },
    * ]})
@@ -11176,7 +11190,7 @@ export class ApplicationCommandPermissionsManager<
    *     id: '123456789012345678',
    *     permissions: [{
    *       id: '876543210987654321',
-   *       type: 'USER',
+   *       type: ApplicationCommandOptionType.User,
    *       permission: false,
    *     }],
    *   },
@@ -11199,17 +11213,6 @@ export class ApplicationCommandPermissionsManager<
    * @param commandId The application command's id
    */
   private permissionsPath(guildId: Snowflake, commandId?: Snowflake): unknown;
-
-  /**
-   * Transforms an {@link ApplicationCommandPermissionData} object into something that can be used with the API.
-   * @param permissions The permissions to transform
-   * @param received Whether these permissions have been received from Discord
-   */
-  private static transformPermissions(
-    permissions: ApplicationCommandPermissionData,
-    received: true,
-  ): Omit<APIApplicationCommandPermission, 'type'> & { type: keyof typeof ApplicationCommandPermissionType };
-  private static transformPermissions(permissions: ApplicationCommandPermissionData): APIApplicationCommandPermission;
 }
 
 /**
@@ -11346,15 +11349,11 @@ export class GuildApplicationCommandManager extends ApplicationCommandManager<Ap
   public set(commands: ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommand>>;
 }
 
-export type MappedGuildChannelTypes = EnumValueMapped<
-  typeof ChannelType,
-  {
-    GuildCategory: CategoryChannel;
-  }
-> &
-  MappedChannelCategoryTypes;
+export type MappedGuildChannelTypes = {
+  [ChannelType.GuildCategory]: CategoryChannel;
+} & MappedChannelCategoryTypes;
 
-export type GuildChannelTypes = CategoryChannelTypes | ChannelType.GuildCategory | 'GuildCategory';
+export type GuildChannelTypes = CategoryChannelType | ChannelType.GuildCategory;
 
 /**
  * Manages API methods for GuildChannels and stores their cache.
@@ -11385,7 +11384,33 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    * @example
    * // Create a new channel with permission overwrites
    * guild.channels.create('new-voice', {
-   *   type: 'GUILD_VOICE',
+   *   type: ChannelType.GuildVoice,
+   *   permissionOverwrites: [
+   *      {
+   *        id: message.author.id,
+   *        deny: [Permissions.FLAGS.VIEW_CHANNEL],
+   *     },
+   *   ],
+   * })
+   */
+  public create<T extends Exclude<GuildChannelTypes, ChannelType.GuildStore>>(
+    name: string,
+    options: GuildChannelCreateOptions & { type: T },
+  ): Promise<MappedGuildChannelTypes[T]>;
+
+  /**
+   * Creates a new channel in the guild.
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   * @example
+   * // Create a new text channel
+   * guild.channels.create('new-general', { reason: 'Needed a cool new channel' })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Create a new channel with permission overwrites
+   * guild.channels.create('new-voice', {
+   *   type: ChannelType.GuildVoice,
    *   permissionOverwrites: [
    *      {
    *        id: message.author.id,
@@ -11395,23 +11420,12 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    * })
    * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
    */
-  public create(name: string, options: GuildChannelCreateOptions & { type: 'GuildStore' }): Promise<StoreChannel>;
-  /**
-   * Creates a new channel in the guild.
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   */
-  public create<T extends GuildChannelTypes>(
+  public create(
     name: string,
-    options: GuildChannelCreateOptions & { type: T },
-  ): Promise<MappedGuildChannelTypes[T]>;
+    options: GuildChannelCreateOptions & { type: ChannelType.GuildStore },
+  ): Promise<StoreChannel>;
 
-  /**
-   * Creates a new channel in the guild.
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   */
-  public create(name: string, options: GuildChannelCreateOptions): Promise<NonThreadGuildBasedChannel>;
+  public create(name: string, options?: GuildChannelCreateOptions): Promise<TextChannel>;
 
   /**
    * Obtains one or more guild channels from Discord, or the channel cache if they're already available.
@@ -12466,7 +12480,7 @@ export class StageInstanceManager extends CachedManager<Snowflake, StageInstance
    * // Create a stage instance
    * guild.stageInstances.create('1234567890123456789', {
    *  topic: 'A very creative topic',
-   *  privacyLevel: 'GUILD_ONLY'
+   *  privacyLevel: ChannelType.GuildPrivateThread
    * })
    *  .then(stageInstance => console.log(stageInstance))
    *  .catch(console.error);
@@ -12762,7 +12776,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  awaitMessageComponent<T extends MessageComponentTypeResolvable = 'ActionRow'>(
+  awaitMessageComponent<T extends ComponentType = ComponentType.ActionRow>(
     options?: AwaitMessageCollectorOptionsParams<T, true>,
   ): Promise<MappedInteractionTypes[T]>;
 
@@ -12806,7 +12820,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  createMessageComponentCollector<T extends MessageComponentTypeResolvable = 'ActionRow'>(
+  createMessageComponentCollector<T extends ComponentType = ComponentType.ActionRow>(
     options?: MessageChannelCollectorOptionsParams<T, true>,
   ): InteractionCollector<MappedInteractionTypes[T]>;
 
@@ -12872,18 +12886,6 @@ export interface PartialWebhookFields {
    * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
    */
   fetchMessage(message: Snowflake | '@original', options?: WebhookFetchMessageOptions): Promise<Message | APIMessage>;
-
-  /* tslint:disable:unified-signatures */
-  /**
-   * Gets a message that was sent by this webhook.
-   * @param message The id of the message to fetch
-   * @param cache boolean passed to specify whether to cache the message
-   * @returns Returns the raw message data if the webhook was instantiated as a
-   * {@link WebhookClient} or if the channel is uncached, otherwise a {@link Message} will be returned
-   * @deprecated
-   */
-  fetchMessage(message: Snowflake | '@original', cache?: boolean): Promise<Message | APIMessage>;
-  /* tslint:enable:unified-signatures */
 
   /**
    * Sends a message with this webhook.
@@ -13013,7 +13015,7 @@ export interface ActivityOptions {
   /**
    * Type of the activity
    */
-  type?: ExcludeEnum<typeof ActivityType, 'Custom'>;
+  type?: Exclude<ActivityType, ActivityType.Custom>;
 
   /**
    * Shard Id(s) to have the activity set on
@@ -13028,13 +13030,6 @@ export interface ActivityOptions {
  * * **`xbox`** - playing on Xbox Live
  */
 export type ActivityPlatform = 'desktop' | 'samsung' | 'xbox';
-
-/**
- * <info>Bots cannot set a `Custom` activity type, it is only for custom statuses received from users</info>
- * The type of an activity of a user's presence.
- * @see {@link [ActivityType Enum](https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum)}
- */
-export type ActivityTypeKey = keyof typeof ActivityType;
 
 /**
  * Options used to add a user to a guild using OAuth2.
@@ -13089,13 +13084,9 @@ export type AllowedImageSize = 16 | 32 | 56 | 64 | 96 | 128 | 256 | 300 | 512 | 
 
 export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction;
 
-export type AllowedThreadTypeForNewsChannel = 'GUILD_NEWS_THREAD' | ChannelType.GuildNewsThread;
+export type AllowedThreadTypeForNewsChannel = ChannelType.GuildNewsThread;
 
-export type AllowedThreadTypeForTextChannel =
-  | 'GUILD_PUBLIC_THREAD'
-  | 'GUILD_PRIVATE_THREAD'
-  | ChannelType.GuildPublicThread
-  | ChannelType.GuildPrivateThread;
+export type AllowedThreadTypeForTextChannel = ChannelType.GuildPublicThread | ChannelType.GuildPrivateThread;
 
 /**
  * Represents a request that will or has been made to the Discord API
@@ -13142,26 +13133,21 @@ export interface BaseApplicationCommandData {
   defaultPermission?: boolean;
 }
 
-export type CommandOptionDataTypeResolvable = ApplicationCommandOptionTypeKey | ApplicationCommandOptionType;
+export type CommandOptionDataTypeResolvable = ApplicationCommandOptionType;
 
-export type CommandOptionChannelResolvableType = ApplicationCommandOptionType.Channel | 'Channel';
+export type CommandOptionChannelResolvableType = ApplicationCommandOptionType.Channel;
 
 export type CommandOptionChoiceResolvableType =
   | ApplicationCommandOptionType.String
-  | 'String'
   | CommandOptionNumericResolvableType;
 
 export type CommandOptionNumericResolvableType =
   | ApplicationCommandOptionType.Number
-  | 'Number'
-  | ApplicationCommandOptionType.Integer
-  | 'Integer';
+  | ApplicationCommandOptionType.Integer;
 
 export type CommandOptionSubOptionResolvableType =
   | ApplicationCommandOptionType.Subcommand
-  | 'Subcommand'
-  | ApplicationCommandOptionType.SubcommandGroup
-  | 'SubcommandGroup';
+  | ApplicationCommandOptionType.SubcommandGroup;
 
 export type CommandOptionNonChoiceResolvableType = Exclude<
   CommandOptionDataTypeResolvable,
@@ -13260,7 +13246,7 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   /**
    * The type of the option
    */
-  type: 'CHANNEL';
+  type: ApplicationCommandOptionType.Channel;
 
   /**
    * When the option type is channel, the allowed types of channels that can be selected
@@ -13471,18 +13457,6 @@ export interface ApplicationCommandOptionChoice {
 }
 
 /**
- * The type of an {@link ApplicationCommand} object
- * @see {@link [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types)}
- */
-export type ApplicationCommandTypeKey = keyof typeof ApplicationCommandType;
-
-/**
- * The type of an {@link ApplicationCommandOption} object
- * @see {@link [Application Command Option Type](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type)}
- */
-export type ApplicationCommandOptionTypeKey = keyof typeof ApplicationCommandOptionType;
-
-/**
  * Data for setting the permissions of an application command.
  */
 export interface ApplicationCommandPermissionData {
@@ -13494,7 +13468,7 @@ export interface ApplicationCommandPermissionData {
   /**
    * Whether this permission is for a role or a user
    */
-  type: ApplicationCommandPermissionTypeKey | ApplicationCommandPermissionType;
+  type: ApplicationCommandPermissionType;
 
   /**
    * Whether the role or user has the permission to use this command
@@ -13511,12 +13485,6 @@ export interface ApplicationCommandPermissions extends ApplicationCommandPermiss
    */
   type: ApplicationCommandPermissionType;
 }
-
-/**
- * The type of an {@link ApplicationCommandPermissions} object
- * @see {@link [Application Command Permission Type](https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type)}
- */
-export type ApplicationCommandPermissionTypeKey = keyof typeof ApplicationCommandPermissionType;
 
 /**
  * Data that resolves to give an ApplicationCommand object.
@@ -13637,7 +13605,7 @@ export interface BaseMessageComponentOptions {
   /**
    * The type of this component
    */
-  type?: ComponentTypeKey | ComponentType;
+  type?: ComponentType;
 }
 
 /**
@@ -13813,12 +13781,9 @@ export interface CategoryCreateChannelOptions {
 
   /**
    * The type of the new channel.
-   * @default 'GuildText'
+   * @default ChannelType.GuildText
    */
-  type?: ExcludeEnum<
-    typeof ChannelType,
-    'DM' | 'GroupDM' | 'GuildPublicThread' | 'GuildNewsThread' | 'GuildPrivateThread' | 'GuildCategory'
-  >;
+  type?: CategoryChannelType;
 
   /**
    * Whether the new channel is NSFW
@@ -14783,7 +14748,7 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   /**
    * The type of the option
    */
-  type: ApplicationCommandOptionTypeKey;
+  type: ApplicationCommandOptionType;
 
   /**
    * The value of the option
@@ -16120,9 +16085,13 @@ export interface GuildChannelCreateOptions extends Omit<CategoryCreateChannelOpt
   /**
    * The type of the new channel.
    */
-  type?: ExcludeEnum<
-    typeof ChannelType,
-    'DM' | 'GroupDM' | 'GuildPublicThread' | 'GuildNewsThread' | 'GuildPrivateThread'
+  type?: Exclude<
+    ChannelType,
+    | ChannelType.DM
+    | ChannelType.GroupDM
+    | ChannelType.GuildPublicThread
+    | ChannelType.GuildNewsThread
+    | ChannelType.GuildPrivateThread
   >;
 }
 
@@ -16555,8 +16524,6 @@ export interface GuildListMembersOptions {
   cache?: boolean;
 }
 
-export type GuildScheduledEventPrivacyLevelKey = keyof typeof GuildScheduledEventPrivacyLevel;
-
 /**
  * Options used to create a guild scheduled event.
  */
@@ -16574,19 +16541,19 @@ export interface GuildScheduledEventCreateOptions {
 
   /**
    * The time to end the event at
-   * <warn>This is required if `entityType` is 'EXTERNAL'</warn>
+   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
    */
   scheduledEndTime?: DateResolvable;
 
   /**
    * The privacy level of the guild scheduled event
    */
-  privacyLevel: GuildScheduledEventPrivacyLevel | GuildScheduledEventPrivacyLevelKey;
+  privacyLevel: GuildScheduledEventPrivacyLevel;
 
   /**
    * The scheduled entity type of the event
    */
-  entityType: GuildScheduledEventEntityType | GuildScheduledEventEntityTypeKey;
+  entityType: GuildScheduledEventEntityType;
 
   /**
    * The description of the guild scheduled event
@@ -16595,12 +16562,14 @@ export interface GuildScheduledEventCreateOptions {
 
   /**
    * The channel of the guild scheduled event
-   * <warn>This is required if `entityType` is 'STAGE_INSTANCE' or `VOICE`</warn>
+   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.StageInstance` or
+   * `GuildScheduledEventEntityType.Voice`</warn>
    */
   channel?: GuildVoiceChannelResolvable;
 
   /**
    * The entity metadata of the guild scheduled event
+   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
    */
   entityMetadata?: GuildScheduledEventEntityMetadataOptions;
 
@@ -16645,16 +16614,10 @@ export interface GuildScheduledEventEntityMetadata {
 export interface GuildScheduledEventEntityMetadataOptions {
   /**
    * The location of the guild scheduled event
-   * <warn>This is required if `entityType` is 'EXTERNAL'</warn>
+   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
    */
   location?: string;
 }
-
-/**
- * The entity type of a {@link GuildScheduledEvent}
- * @see {@link [Guild Scheduled Event Entity Types](https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-types)}
- */
-export type GuildScheduledEventEntityTypeKey = keyof typeof GuildScheduledEventEntityType;
 
 export type GuildScheduledEventManagerFetchResult<
   T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
@@ -16856,7 +16819,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The type of component to listen for
    */
-  componentType?: ComponentType | ComponentTypeKey;
+  componentType?: ComponentType;
 
   /**
    * The guild to listen to interactions from
@@ -16866,7 +16829,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The type of interaction to listen for
    */
-  interactionType?: InteractionTypeKey | InteractionType;
+  interactionType?: InteractionType;
 
   /**
    * The maximum total amount of interactions to collect
@@ -16923,18 +16886,6 @@ export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'us
    */
   fetchReply?: boolean;
 }
-
-/**
- * The type of an interaction response
- * @see {@link [Interaction Callback Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)}
- */
-export type InteractionResponseTypeKey = keyof typeof InteractionResponseType;
-
-/**
- * The type of an {@link Interaction} object
- * @see {@link [Interaction Type](https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type)}
- */
-export type InteractionTypeKey = keyof typeof InteractionType;
 
 /**
  * Options for updating the message received from a {@link MessageComponentInteraction}.
@@ -17214,7 +17165,7 @@ export interface InteractionButtonOptions extends BaseButtonOptions {
   /**
    * The style of this button
    */
-  style: ExcludeEnum<typeof ButtonStyle, 'Link'>;
+  style: Exclude<ButtonStyle, ButtonStyle.Link>;
 
   /**
    * A unique string to be sent in the interaction when clicked
@@ -17223,17 +17174,6 @@ export interface InteractionButtonOptions extends BaseButtonOptions {
 }
 
 export type MessageButtonOptions = InteractionButtonOptions | LinkButtonOptions;
-
-/**
- * The style of a message button
- * @see {@link [Button Styles](https://discord.com/developers/docs/interactions/message-components#button-object-button-styles)}
- */
-export type ButtonStyleKey = keyof typeof ButtonStyle;
-
-/**
- * Data that can be resolved to a MessageButtonStyle.
- */
-export type MessageButtonStyleResolvable = ButtonStyleKey | ButtonStyle;
 
 export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
   /**
@@ -17272,16 +17212,6 @@ export type MessageComponentOptions =
   | MessageButtonOptions
   | MessageSelectMenuOptions;
 
-export type ComponentTypeKey = keyof typeof ComponentType;
-
-/**
- * Data that can be resolved to a MessageComponentType.
- */
-export type MessageComponentTypeResolvable = ComponentTypeKey | ComponentType;
-
-/**
- * Options that can be passed into {@link Message.edit}.
- */
 export interface MessageEditOptions {
   /**
    * An array of attachments to keep, all attachments will be kept if omitted
@@ -17818,18 +17748,6 @@ export type MessageTarget =
   | MessageManager;
 
 /**
- * The type of a message, e.g. `Default`.
- * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
- */
-export type MessageTypeKey = keyof typeof MessageType;
-
-/**
- * The required MFA level for a guild
- * @see {@link [MFA Level](https://discord.com/developers/docs/resources/guild#guild-object-mfa-level)}
- */
-export type GuildMFALevelKey = keyof typeof GuildMFALevel;
-
-/**
  * Options used to respawn all shards.
  */
 export interface MultipleShardRespawnOptions {
@@ -17903,19 +17821,13 @@ export interface OverwriteData {
   /**
    * The type of this OverwriteData
    */
-  type?: OverwriteTypeKey;
+  type?: OverwriteType;
 }
 
 /**
  * Data that can be resolved into {@link RawOverwriteData}.
  */
 export type OverwriteResolvable = PermissionOverwrites | OverwriteData;
-
-/**
- * An overwrite type
- * @see {@link [Overwrite Structure](https://discord.com/developers/docs/resources/channel#overwrite-object-overwrite-structure)}
- */
-export type OverwriteTypeKey = keyof typeof OverwriteType;
 
 export type PermissionFlags = Record<PermissionString, bigint>;
 
@@ -18013,16 +17925,16 @@ export type PresenceResolvable = Presence | UserResolvable | Snowflake;
 export interface PartialChannelData {
   id?: Snowflake | number;
   parentId?: Snowflake | number;
-  type?: ExcludeEnum<
-    typeof ChannelType,
-    | 'DM'
-    | 'GroupDM'
-    | 'GuildNews'
-    | 'GuildStore'
-    | 'GuildNewsThread'
-    | 'GuildPublicThread'
-    | 'GuildPrivateThread'
-    | 'GuildStageVoice'
+  type?: Exclude<
+    ChannelType,
+    | ChannelType.DM
+    | ChannelType.GroupDM
+    | ChannelType.GuildNews
+    | ChannelType.GuildStore
+    | ChannelType.GuildNewsThread
+    | ChannelType.GuildPublicThread
+    | ChannelType.GuildPrivateThread
+    | ChannelType.GuildStageVoice
   >;
   name: string;
   topic?: string;
@@ -18473,7 +18385,7 @@ export type SystemChannelFlagsResolvable = BitFieldResolvable<SystemChannelFlags
  */
 export type SystemMessageType = Exclude<
   MessageType,
-  'DEFAULT' | 'REPLY' | 'CHAT_INPUT_COMMAND' | 'CONTEXT_MENU_COMMAND'
+  MessageType.Default | MessageType.Reply | MessageType.ChatInputCommand | MessageType.ContextMenuCommand
 >;
 
 /**
@@ -18635,7 +18547,10 @@ export type ThreadChannelResolvable = ThreadChannel | Snowflake;
 /**
  * The types of channels that are threads.
  */
-export type ThreadChannelTypeKey = 'GuildNewsThread' | 'GuildPublicThread' | 'GuildPrivateThread';
+export type ThreadChannelType =
+  | ChannelType.GuildNewsThread
+  | ChannelType.GuildPublicThread
+  | ChannelType.GuildPrivateThread;
 
 /**
  * Options for creating a thread. <warn>Only one of `startMessage` or `type` can be defined.</warn>
@@ -18657,7 +18572,7 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
    * Whether non-moderators can add other non-moderators to the thread <info>Can only be set when type will be
    * `GUILD_PRIVATE_THREAD`</info>
    */
-  invitable?: AllowedThreadType extends 'GUILD_PRIVATE_THREAD' | ChannelType.GuildPrivateThread ? boolean : never;
+  invitable?: AllowedThreadType extends ChannelType.GuildPrivateThread ? boolean : never;
 
   /**
    * The rate limit per user (slowmode) for the new channel in seconds
@@ -18855,12 +18770,6 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 's
    */
   threadId?: Snowflake;
 }
-
-/**
- * The value set for a webhook's type
- * @see {@link [Webhook Types](https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types)}
- */
-export type WebhookTypeKey = keyof typeof WebhookType;
 
 /**
  * WebSocket options (these are left as snake_case to match the API)

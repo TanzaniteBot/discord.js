@@ -14,12 +14,11 @@ class Channel extends Base {
   constructor(client, data, immediatePatch = true) {
     super(client);
 
-    const type = ChannelType[data?.type];
     /**
      * The type of the channel
      * @type {ChannelType}
      */
-    this.type = type ?? 'UNKNOWN';
+    this.type = data.type;
 
     if (data && immediatePatch) this._patch(data);
   }
@@ -99,7 +98,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isText() {
-    return this.type === ChannelType[ChannelType.GuildText];
+    return this.type === ChannelType.GuildText;
   }
 
   /**
@@ -107,7 +106,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isDM() {
-    return this.type === ChannelType[ChannelType.DM];
+    return this.type === ChannelType.DM;
   }
 
   /**
@@ -115,7 +114,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isVoice() {
-    return this.type === ChannelType[ChannelType.GuildVoice];
+    return this.type === ChannelType.GuildVoice;
   }
 
   /**
@@ -123,7 +122,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isGroupDM() {
-    return this.type === ChannelType[ChannelType.GroupDM];
+    return this.type === ChannelType.GroupDM;
   }
 
   /**
@@ -131,7 +130,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isCategory() {
-    return this.type === ChannelType[ChannelType.GuildCategory];
+    return this.type === ChannelType.GuildCategory;
   }
 
   /**
@@ -139,7 +138,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isNews() {
-    return this.type === ChannelType[ChannelType.GuildNews];
+    return this.type === ChannelType.GuildNews;
   }
 
   /**
@@ -147,7 +146,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isStore() {
-    return this.type === ChannelType[ChannelType.GuildStore];
+    return this.type === ChannelType.GuildStore;
   }
 
   /**
@@ -163,7 +162,7 @@ class Channel extends Base {
    * @returns {boolean}
    */
   isStage() {
-    return this.type === ChannelType[ChannelType.GuildStageVoice];
+    return this.type === ChannelType.GuildStageVoice;
   }
 
   /**
