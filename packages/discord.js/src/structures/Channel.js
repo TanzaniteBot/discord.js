@@ -186,7 +186,7 @@ class Channel extends Base {
     let channel;
     if (!data.guild_id && !guild) {
       if ((data.recipients && data.type !== ChannelType.GroupDM) || data.type === ChannelType.DM) {
-        channel = new (Structures.get('DMChannel')(client, data))();
+        channel = new (Structures.get('DMChannel'))(client, data);
       } else if (data.type === ChannelType.GroupDM) {
         const PartialGroupDMChannel = require('./PartialGroupDMChannel');
         channel = new PartialGroupDMChannel(client, data);
@@ -197,33 +197,33 @@ class Channel extends Base {
       if (guild || allowUnknownGuild) {
         switch (data.type) {
           case ChannelType.GuildText: {
-            channel = new (Structures.get('TextChannel')(guild, data, client))();
+            channel = new (Structures.get('TextChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildVoice: {
-            channel = new (Structures.get('VoiceChannel')(guild, data, client))();
+            channel = new (Structures.get('VoiceChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildCategory: {
-            channel = new (Structures.get('CategoryChannel')(guild, data, client))();
+            channel = new (Structures.get('CategoryChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildNews: {
-            channel = new (Structures.get('NewsChannel')(guild, data, client))();
+            channel = new (Structures.get('NewsChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildStore: {
-            channel = new (Structures.get('StoreChannel')(guild, data, client))();
+            channel = new (Structures.get('StoreChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildStageVoice: {
-            channel = new (Structures.get('StageChannel')(guild, data, client))();
+            channel = new (Structures.get('StageChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildNewsThread:
           case ChannelType.GuildPublicThread:
           case ChannelType.GuildPrivateThread: {
-            channel = new (Structures.get('ThreadChannel')(guild, data, client, fromInteraction))();
+            channel = new (Structures.get('ThreadChannel'))(guild, data, client, fromInteraction);
             if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
             break;
           }
