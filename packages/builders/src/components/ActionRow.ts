@@ -2,7 +2,7 @@ import { type APIActionRowComponent, ComponentType, APIMessageComponent } from '
 import type { ButtonComponent, SelectMenuComponent } from '..';
 import { Component } from './Component';
 import { createComponent } from './Components';
-import type { InputTextComponent } from './TextInput';
+import type { InputTextComponent } from './InputText';
 
 export type MessageComponent = ActionRowComponent | ActionRow;
 
