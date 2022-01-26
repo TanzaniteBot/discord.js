@@ -57,7 +57,7 @@ class TextBasedChannel {
    * @property {boolean} [tts=false] Whether or not the message should be spoken aloud
    * @property {string} [nonce=''] The nonce for the message
    * @property {string} [content=''] The content for the message
-   * @property {MessageEmbed[]|APIEmbed[]} [embeds] The embeds for the message
+   * @property {Embed[]|APIEmbed[]} [embeds] The embeds for the message
    * (see [here](https://discord.com/developers/docs/resources/channel#embed-object) for more details)
    * @property {MessageMentionOptions} [allowedMentions] Which mentions should be parsed from the message content
    * (see [here](https://discord.com/developers/docs/resources/channel#allowed-mentions-object) for more details)
@@ -72,6 +72,7 @@ class TextBasedChannel {
    * @typedef {BaseMessageOptions} MessageOptions
    * @property {ReplyOptions} [reply] The options for replying to a message
    * @property {StickerResolvable[]} [stickers=[]] Stickers to send in the message
+   * @property {MessageFlags} [flags] Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be set.
    */
 
   /**

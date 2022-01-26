@@ -85,6 +85,16 @@ class Webhook {
       this.owner ??= null;
     }
 
+    if ('application_id' in data) {
+      /**
+       * The application that created this webhook
+       * @type {?Snowflake}
+       */
+      this.applicationId = data.application_id;
+    } else {
+      this.applicationId ??= null;
+    }
+
     if ('source_guild' in data) {
       /**
        * The source guild of the webhook
@@ -113,12 +123,13 @@ class Webhook {
    * @property {string} [avatarURL] Avatar URL override for the message
    * @property {Snowflake} [threadId] The id of the thread in the channel to send to.
    * <info>For interaction webhooks, this property is ignored</info>
+   * @property {MessageFlags} [flags] Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be set.
    */
 
   /**
    * Options that can be passed into editMessage.
    * @typedef {Object} WebhookEditMessageOptions
-   * @property {MessageEmbed[]|APIEmbed[]} [embeds] See {@link WebhookMessageOptions#embeds}
+   * @property {Embed[]|APIEmbed[]} [embeds] See {@link WebhookMessageOptions#embeds}
    * @property {string} [content] See {@link BaseMessageOptions#content}
    * @property {FileOptions[]|BufferResolvable[]|MessageAttachment[]} [files] See {@link BaseMessageOptions#files}
    * @property {MessageMentionOptions} [allowedMentions] See {@link BaseMessageOptions#allowedMentions}
@@ -391,6 +402,22 @@ class Webhook {
    */
   avatarURL(options = {}) {
     return this.avatar && this.client.rest.cdn.Avatar(this.id, this.avatar, options);
+  }
+
+  /**
+   * Whether this webhook is created by a user.
+   * @returns {boolean}
+   */
+  isUserCreated() {
+    return Boolean(this.type === WebhookType.Incoming && this.owner && !this.owner.bot);
+  }
+
+  /**
+   * Whether this webhook is created by an application.
+   * @returns {boolean}
+   */
+  isApplicationCreated() {
+    return this.type === WebhookType.Application;
   }
 
   /**

@@ -7,6 +7,7 @@ import {
   channelMention,
   codeBlock,
   Component,
+  Embed,
   formatEmoji,
   hideLinkEmbed,
   hyperlink,
@@ -30,7 +31,6 @@ import {
   APIApplicationCommand,
   APIApplicationCommandInteractionData,
   APIApplicationCommandOption,
-  APIApplicationCommandPermission,
   APIAuditLogChange,
   APIButtonComponent,
   APIEmbed,
@@ -57,7 +57,6 @@ import {
   GuildNSFWLevel,
   GuildPremiumTier,
   GuildVerificationLevel,
-  InteractionResponseType,
   InteractionType,
   InviteTargetType,
   MessageType,
@@ -67,7 +66,6 @@ import {
   StickerFormatType,
   StickerType,
   TeamMemberMembershipState,
-  UserPremiumType,
   WebhookType,
   OverwriteType,
   GuildExplicitContentFilter,
@@ -76,11 +74,9 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   ActivityType,
-  AuditLogEvent,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
   GuildScheduledEventStatus,
-  RESTJSONErrorCodes,
 } from 'discord-api-types/v9';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -295,7 +291,7 @@ export abstract class AnonymousGuild extends BaseGuild {
   /**
    * The NSFW level of this guild
    */
-  public nsfwLevel: GuildNSFWLevelKey;
+  public nsfwLevel: GuildNSFWLevel;
 
   /**
    * The hash of the guild invite splash image
@@ -310,7 +306,7 @@ export abstract class AnonymousGuild extends BaseGuild {
   /**
    * The verification level of the guild
    */
-  public verificationLevel: GuildVerificationLevelKey;
+  public verificationLevel: GuildVerificationLevel;
 
   /**
    * The URL to this guild's banner.
@@ -719,7 +715,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
    *   .catch(console.error);
    * @example
    * // Create an ephemeral reply with an embed
-   * const embed = new MessageEmbed().setDescription('Pong!');
+   * const embed = new Embed().setDescription('Pong!');
    *
    * interaction.reply({ embeds: [embed], ephemeral: true })
    *   .then(() => console.log('Reply sent.'))
@@ -931,7 +927,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    * @example
    * // Create an ephemeral reply with an embed
-   * const embed = new MessageEmbed().setDescription('Pong!');
+   * const embed = new Embed().setDescription('Pong!');
    *
    * interaction.reply({ embeds: [embed], ephemeral: true })
    *   .then(() => console.log('Reply sent.'))
@@ -1364,7 +1360,7 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   /**
    * The type of component which was interacted with
    */
-  public componentType: 'Button';
+  public componentType: ComponentType.Button;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -1416,7 +1412,8 @@ export class CategoryChannel extends GuildChannel {
 
   /**
    * Creates a new channel within this category.
-   * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
+   * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a
+   * CategoryChannel.</info>
    * @param name The name of the new channel
    * @param options Options for creating the new channel
    */
@@ -1456,12 +1453,12 @@ export abstract class Channel extends Base {
   /**
    * The time the channel was created at
    */
-  public readonly createdAt: Date;
+  public readonly createdAt: Date | null;
 
   /**
    * The timestamp the channel was created at
    */
-  public readonly createdTimestamp: number;
+  public readonly createdTimestamp: number | null;
 
   /**
    * The channel's id
@@ -2617,7 +2614,8 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
   public targetId: Snowflake;
 
   /**
-   * The type of the target of the interaction; either `.User` or `.Message`
+   * The type of the target of the interaction; either {@link ApplicationCommandType.User}
+   * or {@link ApplicationCommandType.Message}
    */
   public targetType: Exclude<ApplicationCommandType, ApplicationCommandType.ChatInput>;
 
@@ -2697,25 +2695,25 @@ export class EnumResolvers extends null {
   private constructor();
 
   /**
-   * Resolves enum key to `ChannelType` enum value
+   * Resolves enum key to {@link ChannelType} enum value
    * @param key The key to resolve
    */
   public static resolveChannelType(key: string | ChannelType): ChannelType;
 
   /**
-   * Resolves enum key to `InteractionType` enum value
+   * Resolves enum key to {@link InteractionType} enum value
    * @param key The key to resolve
    */
   public static resolveInteractionType(key: string | InteractionType): InteractionType;
 
   /**
-   * Resolves enum key to `ApplicationCommandType` enum value
+   * Resolves enum key to {@link ApplicationCommandType} enum value
    * @param key The key to resolve
    */
   public static resolveApplicationCommandType(key: string | ApplicationCommandType): ApplicationCommandType;
 
   /**
-   * Resolves enum key to `ApplicationCommandOptionType` enum value
+   * Resolves enum key to {@link ApplicationCommandOptionType} enum value
    * @param key The key to resolve
    */
   public static resolveApplicationCommandOptionType(
@@ -2723,7 +2721,7 @@ export class EnumResolvers extends null {
   ): ApplicationCommandOptionType;
 
   /**
-   * Resolves enum key to `ApplicationCommandPermissionType` enum value
+   * Resolves enum key to {@link ApplicationCommandPermissionType} enum value
    * @param key The key to resolve
    */
   public static resolveApplicationCommandPermissionType(
@@ -2731,22 +2729,86 @@ export class EnumResolvers extends null {
   ): ApplicationCommandPermissionType;
 
   /**
-   * Resolves enum key to `ComponentType` enum value
+   * Resolves enum key to {@link ComponentType} enum value
    * @param key The key to resolve
    */
   public static resolveComponentType(key: string | ComponentType): ComponentType;
 
   /**
-   * Resolves enum key to `ButtonStyle` enum value
+   * Resolves enum key to {@link ButtonStyle} enum value
    * @param key The key to resolve
    */
   public static resolveButtonStyle(key: string | ButtonStyle): ButtonStyle;
 
   /**
-   * Resolves enum key to `MessageType` enum value
+   * Resolves enum key to {@link MessageType} enum value
    * @param key The key to lookup
    */
   public static resolveMessageType(key: string | MessageType): MessageType;
+
+  /**
+   * Resolves enum key to {@link GuildNSFWLevel} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildNSFWLevel(key: string | GuildNSFWLevel): GuildNSFWLevel;
+
+  /**
+   * Resolves enum key to {@link GuildVerificationLevel} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildVerificationLevel(key: string | GuildVerificationLevel): GuildVerificationLevel;
+
+  /**
+   * Resolves enum key to {@link GuildDefaultMessageNotifications} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildDefaultMessageNotifications(
+    key: string | GuildDefaultMessageNotifications,
+  ): GuildDefaultMessageNotifications;
+
+  /**
+   * Resolves enum key to {@link GuildExplicitContentFilter} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildExplicitContentFilter(key: string | GuildExplicitContentFilter): GuildExplicitContentFilter;
+
+  /**
+   * Resolves enum key to {@link GuildPremiumTier} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildPremiumTier(key: string | GuildPremiumTier): GuildPremiumTier;
+
+  /**
+   * Resolves enum key to {@link GuildScheduledEventStatus} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildScheduledEventStatus(key: string | GuildScheduledEventStatus): GuildScheduledEventStatus;
+
+  /**
+   * Resolves enum key to {@link StageInstancePrivacyLevel} enum value
+   * @param key The key to lookup
+   */
+  public static resolveStageInstancePrivacyLevel(key: string | StageInstancePrivacyLevel): StageInstancePrivacyLevel;
+
+  /**
+   * Resolves enum key to {@link GuildMFALevel} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildMFALevel(key: string | GuildMFALevel): GuildMFALevel;
+
+  /**
+   * Resolves enum key to {@link TeamMemberMembershipState} enum value
+   * @param key The key to lookup
+   */
+  public static resolveTeamMemberMembershipState(key: string | TeamMemberMembershipState): TeamMemberMembershipState;
+
+  /**
+   * Resolves enum key to {@link GuildScheduledEventEntityType} enum value
+   * @param key The key to lookup
+   */
+  public static resolveGuildScheduledEventEntityType(
+    key: string | GuildScheduledEventEntityType,
+  ): GuildScheduledEventEntityType;
 }
 
 /**
@@ -2954,7 +3016,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The default message notification level of the guild
    */
-  public defaultMessageNotifications: GuildDefaultMessageNotificationsKey | number;
+  public defaultMessageNotifications: GuildDefaultMessageNotifications;
 
   /**
    * The hash of the guild discovery splash image
@@ -2969,7 +3031,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The explicit content filter level of the guild
    */
-  public explicitContentFilter: GuildExplicitContentFilterKey;
+  public explicitContentFilter: GuildExplicitContentFilter;
 
   /**
    * A manager of the invites of this guild
@@ -3029,7 +3091,7 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The preferred locale of the guild, defaults to `en-US`
-   * @see {@link [Accepted Locales](https://discord.com/developers/docs/dispatch/field-values#predefined-field-values-accepted-locales)}
+   * @see {@link [Locales](https://discord.com/developers/docs/reference#locales)}
    */
   public preferredLocale: string;
 
@@ -3046,7 +3108,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The premium tier of this guild
    */
-  public premiumTier: PremiumTier;
+  public premiumTier: GuildPremiumTier;
 
   /**
    * A manager of the presences belonging to this guild
@@ -3358,7 +3420,7 @@ export class Guild extends AnonymousGuild {
    * @param reason Reason for changing the setting of the default message notifications
    */
   public setDefaultMessageNotifications(
-    defaultMessageNotifications: GuildDefaultMessageNotificationsKey | number,
+    defaultMessageNotifications: GuildDefaultMessageNotifications,
     reason?: string,
   ): Promise<Guild>;
 
@@ -3382,10 +3444,7 @@ export class Guild extends AnonymousGuild {
    * @param explicitContentFilter The new level of the explicit content filter
    * @param reason Reason for changing the level of the guild's explicit content filter
    */
-  public setExplicitContentFilter(
-    explicitContentFilter: GuildExplicitContentFilterKey | number,
-    reason?: string,
-  ): Promise<Guild>;
+  public setExplicitContentFilter(explicitContentFilter: GuildExplicitContentFilter, reason?: string): Promise<Guild>;
 
   /**
    * Sets a new guild icon.
@@ -3501,7 +3560,7 @@ export class Guild extends AnonymousGuild {
    *  .then(updated => console.log(`Updated guild verification level to ${guild.verificationLevel}`))
    *  .catch(console.error);
    */
-  public setVerificationLevel(verificationLevel: GuildVerificationLevelKey | number, reason?: string): Promise<Guild>;
+  public setVerificationLevel(verificationLevel: GuildVerificationLevel, reason?: string): Promise<Guild>;
 
   /**
    * Edits the enabled state of the guild's premium progress bar
@@ -3730,7 +3789,8 @@ export abstract class GuildChannel extends Channel {
    * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
    */
   private rolePermissions(role: Role, checkAdmin: boolean): Readonly<Permissions>;
-
+  public readonly createdAt: Date;
+  public readonly createdTimestamp: number;
   public readonly calculatedPosition: number;
 
   /**
@@ -4342,7 +4402,7 @@ export class GuildPreview extends Base {
 /**
  * Represents a scheduled event in a {@link Guild}.
  */
-export class GuildScheduledEvent<S extends GuildScheduledEventStatusKey = GuildScheduledEventStatusKey> extends Base {
+export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildScheduledEventStatus> extends Base {
   private constructor(client: Client, data: RawGuildScheduledEventData);
 
   /**
@@ -4356,7 +4416,8 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatusKey = GuildS
   public guildId: Snowflake;
 
   /**
-   * The channel id in which the scheduled event will be hosted, or `null` if entity type is `EXTERNAL`
+   * The channel id in which the scheduled event will be hosted,
+   * or `null` if entity type is {@link GuildScheduledEventEntityType.External}
    */
   public channelId: Snowflake | null;
 
@@ -4581,24 +4642,24 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatusKey = GuildS
   public toString(): string;
 
   /**
-   * Indicates whether this guild scheduled event has an `ACTIVE` status.
+   * Indicates whether this guild scheduled event has an {@link GuildScheduledEventStatus.Active} status.
    */
-  public isActive(): this is GuildScheduledEvent<'Active'>;
+  public isActive(): this is GuildScheduledEvent<GuildScheduledEventStatus.Active>;
 
   /**
-   * Indicates whether this guild scheduled event has a `CANCELED` status.
+   * Indicates whether this guild scheduled event has a {@link GuildScheduledEventStatus.Canceled} status.
    */
-  public isCanceled(): this is GuildScheduledEvent<'Canceled'>;
+  public isCanceled(): this is GuildScheduledEvent<GuildScheduledEventStatus.Canceled>;
 
   /**
-   * Indicates whether this guild scheduled event has a `COMPLETED` status.
+   * Indicates whether this guild scheduled event has a {@link GuildScheduledEventStatus.Completed} status.
    */
-  public isCompleted(): this is GuildScheduledEvent<'Completed'>;
+  public isCompleted(): this is GuildScheduledEvent<GuildScheduledEventStatus.Completed>;
 
   /**
-   * Indicates whether this guild scheduled event has a `SCHEDULED` status.
+   * Indicates whether this guild scheduled event has a {@link GuildScheduledEventStatus.Scheduled} status.
    */
-  public isScheduled(): this is GuildScheduledEvent<'Scheduled'>;
+  public isScheduled(): this is GuildScheduledEvent<GuildScheduledEventStatus.Scheduled>;
 }
 
 /**
@@ -5048,7 +5109,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
 
   /**
    * The locale of the user who invoked this interaction
-   * @see {@link [Accepted Locales](https://discord.com/developers/docs/dispatch/field-values#predefined-field-values-accepted-locales)}
+   * @see {@link [Locales](https://discord.com/developers/docs/reference#locales)}
    */
   public locale: string;
 
@@ -5637,7 +5698,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * A list of embeds in the message - e.g. YouTube Player
    */
-  public embeds: MessageEmbed[];
+  public embeds: Embed[];
 
   /**
    * Supplemental application information for group activities
@@ -6141,7 +6202,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   /**
    * The type of component which was interacted with
    */
-  public componentType: Exclude<keyof typeof ComponentType, 'ActionRow'>;
+  public componentType: Exclude<ComponentType, ComponentType.ActionRow>;
 
   /**
    * The custom id of the component which was interacted with
@@ -6273,7 +6334,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    * @example
    * // Create an ephemeral reply with an embed
-   * const embed = new MessageEmbed().setDescription('Pong!');
+   * const embed = new Embed().setDescription('Pong!');
    *
    * interaction.reply({ embeds: [embed], ephemeral: true })
    *   .then(() => console.log('Reply sent.'))
@@ -6326,232 +6387,6 @@ export class MessageContextMenuCommandInteraction<
 }
 
 /**
- * Represents an embed in a message (image/video preview, rich embed, etc.)
- */
-export class MessageEmbed {
-  /**
-   * Compares two given embed fields to see if they are equal
-   * @param field The first field to compare
-   * @param other The second field to compare
-   */
-  private _fieldEquals(field: EmbedField, other: EmbedField): boolean;
-
-  /**
-   * @param data MessageEmbed to clone or raw embed data
-   */
-  public constructor(data?: MessageEmbed | MessageEmbedOptions | APIEmbed);
-
-  /**
-   * The author of this embed (if there is one)
-   */
-  public author: MessageEmbedAuthor | null;
-
-  /**
-   * The color of this embed
-   */
-  public color: number | null;
-
-  /**
-   * The date displayed on this embed
-   */
-  public readonly createdAt: Date | null;
-
-  /**
-   * The description of this embed
-   */
-  public description: string | null;
-
-  /**
-   * The fields of this embed
-   */
-  public fields: EmbedField[];
-
-  /**
-   * The footer of this embed
-   */
-  public footer: MessageEmbedFooter | null;
-
-  /**
-   * The hexadecimal version of the embed color, with a leading hash
-   */
-  public readonly hexColor: HexColorString | null;
-
-  /**
-   * The image of this embed, if there is one
-   */
-  public image: MessageEmbedImage | null;
-
-  /**
-   * The accumulated length for the embed title, description, fields, footer text, and author name
-   */
-  public readonly length: number;
-
-  /**
-   * The provider of this embed (if there is one)
-   */
-  public provider: MessageEmbedProvider | null;
-
-  /**
-   * The thumbnail of this embed (if there is one)
-   */
-  public thumbnail: MessageEmbedThumbnail | null;
-
-  /**
-   * The timestamp of this embed
-   */
-  public timestamp: number | null;
-
-  /**
-   * The title of this embed
-   */
-  public title: string | null;
-
-  /**
-   * The type of this embed
-   * @see {@link [Embed Types](https://discord.com/developers/docs/resources/channel#embed-object-embed-types)}
-   * @deprecated
-   */
-  public type: string;
-
-  /**
-   * The URL of this embed
-   */
-  public url: string | null;
-
-  /**
-   * The video of this embed (if there is one)
-   */
-  public readonly video: MessageEmbedVideo | null;
-
-  /**
-   * Adds a field to the embed (max 25).
-   * @param name The name of this field
-   * @param value The value of this field
-   * @param {} [inline=false] If this field will be displayed inline
-   */
-  public addField(name: string, value: string, inline?: boolean): this;
-
-  /**
-   * Adds fields to the embed (max 25).
-   * @param fields The fields to add
-   */
-  public addFields(...fields: EmbedFieldData[] | EmbedFieldData[][]): this;
-
-  /**
-   * Sets the embed's fields (max 25).
-   * @param fields The fields to set
-   */
-  public setFields(...fields: EmbedFieldData[] | EmbedFieldData[][]): this;
-
-  /**
-   * Sets the author of this embed.
-   * @param options The options to provide for the author.
-   * Provide `null` to remove the author data.
-   */
-  public setAuthor(options: EmbedAuthorData | null): this;
-
-  /**
-   * Sets the author of this embed.
-   * @param name The name of the author
-   * @param iconURL The icon URL of the author
-   * @param url The URL of the author
-   * @deprecated Supply a lone object of interface {@link EmbedAuthorData} instead of more parameters.
-   */
-  public setAuthor(name: string, iconURL?: string, url?: string): this;
-
-  /**
-   * Sets the color of this embed.
-   * @param color The color of the embed
-   */
-  public setColor(color: ColorResolvable): this;
-
-  /**
-   * Sets the description of this embed.
-   * @param description The description
-   */
-  public setDescription(description: string): this;
-
-  /**
-   * Sets the footer of this embed.
-   * @param options The options to provide for the footer. Provide `null` to remove the footer data.
-   */
-  public setFooter(options: EmbedFooterData | null): this;
-
-  /**
-   * Sets the footer of this embed.
-   * @param text The text of the footer
-   * @param iconURL The icon URL of the footer
-   * @deprecated Supply a lone object of interface {@link EmbedFooterData} instead.
-   */
-  public setFooter(text: string, iconURL?: string): this;
-
-  /**
-   * Sets the image of this embed.
-   * @param url The URL of the image
-   */
-  public setImage(url: string): this;
-
-  /**
-   * Sets the thumbnail of this embed.
-   * @param url The URL of the thumbnail
-   */
-  public setThumbnail(url: string): this;
-
-  /**
-   * Sets the timestamp of this embed.
-   * @param {} [timestamp=Date.now()] The timestamp or date.
-   * If `null` then the timestamp will be unset (i.e. when editing an existing {@link MessageEmbed})
-   */
-  public setTimestamp(timestamp?: Date | number | null): this;
-
-  /**
-   * Sets the title of this embed.
-   * @param title The title
-   */
-  public setTitle(title: string): this;
-
-  /**
-   * Sets the URL of this embed.
-   * @param url The URL
-   */
-  public setURL(url: string): this;
-
-  /**
-   * Removes, replaces, and inserts fields in the embed (max 25).
-   * @param index The index to start at
-   * @param deleteCount The number of fields to remove
-   * @param fields The replacing field objects
-   */
-  public spliceFields(index: number, deleteCount: number, ...fields: EmbedFieldData[] | EmbedFieldData[][]): this;
-
-  /**
-   * Checks if this embed is equal to another one by comparing every single one of their properties.
-   * @param embed The embed to compare with
-   */
-  public equals(embed: MessageEmbed | APIEmbed): boolean;
-
-  /**
-   * Transforms the embed to a plain object.
-   * @returns The raw data of this embed
-   */
-  public toJSON(): APIEmbed;
-
-  /**
-   * Normalizes field input and verifies strings.
-   * @param name The name of the field
-   * @param value The value of the field
-   * @param {} [inline=false] Set the field to display inline
-   */
-  public static normalizeField(name: string, value: string, inline?: boolean): Required<EmbedFieldData>;
-
-  /**
-   * Normalizes field input and resolves strings.
-   * @param fields Fields to normalize
-   */
-  public static normalizeFields(...fields: EmbedFieldData[] | EmbedFieldData[][]): Required<EmbedFieldData>[];
-}
-
-/**
  * Data structure that makes it easy to interact with a {@link Message.flags} bitfield.
  */
 export class MessageFlags extends BitField<MessageFlagsString> {
@@ -6579,10 +6414,11 @@ export class MessageMentions {
     everyone: boolean,
     repliedUser?: APIUser | User,
   );
+
   /**
    * Cached channels for {@link MessageMentions.channels}
    */
-  private _channels: Collection<Snowflake, TextBasedChannel> | null;
+  private _channels: Collection<Snowflake, AnyChannel> | null;
 
   /**
    * The initial message content
@@ -6598,7 +6434,7 @@ export class MessageMentions {
    * Any channels that were mentioned
    * <info>Order as they appear first in the message content</info>
    */
-  public readonly channels: Collection<Snowflake, TextBasedChannel>;
+  public readonly channels: Collection<Snowflake, AnyChannel>;
 
   /**
    * The client the message is from
@@ -7575,7 +7411,7 @@ export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends
   /**
    * The type of component which was interacted with
    */
-  public componentType: 'SelectMenu';
+  public componentType: ComponentType.SelectMenu;
 
   /**
    * The values selected, if the component which was interacted with was a select menu
@@ -8127,7 +7963,7 @@ export class StageInstance extends Base {
   /**
    * The privacy level of the stage instance
    */
-  public privacyLevel: StageInstancePrivacyLevelKey;
+  public privacyLevel: StageInstancePrivacyLevel;
 
   /**
    * Whether or not stage discovery is disabled
@@ -8319,7 +8155,8 @@ export class Sticker extends Base {
 
   /**
    * A link to the sticker
-   * <info>If the sticker's format is LOTTIE, it returns the URL of the Lottie JSON file.</info>
+   * <info>If the sticker's format is {@link StickerFormatType.Lottie}, it returns
+   * the URL of the Lottie JSON file.</info>
    */
   public readonly url: string;
 
@@ -8792,7 +8629,7 @@ export class TeamMember extends Base {
   /**
    * The permissions this Team Member has with regard to the team
    */
-  public membershipState: TeamMemberMembershipStateKey;
+  public membershipState: TeamMemberMembershipState;
 
   /**
    * The user for this Team Member
@@ -8865,6 +8702,17 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * created</info>
    */
   public archiveTimestamp: number | null;
+
+  /**
+   * The time the thread was created at
+   */
+  public readonly createdAt: Date | null;
+
+  /**
+   * The timestamp when this thread was created. This isn't available for threads
+   * created before 2022-01-09
+   */
+  public createdTimestamp: number | null;
 
   /**
    * The amount of time (in minutes) after which the thread will automatically archive in case of no recent activity
@@ -8985,6 +8833,16 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * Whether the thread is unarchivable by the client user
    */
   public readonly unarchivable: boolean;
+
+  /**
+   * Whether this thread is a private thread
+   * @returns {boolean}
+   */
+  public isPrivate(): this is this & {
+    readonly createdTimestamp: number;
+    readonly createdAt: Date;
+    type: ChannelType.GuildPrivateThread;
+  };
 
   /**
    * Deletes this thread.
@@ -10056,16 +9914,46 @@ export class Webhook extends WebhookMixin() {
   public type: WebhookType;
 
   /**
+   * The application that created this webhook
+   */
+  public applicationId: Snowflake | null;
+
+  /**
+   * Whether this webhook is created by a user.
+   */
+  public isUserCreated(): this is this & {
+    type: WebhookType.Incoming;
+    applicationId: null;
+    owner: User | APIUser;
+  };
+
+  /**
+   * Whether this webhook is created by an application.
+   */
+  public isApplicationCreated(): this is this & {
+    type: WebhookType.Application;
+    applicationId: Snowflake;
+    owner: User | APIUser;
+  };
+
+  /**
    * Whether or not this webhook is an incoming webhook.
    */
-  public isIncoming(): this is this & { token: string };
+  public isIncoming(): this is this & {
+    type: WebhookType.Incoming;
+    token: string;
+  };
 
   /**
    * Whether or not this webhook is a channel follower webhook.
    */
   public isChannelFollower(): this is this & {
+    type: WebhookType.ChannelFollower;
     sourceGuild: Guild | APIPartialGuild;
     sourceChannel: NewsChannel | APIPartialChannel;
+    token: null;
+    applicationId: null;
+    owner: User | APIUser;
   };
 }
 
@@ -11935,7 +11823,7 @@ export class GuildScheduledEventManager extends CachedManager<
    * @param guildScheduledEvent The guild scheduled event to edit
    * @param options Options to edit the guild scheduled event
    */
-  public edit<S extends GuildScheduledEventStatusKey, T extends GuildScheduledEventSetStatusArg<S>>(
+  public edit<S extends GuildScheduledEventStatus, T extends GuildScheduledEventSetStatusArg<S>>(
     guildScheduledEvent: GuildScheduledEventResolvable,
     options: GuildScheduledEventEditOptions<S, T>,
   ): Promise<GuildScheduledEvent<T>>;
@@ -12934,7 +12822,7 @@ export interface PartialWebhookFields {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  send(options: string | MessagePayload | WebhookMessageOptions): Promise<Message | APIMessage>;
+  send(options: string | MessagePayload | Omit<WebhookMessageOptions, 'flags'>): Promise<Message | APIMessage>;
 }
 
 export interface WebhookFields extends PartialWebhookFields {
@@ -13183,7 +13071,7 @@ export interface UserApplicationCommandData extends BaseApplicationCommandData {
   /**
    * The type of the command
    */
-  type: 'User' | ApplicationCommandType.User;
+  type: ApplicationCommandType.User;
 }
 
 /**
@@ -13193,7 +13081,7 @@ export interface MessageApplicationCommandData extends BaseApplicationCommandDat
   /**
    * The type of the command
    */
-  type: 'Message' | ApplicationCommandType.Message;
+  type: ApplicationCommandType.Message;
 }
 
 /**
@@ -13208,7 +13096,7 @@ export interface ChatInputApplicationCommandData extends BaseApplicationCommandD
   /**
    * The type of the command
    */
-  type?: 'ChatInput' | ApplicationCommandType.ChatInput;
+  type?: ApplicationCommandType.ChatInput;
 
   /**
    * Options for the command
@@ -13233,13 +13121,13 @@ export interface ApplicationCommandChannelOptionData extends BaseApplicationComm
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: (keyof typeof ChannelType)[];
+  channelTypes?: ChannelType[];
 
   /**
    * When the option type is channel, the API data for allowed types of channels that can be selected
    * <warn>This is provided for compatibility with something like `@discordjs/builders`
    */
-  channel_types?: (keyof typeof ChannelType)[];
+  channel_types?: ChannelType[];
 }
 
 export interface ApplicationCommandChannelOption extends BaseApplicationCommandOptionsData {
@@ -13251,7 +13139,7 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: (keyof typeof ChannelType)[];
+  channelTypes?: ChannelType[];
 }
 
 export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
@@ -13259,9 +13147,6 @@ export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicati
    * The type of the option
    */
   type:
-    | 'String'
-    | 'Number'
-    | 'Integer'
     | ApplicationCommandOptionType.String
     | ApplicationCommandOptionType.Number
     | ApplicationCommandOptionType.Integer;
@@ -13313,22 +13198,22 @@ export interface ApplicationCommandNumericOptionData extends ApplicationCommandC
   type: CommandOptionNumericResolvableType;
 
   /**
-   * The minimum value for an `Integer` or `Number` option
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   minValue?: number;
 
   /**
-   * The minimum value for an `Integer` or `Number` option
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   min_value?: number;
 
   /**
-   * The maximum value for an `Integer` or `Number` option
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   maxValue?: number;
 
   /**
-   * The maximum value for an `Integer` or `Number` option
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   max_value?: number;
 }
@@ -13340,12 +13225,12 @@ export interface ApplicationCommandNumericOption extends ApplicationCommandChoic
   type: Exclude<CommandOptionNumericResolvableType, ApplicationCommandOptionType>;
 
   /**
-   * The minimum value for an `Integer` or `Number` option
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   minValue?: number;
 
   /**
-   * The maximum value for an `Integer` or `Number` option
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   maxValue?: number;
 }
@@ -13354,7 +13239,7 @@ export interface ApplicationCommandSubGroupData extends Omit<BaseApplicationComm
   /**
    * The type of the option
    */
-  type: 'SubcommandGroup' | ApplicationCommandOptionType.SubcommandGroup;
+  type: ApplicationCommandOptionType.SubcommandGroup;
 
   /**
    * Additional options if this option is a subcommand (group)
@@ -13366,7 +13251,7 @@ export interface ApplicationCommandSubGroup extends Omit<BaseApplicationCommandO
   /**
    * The type of the option
    */
-  type: 'SubcommandGroup';
+  type: ApplicationCommandOptionType.SubcommandGroup;
 
   /**
    * Additional options if this option is a subcommand (group)
@@ -13378,7 +13263,7 @@ export interface ApplicationCommandSubCommandData extends Omit<BaseApplicationCo
   /**
    * The choices of the option for the user to pick from
    */
-  type: 'Subcommand' | ApplicationCommandOptionType.Subcommand;
+  type: ApplicationCommandOptionType.Subcommand;
 
   /**
    * Additional options if this option is a subcommand (group)
@@ -13396,7 +13281,7 @@ export interface ApplicationCommandSubCommand extends Omit<BaseApplicationComman
   /**
    * The type of the option
    */
-  type: 'Subcommand';
+  type: ApplicationCommandOptionType.Subcommand;
 
   /**
    * Additional options if this option is a subcommand (group)
@@ -15269,7 +15154,8 @@ export interface ConstantsStatus {
 export interface CreateGuildScheduledEventInviteURLOptions extends CreateInviteOptions {
   /**
    * The channel to create the invite in.
-   * <warn>This is required when the `entityType` of `GuildScheduledEvent` is `EXTERNAL`, gets ignored otherwise</warn>
+   * <warn>This is required when the `entityType` of `GuildScheduledEvent` is
+   * {@link GuildScheduledEventEntityType.External}, gets ignored otherwise</warn>
    */
   channel?: GuildInvitableChannelResolvable;
 }
@@ -15296,7 +15182,7 @@ export interface StageInstanceCreateOptions {
   /**
    * The privacy level of the stage instance
    */
-  privacyLevel?: StageInstancePrivacyLevelKey | number;
+  privacyLevel?: StageInstancePrivacyLevel;
 }
 
 /**
@@ -15316,7 +15202,7 @@ export interface CrosspostedChannel {
   /**
    * The channel's type
    */
-  type: keyof typeof ChannelType;
+  type: ChannelType;
 
   /**
    * The channel's name
@@ -15331,12 +15217,6 @@ export interface CrosspostedChannel {
  * * An [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) string
  */
 export type DateResolvable = Date | number | string;
-
-/**
- * The value set for a guild's default message notifications, e.g. `AllMessages`.
- * @see {@link [Default Message Notification Level](https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level)}
- */
-export type GuildDefaultMessageNotificationsKey = keyof typeof GuildDefaultMessageNotifications;
 
 /**
  * Options used to edit a guild template.
@@ -15507,12 +15387,6 @@ export interface EscapeMarkdownOptions {
    */
   codeBlockContent?: boolean;
 }
-
-/**
- * The value set for the explicit content filter levels for a guild
- * @see {@link [Explicit Content Filter Level](https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level)}
- */
-export type GuildExplicitContentFilterKey = keyof typeof GuildExplicitContentFilter;
 
 /**
  * An extendable structure:
@@ -16145,12 +16019,12 @@ export interface GuildCreateOptions {
   /**
    * The default message notifications for the guild
    */
-  defaultMessageNotifications?: GuildDefaultMessageNotificationsKey | number;
+  defaultMessageNotifications?: GuildDefaultMessageNotifications;
 
   /**
    * The explicit content filter level for the guild
    */
-  explicitContentFilter?: GuildExplicitContentFilterKey | number;
+  explicitContentFilter?: GuildExplicitContentFilter;
 
   /**
    * The icon for the guild
@@ -16177,7 +16051,7 @@ export interface GuildCreateOptions {
   /**
    * The verification level for the guild
    */
-  verificationLevel?: GuildVerificationLevelKey | number;
+  verificationLevel?: GuildVerificationLevel;
 }
 
 /**
@@ -16207,17 +16081,17 @@ export interface GuildEditData {
   /**
    * The verification level of the guild
    */
-  verificationLevel?: GuildVerificationLevelKey | number;
+  verificationLevel?: GuildVerificationLevel;
 
   /**
    * The level of the explicit content filter
    */
-  explicitContentFilter?: GuildExplicitContentFilterKey | number;
+  explicitContentFilter?: GuildExplicitContentFilter;
 
   /**
    * The default message notification level of the guild
    */
-  defaultMessageNotifications?: GuildDefaultMessageNotificationsKey | number;
+  defaultMessageNotifications?: GuildDefaultMessageNotifications;
 
   /**
    * The AFK channel of the guild
@@ -16541,7 +16415,7 @@ export interface GuildScheduledEventCreateOptions {
 
   /**
    * The time to end the event at
-   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
+   * <warn>This is required if `entityType` is {@link GuildScheduledEventEntityType.External}</warn>
    */
   scheduledEndTime?: DateResolvable;
 
@@ -16562,14 +16436,14 @@ export interface GuildScheduledEventCreateOptions {
 
   /**
    * The channel of the guild scheduled event
-   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.StageInstance` or
-   * `GuildScheduledEventEntityType.Voice`</warn>
+   * <warn>This is required if `entityType` is {@link GuildScheduledEventEntityType.StageInstance} or
+   * {@link GuildScheduledEventEntityType.Voice}</warn>
    */
   channel?: GuildVoiceChannelResolvable;
 
   /**
    * The entity metadata of the guild scheduled event
-   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
+   * <warn>This is required if `entityType` is {@link GuildScheduledEventEntityType.External}</warn>
    */
   entityMetadata?: GuildScheduledEventEntityMetadataOptions;
 
@@ -16583,7 +16457,7 @@ export interface GuildScheduledEventCreateOptions {
  * Options used to edit a guild scheduled event.
  */
 export interface GuildScheduledEventEditOptions<
-  S extends GuildScheduledEventStatusKey,
+  S extends GuildScheduledEventStatus,
   T extends GuildScheduledEventSetStatusArg<S>,
 > extends Omit<Partial<GuildScheduledEventCreateOptions>, 'channel'> {
   /**
@@ -16614,7 +16488,7 @@ export interface GuildScheduledEventEntityMetadata {
 export interface GuildScheduledEventEntityMetadataOptions {
   /**
    * The location of the guild scheduled event
-   * <warn>This is required if `entityType` is `GuildScheduledEventEntityType.External`</warn>
+   * <warn>This is required if `entityType` is {@link GuildScheduledEventEntityType.External}</warn>
    */
   location?: string;
 }
@@ -16637,13 +16511,12 @@ export type GuildScheduledEventManagerFetchSubscribersResult<T extends FetchGuil
  */
 export type GuildScheduledEventResolvable = Snowflake | GuildScheduledEvent;
 
-export type GuildScheduledEventSetStatusArg<T extends GuildScheduledEventStatusKey> = T extends 'Scheduled'
-  ? 'Active' | 'Canceled'
-  : T extends 'Active'
-  ? 'Completed'
-  : never;
-
-export type GuildScheduledEventStatusKey = keyof typeof GuildScheduledEventStatus;
+export type GuildScheduledEventSetStatusArg<T extends GuildScheduledEventStatus> =
+  T extends GuildScheduledEventStatus.Scheduled
+    ? GuildScheduledEventStatus.Active | GuildScheduledEventStatus.Canceled
+    : T extends GuildScheduledEventStatus.Active
+    ? GuildScheduledEventStatus.Completed
+    : never;
 
 /**
  * Represents a subscriber of a {@link GuildScheduledEvent}
@@ -16875,7 +16748,7 @@ export type InteractionDeferUpdateOptions = Omit<InteractionDeferReplyOptions, '
 /**
  * Options for a reply to an {@link Interaction}.
  */
-export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'username' | 'avatarURL'> {
+export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'username' | 'avatarURL' | 'flags'> {
   /**
    * Whether the reply should be ephemeral
    */
@@ -16885,6 +16758,12 @@ export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'us
    * Whether to fetch the reply
    */
   fetchReply?: boolean;
+
+  /**
+   * Which flags to set for the message.
+   * Only `SUPPRESS_EMBEDS` and `EPHEMERAL` can be set.
+   */
+  flags?: BitFieldResolvable<'SUPPRESS_EMBEDS' | 'EPHEMERAL', number>;
 }
 
 /**
@@ -16986,14 +16865,14 @@ export interface CreateInviteOptions {
   reason?: string;
 
   /**
-   * The embedded application to open for this invite,
-   * required if `targetType` is `EMBEDDED_APPLICATION`, the application must have the `EMBEDDED` flag
+   * The embedded application to open for this invite, required if `targetType` is {@link InviteTargetType.Stream},
+   * the application must have the {@link InviteTargetType.EmbeddedApplication} flag
    */
   targetApplication?: ApplicationResolvable;
 
   /**
    * The user whose stream to display for this invite,
-   * required if `targetType` is `STREAM`, the user must be streaming in the channel
+   * required if `targetType` is {@link InviteTargetType.Stream}, the user must be streaming in the channel
    */
   targetUser?: UserResolvable;
 
@@ -17091,12 +16970,6 @@ export interface MakeErrorOptions {
 }
 
 export type MemberMention = UserMention | `<@!${Snowflake}>`;
-
-/**
- * The value set for a team member's membership state
- * @see {@link [Membership State Enum](https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum)}
- */
-export type TeamMemberMembershipStateKey = keyof typeof TeamMemberMembershipState;
 
 /**
  * Options for components that can be placed in an action row
@@ -17226,7 +17099,7 @@ export interface MessageEditOptions {
   /**
    * Embeds to be added/edited
    */
-  embeds?: (MessageEmbed | MessageEmbedOptions | APIEmbed)[] | null;
+  embeds?: (Embed | APIEmbed)[] | null;
 
   /**
    * Files to add to the message
@@ -17247,201 +17120,6 @@ export interface MessageEditOptions {
    * Action rows containing interactive components for the message (buttons, select menus)
    */
   components?: (ActionRow<ActionRowComponent> | (Required<BaseMessageComponentOptions> & ActionRowOptions))[];
-}
-
-/**
- * Represents the author field of a MessageEmbed
- */
-export interface MessageEmbedAuthor {
-  /**
-   * The name of this author
-   */
-  name: string;
-
-  /**
-   * URL of this author
-   */
-  url?: string;
-
-  /**
-   * URL of the icon for this author
-   */
-  iconURL?: string;
-
-  /**
-   * Proxied URL of the icon for this author
-   */
-  proxyIconURL?: string;
-}
-
-/**
- * Represents the footer field of a MessageEmbed
- */
-export interface MessageEmbedFooter {
-  /**
-   * The text of this footer
-   */
-  text: string;
-
-  /**
-   * URL of the icon for this footer
-   */
-  iconURL?: string;
-
-  /**
-   * Proxied URL of the icon for this footer
-   */
-  proxyIconURL?: string;
-}
-
-/**
- * Represents the image of a MessageEmbed
- */
-export interface MessageEmbedImage {
-  /**
-   * URL for this image
-   */
-  url: string;
-
-  /**
-   * ProxyURL for this image
-   */
-  proxyURL?: string;
-
-  /**
-   * Height of this image
-   */
-  height?: number;
-
-  /**
-   * Width of this image
-   */
-  width?: number;
-}
-
-/**
- * Represents the possible options for a MessageEmbed
- */
-export interface MessageEmbedOptions {
-  /**
-   * The title of this embed
-   */
-  title?: string;
-
-  /**
-   * The description of this embed
-   */
-  description?: string;
-
-  /**
-   * The URL of this embed
-   */
-  url?: string;
-
-  /**
-   * The timestamp of this embed
-   */
-  timestamp?: Date | number;
-
-  /**
-   * The color of this embed
-   */
-  color?: ColorResolvable;
-
-  /**
-   * The fields of this embed
-   */
-  fields?: EmbedFieldData[];
-
-  /**
-   * The author of this embed
-   */
-  author?: Partial<MessageEmbedAuthor> & { icon_url?: string; proxy_icon_url?: string };
-
-  /**
-   * The thumbnail of this embed
-   */
-  thumbnail?: Partial<MessageEmbedThumbnail> & { proxy_url?: string };
-
-  /**
-   * The image of this embed
-   */
-  image?: Partial<MessageEmbedImage> & { proxy_url?: string };
-
-  /**
-   * The video of this embed
-   */
-  video?: Partial<MessageEmbedVideo> & { proxy_url?: string };
-
-  /**
-   * The footer of this embed
-   */
-  footer?: Partial<MessageEmbedFooter> & { icon_url?: string; proxy_icon_url?: string };
-}
-
-/**
- * Represents the provider of a MessageEmbed
- */
-export interface MessageEmbedProvider {
-  /**
-   * The name of this provider
-   */
-  name: string;
-
-  /**
-   * URL of this provider
-   */
-  url: string;
-}
-
-/**
- * Represents the thumbnail of a MessageEmbed
- */
-export interface MessageEmbedThumbnail {
-  /**
-   * URL for this thumbnail
-   */
-  url: string;
-
-  /**
-   * ProxyURL for this thumbnail
-   */
-  proxyURL?: string;
-
-  /**
-   * Height of this thumbnail
-   */
-  height?: number;
-
-  /**
-   * Width of this thumbnail
-   */
-  width?: number;
-}
-
-/**
- * Represents the video of a MessageEmbed
- */
-export interface MessageEmbedVideo {
-  /**
-   * URL of this video
-   */
-  url?: string;
-
-  /**
-   * ProxyURL for this video
-   */
-  proxyURL?: string;
-
-  /**
-   * Height of this video
-   */
-  height?: number;
-
-  /**
-   * Width of this video
-   */
-  width?: number;
 }
 
 /**
@@ -17543,6 +17221,8 @@ export interface MessageMentionOptions {
  */
 export type MessageMentionTypes = 'roles' | 'users' | 'everyone';
 
+export { Embed };
+
 /**
  * Options provided when sending a message.
  */
@@ -17569,7 +17249,7 @@ export interface MessageOptions {
    * The embeds for the message
    * (see [here](https://discord.com/developers/docs/resources/channel#embed-object) for more details)
    */
-  embeds?: (MessageEmbed | MessageEmbedOptions | APIEmbed)[];
+  embeds?: (Embed | APIEmbed)[];
 
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
@@ -17602,6 +17282,11 @@ export interface MessageOptions {
    * Attachments to send in the message
    */
   attachments?: MessageAttachment[];
+
+  /**
+   * Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be set.
+   */
+  flags?: BitFieldResolvable<'SUPPRESS_EMBEDS', number>;
 }
 
 /**
@@ -17619,10 +17304,10 @@ export type MessageReactionResolvable =
  * Reference data sent in a message that contains ids identifying the referenced message.
  * This can be present in the following types of message:
  * * Crossposted messages (IS_CROSSPOST {@link MessageFlags.FLAGS message flag})
- * * CHANNEL_FOLLOW_ADD
- * * CHANNEL_PINNED_MESSAGE
- * * REPLY
- * * THREAD_STARTER_MESSAGE
+ * * {@link MessageType.ChannelFollowAdd}
+ * * {@link MessageType.ChannelPinnedMessage}
+ * * {@link MessageType.Reply}
+ * * {@link MessageType.ThreadStarterMessage}
  * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-types)}
  */
 export interface MessageReference {
@@ -17794,12 +17479,6 @@ export interface MultipleShardSpawnOptions {
 }
 
 /**
- * NSFW level of a Guild
- * @see {@link [Guild NSFW Level](https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level)}
- */
-export type GuildNSFWLevelKey = keyof typeof GuildNSFWLevel;
-
-/**
  * Data that can be used for a permission overwrite
  */
 export interface OverwriteData {
@@ -17907,12 +17586,6 @@ export interface PartialRecipient {
   username: string;
 }
 
-/**
- * The premium tier (Server Boost level) of a guild
- * @see {@link [Premium Tier](https://discord.com/developers/docs/resources/guild#guild-object-premium-tier)}
- */
-export type PremiumTier = keyof typeof GuildPremiumTier;
-
 export interface PresenceData {
   status?: PresenceStatusData;
   afk?: boolean;
@@ -17993,8 +17666,6 @@ export interface PartialUser extends Partialize<User, 'username' | 'tag' | 'disc
 export type PresenceStatusData = ClientPresenceStatus | 'invisible';
 
 export type PresenceStatus = PresenceStatusData | 'offline';
-
-export type StageInstancePrivacyLevelKey = keyof typeof StageInstancePrivacyLevel;
 
 export interface RateLimitData {
   /**
@@ -18353,21 +18024,9 @@ export interface StartThreadOptions {
 export type Status = number;
 
 /**
- * The value set for a sticker's format type
- * @see {@link [Sticker Format Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types)}
- */
-export type StickerFormatKey = keyof typeof StickerFormatType;
-
-/**
  * Data that resolves to give a Sticker object.
  */
 export type StickerResolvable = Sticker | Snowflake;
-
-/**
- * The value set for a sticker's type
- * @see {@link [Sticker Types](https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types)}
- */
-export type StickerKey = keyof typeof StickerType;
 
 export type SystemChannelFlagsString =
   | 'SUPPRESS_JOIN_NOTIFICATIONS'
@@ -18405,7 +18064,7 @@ export interface StageInstanceEditOptions {
   /**
    * The new privacy level of the stage instance
    */
-  privacyLevel?: StageInstancePrivacyLevelKey | number;
+  privacyLevel?: StageInstancePrivacyLevel;
 }
 
 export type SweeperKey = keyof SweeperDefinitions;
@@ -18553,7 +18212,8 @@ export type ThreadChannelType =
   | ChannelType.GuildPrivateThread;
 
 /**
- * Options for creating a thread. <warn>Only one of `startMessage` or `type` can be defined.</warn>
+ * Options for creating a thread.
+ * <warn>Only one of `startMessage` or `type` can be defined.</warn>
  */
 export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
   /**
@@ -18563,14 +18223,15 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
   startMessage?: MessageResolvable;
 
   /**
-   * The type of thread to create. Defaults to `GUILD_PUBLIC_THREAD` if created in a {@link TextChannel} <warn>When creating
-   * threads in a {@link NewsChannel} this is ignored and is always `GUILD_NEWS_THREAD`</warn>
+   * The type of thread to create. Defaults to {@link ChannelType.GuildPublicThread} if created in a {@link TextChannel}
+   * <warn>When creating threads in a {@link NewsChannel} this is ignored and is always
+   * {@link ChannelType.GuildNewsThread}</warn>
    */
   type?: AllowedThreadType;
 
   /**
-   * Whether non-moderators can add other non-moderators to the thread <info>Can only be set when type will be
-   * `GUILD_PRIVATE_THREAD`</info>
+   * Whether non-moderators can add other non-moderators to the thread
+   * <info>Can only be set when type will be {@link ChannelType.GuildPrivateThread}</info>
    */
   invitable?: AllowedThreadType extends ChannelType.GuildPrivateThread ? boolean : never;
 
@@ -18610,7 +18271,8 @@ export interface ThreadEditData {
   locked?: boolean;
 
   /**
-   * Whether non-moderators can add other non-moderators to a thread <info>Can only be edited on `GUILD_PRIVATE_THREAD`</info>
+   * Whether non-moderators can add other non-moderators to a thread
+   * <info>Can only be edited on {@link ChannelType.GuildPrivateThread}</info>
    */
   invitable?: boolean;
 }
@@ -18659,12 +18321,6 @@ export interface Vanity {
    */
   uses: number;
 }
-
-/**
- * The value set for the verification levels for a guild
- * @see {@link [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)}
- */
-export type GuildVerificationLevelKey = keyof typeof GuildVerificationLevel;
 
 /**
  * The types of channels that are voice-based.

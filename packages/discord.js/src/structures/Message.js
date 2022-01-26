@@ -1,6 +1,6 @@
 'use strict';
 
-const { createComponent } = require('@discordjs/builders');
+const { createComponent, Embed } = require('@discordjs/builders');
 const { Collection } = require('@discordjs/collection');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { InteractionType, ChannelType, MessageType } = require('discord-api-types/v9');
@@ -8,7 +8,6 @@ const Base = require('./Base');
 const ClientApplication = require('./ClientApplication');
 const InteractionCollector = require('./InteractionCollector');
 const MessageAttachment = require('./MessageAttachment');
-const Embed = require('./MessageEmbed');
 const Mentions = require('./MessageMentions');
 const MessagePayload = require('./MessagePayload');
 const ReactionCollector = require('./ReactionCollector');
@@ -132,9 +131,9 @@ class Message extends Base {
     if ('embeds' in data) {
       /**
        * A list of embeds in the message - e.g. YouTube Player
-       * @type {MessageEmbed[]}
+       * @type {Embed[]}
        */
-      this.embeds = data.embeds.map(e => new Embed(e, true));
+      this.embeds = data.embeds.map(e => new Embed(e));
     } else {
       this.embeds = this.embeds?.slice() ?? [];
     }
@@ -293,10 +292,10 @@ class Message extends Base {
      * Reference data sent in a message that contains ids identifying the referenced message.
      * This can be present in the following types of message:
      * * Crossposted messages (IS_CROSSPOST {@link MessageFlags.FLAGS message flag})
-     * * CHANNEL_FOLLOW_ADD
-     * * CHANNEL_PINNED_MESSAGE
-     * * REPLY
-     * * THREAD_STARTER_MESSAGE
+     * * {@link MessageType.ChannelFollowAdd}
+     * * {@link MessageType.ChannelPinnedMessage}
+     * * {@link MessageType.Reply}
+     * * {@link MessageType.ThreadStarterMessage}
      * @see {@link https://discord.com/developers/docs/resources/channel#message-types}
      * @typedef {Object} MessageReference
      * @property {Snowflake} channelId The channel's id the message was referenced
@@ -487,7 +486,7 @@ class Message extends Base {
 
   /**
    * @typedef {CollectorOptions} MessageComponentCollectorOptions
-   * @property {MessageComponentType} [componentType] The type of component to listen for
+   * @property {ComponentType} [componentType] The type of component to listen for
    * @property {number} [max] The maximum total amount of interactions to collect
    * @property {number} [maxComponents] The maximum number of components to collect
    * @property {number} [maxUsers] The maximum number of users to interact
@@ -517,7 +516,7 @@ class Message extends Base {
    * @typedef {Object} AwaitMessageComponentOptions
    * @property {CollectorFilter} [filter] The filter applied to this collector
    * @property {number} [time] Time to wait for an interaction before rejecting
-   * @property {MessageComponentType} [componentType] The type of component interaction to collect
+   * @property {ComponentType} [componentType] The type of component interaction to collect
    */
 
   /**
@@ -636,7 +635,7 @@ class Message extends Base {
    * Options that can be passed into {@link Message#edit}.
    * @typedef {Object} MessageEditOptions
    * @property {?string} [content] Content to be edited
-   * @property {MessageEmbed[]|APIEmbed[]} [embeds] Embeds to be added/edited
+   * @property {Embed[]|APIEmbed[]} [embeds] Embeds to be added/edited
    * @property {MessageMentionOptions} [allowedMentions] Which mentions should be parsed from the message content
    * @property {MessageFlags} [flags] Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be edited.
    * @property {MessageAttachment[]} [attachments] An array of attachments to keep,

@@ -28,6 +28,8 @@ class InteractionResponses {
    * @typedef {BaseMessageOptions} InteractionReplyOptions
    * @property {boolean} [ephemeral] Whether the reply should be ephemeral
    * @property {boolean} [fetchReply] Whether to fetch the reply
+   * @property {MessageFlags} [flags] Which flags to set for the message.
+   * Only `SUPPRESS_EMBEDS` and `EPHEMERAL` can be set.
    */
 
   /**
@@ -80,7 +82,7 @@ class InteractionResponses {
    *   .catch(console.error);
    * @example
    * // Create an ephemeral reply with an embed
-   * const embed = new MessageEmbed().setDescription('Pong!');
+   * const embed = new Embed().setDescription('Pong!');
    *
    * interaction.reply({ embeds: [embed], ephemeral: true })
    *   .then(() => console.log('Reply sent.'))
