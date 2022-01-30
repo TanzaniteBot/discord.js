@@ -795,6 +795,11 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
   public commandName: string;
 
   /**
+   * The invoked application command's type
+   */
+  public commandType: ApplicationCommandType;
+
+  /**
    * Whether the reply to this interaction has been deferred
    */
   public deferred: boolean;
@@ -1513,6 +1518,11 @@ export abstract class Channel extends Base {
    * Indicates whether this channel is {@link TextBasedChannels text-based}.
    */
   public isTextBased(): this is TextBasedChannel;
+
+  /**
+   * Indicates whether this channel is DM-based (either a {@link DMChannel} or a {@link GroupDMChannel}).
+   */
+  public isDMBased(): this is PartialGroupDMChannel | DMChannel;
 
   /**
    * Indicates whether this channel is {@link BaseGuildVoiceChannel voice-based}.
@@ -2332,6 +2342,11 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
   public commandName: string;
 
   /**
+   * The invoked application command's type
+   */
+  public commandType: ApplicationCommandType.ChatInput;
+
+  /**
    * Whether this interaction has already received a response
    */
   public responded: boolean;
@@ -2584,12 +2599,6 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
    * The id of the target of the interaction
    */
   public targetId: Snowflake;
-
-  /**
-   * The type of the target of the interaction; either {@link ApplicationCommandType.User}
-   * or {@link ApplicationCommandType.Message}
-   */
-  public targetType: Exclude<ApplicationCommandType, ApplicationCommandType.ChatInput>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -3730,14 +3739,14 @@ export abstract class GuildChannel extends Channel {
   /**
    * Gets the overall set of permissions for a member in this channel, taking into account channel overwrites.
    * @param member The member to obtain the overall permissions for
-   * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
+   * @param checkAdmin Whether having `PermissionFlagsBits.Administrator` will return all permissions
    */
   private memberPermissions(member: GuildMember, checkAdmin: boolean): Readonly<PermissionsBitField>;
 
   /**
    * Gets the overall set of permissions for a role in this channel, taking into account channel overwrites.
    * @param role The role to obtain the overall permissions for
-   * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
+   * @param checkAdmin Whether having `PermissionFlagsBits.Administrator` will return all permissions
    */
   private rolePermissions(role: Role, checkAdmin: boolean): Readonly<PermissionsBitField>;
 
@@ -3869,7 +3878,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * Gets the overall set of permissions for a member or role in this channel, taking into account channel overwrites.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
@@ -6651,6 +6660,11 @@ export class PartialGroupDMChannel extends Channel {
   public constructor(client: Client, data: RawPartialGroupDMChannelData);
 
   /**
+   * The type of the channel
+   */
+  public type: ChannelType.GroupDM;
+
+  /**
    * The name of this Group DM Channel
    */
   public name: string | null;
@@ -6710,7 +6724,7 @@ export class PermissionOverwrites extends Base {
    * @example
    * // Update permission overwrites
    * permissionOverwrites.edit({
-   *   SEND_MESSAGES: false
+   *   SendMessages: false
    * })
    *   .then(channel => console.log(channel.permissionOverwrites.get(message.author.id)))
    *   .catch(console.error);
@@ -7202,7 +7216,7 @@ export class Role extends Base {
    * Returns `channel.permissionsFor(role)`. Returns permissions for a role in a guild channel,
    * taking into account permission overwrites.
    * @param channel The guild channel to use as context
-   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
    */
   public permissionsIn(
     channel: NonThreadGuildBasedChannel | Snowflake,
@@ -8673,7 +8687,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   public readonly guildMembers: Collection<Snowflake, GuildMember>;
 
   /**
-   * Whether members without `MANAGE_THREADS` can invite other members without `MANAGE_THREADS`
+   * Whether members without `PermissionFlagsBits.ManageThreads` can invite other members without `PermissionFlagsBits.ManageThreads`
    * <info>Always `null` in public threads</info>
    */
   public invitable: boolean | null;
@@ -8814,7 +8828,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * Gets the overall set of permissions for a member or role in this thread's parent channel, taking overwrites into
    * account.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
+   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
@@ -8868,16 +8882,16 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   ): Promise<ThreadChannel>;
 
   /**
-   * Sets whether members without the `MANAGE_THREADS` permission can invite other members without the
-   * `MANAGE_THREADS` permission to this thread.
+   * Sets whether members without the `PermissionFlagsBits.ManageThreads` permission can invite other members without the
+   * `PermissionFlagsBits.ManageThreads` permission to this thread.
    * @param {} [invitable=true] Whether non-moderators can invite non-moderators to this thread
    * @param reason Reason for changing invite
    */
   public setInvitable(invitable?: boolean, reason?: string): Promise<ThreadChannel>;
 
   /**
-   * Sets whether the thread can be **unarchived** by anyone with `SEND_MESSAGES` permission.
-   * When a thread is locked only members with `MANAGE_THREADS` can unarchive it.
+   * Sets whether the thread can be **unarchived** by anyone with `PermissionFlagsBits.SendMessages` permission.
+   * When a thread is locked only members with `PermissionFlagsBits.ManageThreads` can unarchive it.
    * @param {} [locked=true] Whether the thread is locked
    * @param reason Reason for locking or unlocking the thread
    * @example
@@ -11202,7 +11216,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   permissionOverwrites: [
    *      {
    *        id: message.author.id,
-   *        deny: [Permissions.FLAGS.VIEW_CHANNEL],
+   *        deny: [PermissionFlagsBits.ViewChannel],
    *     },
    *   ],
    * })
@@ -11408,7 +11422,7 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
   public guild: Guild;
 
   /**
-   * Adds a user to the guild using OAuth2. Requires the `CREATE_INSTANT_INVITE` permission.
+   * Adds a user to the guild using OAuth2. Requires the `PermissionFlagsBits.CreateInstantInvite` permission.
    * @param user The user to add to the guild
    * @param options Options for adding the user to the guild
    */
@@ -12014,7 +12028,7 @@ export class PermissionOverwriteManager extends CachedManager<
    * message.channel.permissionOverwrites.set([
    *   {
    *      id: message.author.id,
-   *      deny: [Permissions.FLAGS.VIEW_CHANNEL],
+   *      deny: [PermissionsFlagsBit.ViewChannel],
    *   },
    * ], 'Needed to change permissions');
    */
@@ -12046,7 +12060,7 @@ export class PermissionOverwriteManager extends CachedManager<
    * @example
    * // Create or Replace permission overwrites for a message author
    * message.channel.permissionOverwrites.create(message.author, {
-   *   SEND_MESSAGES: false
+   *   SendMessages: false
    * })
    *   .then(channel => console.log(channel.permissionOverwrites.cache.get(message.author.id)))
    *   .catch(console.error);
@@ -12065,7 +12079,7 @@ export class PermissionOverwriteManager extends CachedManager<
    * @example
    * // Edit or Create permission overwrites for a message author
    * message.channel.permissionOverwrites.edit(message.author, {
-   *   SEND_MESSAGES: false
+   *   SendMessages: false
    * })
    *   .then(channel => console.log(channel.permissionOverwrites.cache.get(message.author.id)))
    *   .catch(console.error);
@@ -12360,14 +12374,14 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
   public fetch(options?: FetchThreadsOptions, cacheOptions?: { cache?: boolean }): Promise<FetchedThreads>;
 
   /**
-   * Obtains a set of archived threads from Discord, requires `READ_MESSAGE_HISTORY` in the parent channel.
+   * Obtains a set of archived threads from Discord, requires `PermissionFlagsBits.ReadMessageHistory` in the parent channel.
    * @param options The options to fetch archived threads
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreads>;
 
   /**
-   * Obtains the accessible active threads from Discord, requires `READ_MESSAGE_HISTORY` in the parent channel.
+   * Obtains the accessible active threads from Discord, requires `PermissionFlagsBits.ReadMessageHistory` in the parent channel.
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
@@ -12392,7 +12406,7 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
   public add(member: UserResolvable | '@me', reason?: string): Promise<Snowflake>;
 
   /**
-   * Fetches member(s) for the thread from Discord, requires access to the `GUILD_MEMBERS` gateway intent.
+   * Fetches member(s) for the thread from Discord, requires access to the `GatewayIntentBits.GuildMembers` gateway intent.
    * @param options Additional options for this fetch, when a `boolean` is provided
    * all members are fetched with `options.cache` set to the boolean value
    */
@@ -12818,22 +12832,22 @@ export interface AddGuildMemberOptions {
   accessToken: string;
 
   /**
-   * The nickname to give to the member (requires `MANAGE_NICKNAMES`)
+   * The nickname to give to the member (requires `PermissionFlagsBits.ManageNicknames`)
    */
   nick?: string;
 
   /**
-   * The roles to add to the member (requires `MANAGE_ROLES`)
+   * The roles to add to the member (requires `PermissionFlagsBits.ManageRoles`)
    */
   roles?: Collection<Snowflake, Role> | RoleResolvable[];
 
   /**
-   * Whether the member should be muted (requires `MUTE_MEMBERS`)
+   * Whether the member should be muted (requires `PermissionFlagsBits.MuteMembers`)
    */
   mute?: boolean;
 
   /**
-   * Whether the member should be deafened (requires `DEAFEN_MEMBERS`)
+   * Whether the member should be deafened (requires `PermissionFlagsBits.DeafenMembers`)
    */
   deaf?: boolean;
 
@@ -13857,16 +13871,16 @@ export interface ClientEvents {
 
   /**
    * Emitted when an invite is created.
-   * <info> This event only triggers if the client has `MANAGE_GUILD` permissions for the guild,
-   * or `MANAGE_CHANNELS` permissions for the channel.</info>
+   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
+   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    * @param invite The invite that was created
    */
   inviteCreate: [invite: Invite];
 
   /**
    * Emitted when an invite is deleted.
-   * <info> This event only triggers if the client has `MANAGE_GUILD` permissions for the guild,
-   * or `MANAGE_CHANNELS` permissions for the channel.</info>
+   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
+   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    * @param invite The invite that was deleted
    */
   inviteDelete: [invite: Invite];
@@ -13934,19 +13948,6 @@ export interface ClientEvents {
   presenceUpdate: [oldPresence: Presence | null, newPresence: Presence];
 
   /**
-   * Emitted when the client hits a rate limit while making a request
-   * @param rateLimitData Object containing the rate limit info
-   */
-  rateLimit: [rateLimitData: RateLimitData];
-
-  /**
-   * Emitted periodically when the process sends invalid requests to let users avoid the
-   * 10k invalid requests in 10 minutes threshold that causes a ban
-   * @param invalidRequestWarningData Object containing the invalid request info
-   */
-  invalidRequestWarning: [invalidRequestWarningData: InvalidRequestWarningData];
-
-  /**
    * Emitted when the client becomes ready to start working.
    * @param client The client
    */
@@ -14004,7 +14005,7 @@ export interface ClientEvents {
   threadMemberUpdate: [oldMember: ThreadMember, newMember: ThreadMember];
 
   /**
-   * Emitted whenever members are added or removed from a thread. Requires `GUILD_MEMBERS` privileged intent
+   * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
    * @param oldMembers The members before the update
    * @param newMembers The members after the update
    */
@@ -14226,7 +14227,7 @@ export interface ClientOptions {
   intents: BitFieldResolvable<GatewayIntentsString, number>;
 
   /**
-   * Time in milliseconds that Clients with the GUILDS intent should wait for
+   * Time in milliseconds that Clients with the `GatewayIntentBits.Guilds` intent should wait for
    * missing guilds to be received before starting the bot. If not specified, the default is 15 seconds.
    * @default 15_000
    */
@@ -14521,15 +14522,15 @@ export interface ConstantsEvents {
 
   /**
    * Emitted when an invite is created.
-   * <info> This event only triggers if the client has `MANAGE_GUILD` permissions for the guild,
-   * or `MANAGE_CHANNELS` permissions for the channel.</info>
+   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
+   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    */
   INVITE_CREATE: 'inviteCreate';
 
   /**
    * Emitted when an invite is deleted.
-   * <info> This event only triggers if the client has `MANAGE_GUILD` permissions for the guild,
-   * or `MANAGE_CHANNELS` permissions for the channel.</info>
+   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
+   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    */
   INVITE_DELETE: 'inviteDelete';
 
@@ -14695,7 +14696,7 @@ export interface ConstantsEvents {
   THREAD_MEMBER_UPDATE: 'threadMemberUpdate';
 
   /**
-   * Emitted whenever members are added or removed from a thread. Requires `GUILD_MEMBERS` privileged intent
+   * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
    */
   THREAD_MEMBERS_UPDATE: 'threadMembersUpdate';
 
@@ -15310,7 +15311,7 @@ export interface FetchArchivedThreadOptions {
   type?: 'public' | 'private';
 
   /**
-   * Whether to fetch **all** archived threads when type is `private`. Requires `MANAGE_THREADS` if true
+   * Whether to fetch **all** archived threads when type is `private`. Requires `PermissionFlagsBits.ManageThreads` if true
    * @default false
    */
   fetchAll?: boolean;
