@@ -26,6 +26,7 @@ import {
   userMention,
 } from '@discordjs/builders';
 import { Collection } from '@discordjs/collection';
+import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
 import {
   APIActionRowComponent,
   APIApplicationCommand,
@@ -77,11 +78,18 @@ import {
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
   GuildScheduledEventStatus,
+  IntegrationExpireBehavior,
+  ApplicationFlags,
+  PermissionFlagsBits,
+  ThreadMemberFlags,
+  UserFlags,
+  MessageFlags,
+  GuildSystemChannelFlags,
+  GatewayIntentBits,
+  ActivityFlags,
 } from 'discord-api-types/v9';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { AgentOptions } from 'node:https';
-import { Response } from 'node-fetch';
 import { Stream } from 'node:stream';
 import { MessagePort, Worker } from 'node:worker_threads';
 import * as WebSocket from 'ws';
@@ -190,7 +198,7 @@ export class Activity {
   /**
    * Flags that describe the activity
    */
-  public flags: Readonly<ActivityFlags>;
+  public flags: Readonly<ActivityFlagsBitField>;
 
   /**
    * The activity's id
@@ -255,15 +263,16 @@ export class Activity {
   public equals(activity: Activity): boolean;
 }
 
+export type ActivityFlagsString = keyof typeof ActivityFlags;
+
 /**
  * Data structure that makes it easy to interact with an {@link Activity.flags} bitfield.
  */
-export class ActivityFlags extends BitField<ActivityFlagsString> {
+export class ActivityFlagsBitField extends BitField<ActivityFlagsString> {
   /**
    * Numeric activity flags.
-   * @see {@link [Activity Flags](https://discord.com/developers/docs/topics/gateway#activity-object-activity-flags)}
    */
-  public static FLAGS: Record<ActivityFlagsString, number>;
+  public static flags: ActivityFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -581,12 +590,11 @@ export type ApplicationResolvable = Application | Activity | Snowflake;
 /**
  * Data structure that makes it easy to interact with a {@link ClientApplication.flags} bitfield.
  */
-export class ApplicationFlags extends BitField<ApplicationFlagsString> {
+export class ApplicationFlagsBitField extends BitField<ApplicationFlagsString> {
   /**
    * Numeric application flags.
-   * @see {@link [Application Flags](https://discord.com/developers/docs/resources/application#application-object-application-flags)}
    */
-  public static FLAGS: Record<ApplicationFlagsString, number>;
+  public static flags: ApplicationFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -627,16 +635,6 @@ export class BaseClient extends EventEmitter {
   public constructor(options?: ClientOptions | WebhookClientOptions);
 
   /**
-   * API shortcut
-   */
-  private readonly api: unknown;
-
-  /**
-   * The REST manager of the client
-   */
-  private rest: unknown;
-
-  /**
    * Decrements max listeners by one, if they are not zero.
    */
   private decrementMaxListeners(): void;
@@ -646,43 +644,15 @@ export class BaseClient extends EventEmitter {
    */
   private incrementMaxListeners(): void;
 
-  public on<K extends keyof BaseClientEvents>(
-    event: K,
-    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
-  ): this;
-  public on<S extends string | symbol>(
-    event: Exclude<S, keyof BaseClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
-  ): this;
-
-  public once<K extends keyof BaseClientEvents>(
-    event: K,
-    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
-  ): this;
-  public once<S extends string | symbol>(
-    event: Exclude<S, keyof BaseClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
-  ): this;
-
-  public emit<K extends keyof BaseClientEvents>(event: K, ...args: BaseClientEvents[K]): boolean;
-  public emit<S extends string | symbol>(event: Exclude<S, keyof BaseClientEvents>, ...args: unknown[]): boolean;
-
-  public off<K extends keyof BaseClientEvents>(
-    event: K,
-    listener: (...args: BaseClientEvents[K]) => Awaitable<void>,
-  ): this;
-  public off<S extends string | symbol>(
-    event: Exclude<S, keyof BaseClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
-  ): this;
-
-  public removeAllListeners<K extends keyof BaseClientEvents>(event?: K): this;
-  public removeAllListeners<S extends string | symbol>(event?: Exclude<S, keyof BaseClientEvents>): this;
-
   /**
    * The options the client was instantiated with
    */
   public options: ClientOptions | WebhookClientOptions;
+
+  /**
+   * The REST manager of the client
+   */
+  public rest: REST;
 
   /**
    * Destroys all assets used by the base client.
@@ -1250,6 +1220,8 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
 }
 
+export type EnumLike<E, V> = Record<keyof E, V>;
+
 /**
  * Data structure that makes it easy to interact with a bitfield.
  */
@@ -1331,7 +1303,7 @@ export class BitField<S extends string, N extends number | bigint = number> {
    * Numeric bitfield flags.
    * <info>Defined in extension classes</info>
    */
-  public static FLAGS: Record<string, number | bigint>;
+  public static Flags: EnumLike<unknown, number | bigint>;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -1760,9 +1732,9 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * @example
    * const link = client.generateInvite({
    *   permissions: [
-   *     Permissions.FLAGS.SEND_MESSAGES,
-   *     Permissions.FLAGS.MANAGE_GUILD,
-   *     Permissions.FLAGS.MENTION_EVERYONE,
+   *     PermissionFlagsBits.SendMessages,
+   *     PermissionFlagsBits.ManageGuild,
+   *     PermissionFlagsBits.MentionEveryone,
    *   ],
    *   scopes: ['bot'],
    * });
@@ -1844,7 +1816,7 @@ export class ClientApplication extends Application {
   /**
    * The flags this application has
    */
-  public flags: Readonly<ApplicationFlags>;
+  public flags: Readonly<ApplicationFlagsBitField>;
 
   /**
    * The owner of this OAuth application
@@ -2661,16 +2633,11 @@ export class DataResolver extends null {
   public static resolveCode(data: string, regx: RegExp): string;
 
   /**
-   * Resolves a BufferResolvable to a Buffer or a Stream.
-   * @param resource The buffer or stream resolvable to resolve
-   */
-  public static resolveFile(resource: BufferResolvable | Stream): Promise<Buffer | Stream>;
-
-  /**
    * Resolves a BufferResolvable to a Buffer.
-   * @param resource The buffer or stream resolvable to resolve
+   * @param {BufferResolvable|Stream} resource The buffer or stream resolvable to resolve
+   * @returns {Promise<Buffer>}
    */
-  public static resolveFileAsBuffer(resource: BufferResolvable | Stream): Promise<Buffer>;
+  public static resolveFile(resource: BufferResolvable | Stream): Promise<Buffer>;
 
   /**
    * Resolves a Base64Resolvable, a string, or a BufferResolvable to a Base 64 image.
@@ -2691,6 +2658,9 @@ export class DataResolver extends null {
   public static resolveGuildTemplateCode(data: GuildTemplateResolvable): string;
 }
 
+/**
+ * Holds a bunch of methods to resolve enum values to readable strings.
+ */
 export class EnumResolvers extends null {
   private constructor();
 
@@ -2698,26 +2668,28 @@ export class EnumResolvers extends null {
    * Resolves enum key to {@link ChannelType} enum value
    * @param key The key to resolve
    */
-  public static resolveChannelType(key: string | ChannelType): ChannelType;
+  public static resolveChannelType(key: ChannelTypeEnumResolvable | ChannelType): ChannelType;
 
   /**
    * Resolves enum key to {@link InteractionType} enum value
    * @param key The key to resolve
    */
-  public static resolveInteractionType(key: string | InteractionType): InteractionType;
+  public static resolveInteractionType(key: InteractionTypeEnumResolvable | InteractionType): InteractionType;
 
   /**
    * Resolves enum key to {@link ApplicationCommandType} enum value
    * @param key The key to resolve
    */
-  public static resolveApplicationCommandType(key: string | ApplicationCommandType): ApplicationCommandType;
+  public static resolveApplicationCommandType(
+    key: ApplicationCommandTypeEnumResolvable | ApplicationCommandType,
+  ): ApplicationCommandType;
 
   /**
    * Resolves enum key to {@link ApplicationCommandOptionType} enum value
    * @param key The key to resolve
    */
   public static resolveApplicationCommandOptionType(
-    key: string | ApplicationCommandOptionType,
+    key: ApplicationCommandOptionTypeEnumResolvable | ApplicationCommandOptionType,
   ): ApplicationCommandOptionType;
 
   /**
@@ -2725,129 +2697,108 @@ export class EnumResolvers extends null {
    * @param key The key to resolve
    */
   public static resolveApplicationCommandPermissionType(
-    key: string | ApplicationCommandPermissionType,
+    key: ApplicationCommandPermissionTypeEnumResolvable | ApplicationCommandPermissionType,
   ): ApplicationCommandPermissionType;
 
   /**
    * Resolves enum key to {@link ComponentType} enum value
    * @param key The key to resolve
    */
-  public static resolveComponentType(key: string | ComponentType): ComponentType;
+  public static resolveComponentType(key: ComponentTypeEnumResolvable | ComponentType): ComponentType;
 
   /**
    * Resolves enum key to {@link ButtonStyle} enum value
    * @param key The key to resolve
    */
-  public static resolveButtonStyle(key: string | ButtonStyle): ButtonStyle;
+  public static resolveButtonStyle(key: ButtonStyleEnumResolvable | ButtonStyle): ButtonStyle;
 
   /**
    * Resolves enum key to {@link MessageType} enum value
    * @param key The key to lookup
    */
-  public static resolveMessageType(key: string | MessageType): MessageType;
+  public static resolveMessageType(key: MessageTypeEnumResolvable | MessageType): MessageType;
 
   /**
    * Resolves enum key to {@link GuildNSFWLevel} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildNSFWLevel(key: string | GuildNSFWLevel): GuildNSFWLevel;
+  public static resolveGuildNSFWLevel(key: GuildNSFWLevelEnumResolvable | GuildNSFWLevel): GuildNSFWLevel;
 
   /**
    * Resolves enum key to {@link GuildVerificationLevel} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildVerificationLevel(key: string | GuildVerificationLevel): GuildVerificationLevel;
+  public static resolveGuildVerificationLevel(
+    key: GuildVerificationLevelEnumResolvable | GuildVerificationLevel,
+  ): GuildVerificationLevel;
 
   /**
    * Resolves enum key to {@link GuildDefaultMessageNotifications} enum value
    * @param key The key to lookup
    */
   public static resolveGuildDefaultMessageNotifications(
-    key: string | GuildDefaultMessageNotifications,
+    key: GuildDefaultMessageNotificationsEnumResolvable | GuildDefaultMessageNotifications,
   ): GuildDefaultMessageNotifications;
 
   /**
    * Resolves enum key to {@link GuildExplicitContentFilter} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildExplicitContentFilter(key: string | GuildExplicitContentFilter): GuildExplicitContentFilter;
+  public static resolveGuildExplicitContentFilter(
+    key: GuildExplicitContentFilterEnumResolvable | GuildExplicitContentFilter,
+  ): GuildExplicitContentFilter;
 
   /**
    * Resolves enum key to {@link GuildPremiumTier} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildPremiumTier(key: string | GuildPremiumTier): GuildPremiumTier;
+  public static resolveGuildPremiumTier(key: GuildPremiumTierEnumResolvable | GuildPremiumTier): GuildPremiumTier;
 
   /**
    * Resolves enum key to {@link GuildScheduledEventStatus} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildScheduledEventStatus(key: string | GuildScheduledEventStatus): GuildScheduledEventStatus;
+  public static resolveGuildScheduledEventStatus(
+    key: GuildScheduledEventStatusEnumResolvable | GuildScheduledEventStatus,
+  ): GuildScheduledEventStatus;
 
   /**
    * Resolves enum key to {@link StageInstancePrivacyLevel} enum value
    * @param key The key to lookup
    */
-  public static resolveStageInstancePrivacyLevel(key: string | StageInstancePrivacyLevel): StageInstancePrivacyLevel;
+  public static resolveStageInstancePrivacyLevel(
+    key: StageInstancePrivacyLevelEnumResolvable | StageInstancePrivacyLevel,
+  ): StageInstancePrivacyLevel;
 
   /**
    * Resolves enum key to {@link GuildMFALevel} enum value
    * @param key The key to lookup
    */
-  public static resolveGuildMFALevel(key: string | GuildMFALevel): GuildMFALevel;
+  public static resolveGuildMFALevel(key: GuildMFALevelEnumResolvable | GuildMFALevel): GuildMFALevel;
 
   /**
    * Resolves enum key to {@link TeamMemberMembershipState} enum value
    * @param key The key to lookup
    */
-  public static resolveTeamMemberMembershipState(key: string | TeamMemberMembershipState): TeamMemberMembershipState;
+  public static resolveTeamMemberMembershipState(
+    key: TeamMemberMembershipStateEnumResolvable | TeamMemberMembershipState,
+  ): TeamMemberMembershipState;
 
   /**
    * Resolves enum key to {@link GuildScheduledEventEntityType} enum value
    * @param key The key to lookup
    */
   public static resolveGuildScheduledEventEntityType(
-    key: string | GuildScheduledEventEntityType,
+    key: GuildScheduledEventEntityTypeEnumResolvable | GuildScheduledEventEntityType,
   ): GuildScheduledEventEntityType;
-}
-
-/**
- * Represents an error from the Discord API.
- */
-export class DiscordAPIError extends Error {
-  public constructor(error: unknown, status: number, request: unknown);
 
   /**
-   * Flattens an errors object returned from the API into an array.
-   * @param obj Discord errors object
-   * @param key Used internally to determine key names of nested fields
+   * Resolves enum key to {@link IntegrationExpireBehavior} enum value
+   * @param key The key to lookup
    */
-  private static flattenErrors(obj: unknown, key: string): string[];
-
-  /**
-   * HTTP error code returned by Discord
-   */
-  public code: number;
-
-  /**
-   * The HTTP method used for the request
-   */
-  public method: string;
-
-  /**
-   * The path of the request relative to the HTTP endpoint
-   */
-  public path: string;
-
-  /**
-   * The HTTP status code
-   */
-  public httpStatus: number;
-
-  /**
-   * The data associated with the request that caused this error
-   */
-  public requestData: HTTPErrorData;
+  public static resolveIntegrationExpireBehavior(
+    key: IntegrationExpireBehaviorEnumResolvable | IntegrationExpireBehavior,
+  ): IntegrationExpireBehavior;
 }
 
 /**
@@ -3173,7 +3124,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The value set for the guild's system channel flags
    */
-  public systemChannelFlags: Readonly<SystemChannelFlags>;
+  public systemChannelFlags: Readonly<SystemChannelFlagsBitField>;
 
   /**
    * The system channel's id
@@ -3781,16 +3732,25 @@ export abstract class GuildChannel extends Channel {
    * @param member The member to obtain the overall permissions for
    * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
    */
-  private memberPermissions(member: GuildMember, checkAdmin: boolean): Readonly<Permissions>;
+  private memberPermissions(member: GuildMember, checkAdmin: boolean): Readonly<PermissionsBitField>;
 
   /**
    * Gets the overall set of permissions for a role in this channel, taking into account channel overwrites.
    * @param role The role to obtain the overall permissions for
    * @param checkAdmin Whether having `ADMINISTRATOR` will return all permissions
    */
-  private rolePermissions(role: Role, checkAdmin: boolean): Readonly<Permissions>;
+  private rolePermissions(role: Role, checkAdmin: boolean): Readonly<PermissionsBitField>;
+
+  /**
+   * The time the channel was created at
+   */
   public readonly createdAt: Date;
+
+  /**
+   * The timestamp the channel was created at
+   */
   public readonly createdTimestamp: number;
+
   public readonly calculatedPosition: number;
 
   /**
@@ -3911,11 +3871,11 @@ export abstract class GuildChannel extends Channel {
    * @param memberOrRole The member or role to obtain the overall permissions for
    * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
-  public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<Permissions>;
+  public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
     memberOrRole: GuildMemberResolvable | RoleResolvable,
     checkAdmin?: boolean,
-  ): Readonly<Permissions> | null;
+  ): Readonly<PermissionsBitField> | null;
 
   /**
    * Sets a new name for the guild channel.
@@ -4137,12 +4097,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The overall set of permissions for this member, taking only roles and owner status into account
    */
-  public readonly permissions: Readonly<Permissions>;
+  public readonly permissions: Readonly<PermissionsBitField>;
 
   /**
    * The last time this member started boosting the guild
    */
-
   public readonly premiumSince: Date | null;
 
   /**
@@ -4263,7 +4222,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * taking into account roles and permission overwrites.
    * @param channel The guild channel to use as context
    */
-  public permissionsIn(channel: GuildChannelResolvable): Readonly<Permissions>;
+  public permissionsIn(channel: GuildChannelResolvable): Readonly<PermissionsBitField>;
 
   /**
    * Sets the nickname for this member.
@@ -4518,6 +4477,17 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    * The URL to the guild scheduled event
    */
   public readonly url: string;
+
+  /**
+   * The cover image hash for this scheduled event
+   */
+  public readonly image: string | null;
+
+  /**
+   * The URL of this scheduled event's cover image
+   * @param {} [options={}] Options for image URL
+   */
+  public coverImageURL(options?: Readonly<BaseImageURLOptions>): string | null;
 
   /**
    * Creates an invite URL to this guild scheduled event.
@@ -4795,52 +4765,6 @@ export class GuildPreviewEmoji extends BaseGuildEmoji {
 }
 
 /**
- * Represents an HTTP error from a request.
- */
-export class HTTPError extends Error {
-  public constructor(message: string, name: string, code: number, request: unknown);
-
-  /**
-   * HTTP error code returned from the request
-   */
-  public code: number;
-
-  /**
-   * The HTTP method used for the request
-   */
-  public method: string;
-
-  /**
-   * The name of the error
-   */
-  public name: string;
-
-  /**
-   * The path of the request relative to the HTTP endpoint
-   */
-  public path: string;
-
-  /**
-   * The data associated with the request that caused this error
-   */
-  public requestData: HTTPErrorData;
-}
-
-/**
- * Represents a RateLimit error from a request.
- */
-// tslint:disable-next-line:no-empty-interface - Merge RateLimitData into RateLimitError to not have to type it again
-export interface RateLimitError extends RateLimitData {}
-export class RateLimitError extends Error {
-  public constructor(data: RateLimitData);
-
-  /**
-   * The name of the error
-   */
-  public name: 'RateLimitError';
-}
-
-/**
  * Represents a guild integration.
  */
 export class Integration extends Base {
@@ -4864,7 +4788,7 @@ export class Integration extends Base {
   /**
    * The behavior of expiring subscribers
    */
-  public expireBehavior: IntegrationExpireBehaviors | null;
+  public expireBehavior: IntegrationExpireBehavior | null;
 
   /**
    * The grace period (in days) before expiring subscribers
@@ -4990,21 +4914,22 @@ export class IntegrationApplication extends Application {
   public verifyKey: string | null;
 }
 
+export type GatewayIntentsString = keyof typeof GatewayIntentBits;
+
 /**
  * Data structure that makes it easy to calculate intents.
  */
-export class Intents extends BitField<IntentsString> {
+export class IntentsBitField extends BitField<GatewayIntentsString> {
   /**
    * Numeric WebSocket intents.
-   * @see {@link [List of Intents](https://discord.com/developers/docs/topics/gateway#list-of-intents)}
    */
-  public static FLAGS: Record<IntentsString, number>;
+  public static flags: GatewayIntentBits;
 
   /**
    * Resolves bitfields to their numeric form.
    * @param bit bit(s) to resolve
    */
-  public static resolve(bit?: BitFieldResolvable<IntentsString, number>): number;
+  public static resolve(bit?: BitFieldResolvable<GatewayIntentsString, number>): number;
 }
 
 export type CacheType = 'cached' | 'raw' | undefined;
@@ -5105,7 +5030,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * The permissions of the member, if one exists, in the channel this interaction was executed in
    */
-  public memberPermissions: CacheTypeReducer<Cached, Readonly<Permissions>>;
+  public memberPermissions: CacheTypeReducer<Cached, Readonly<PermissionsBitField>>;
 
   /**
    * The locale of the user who invoked this interaction
@@ -5808,7 +5733,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Flags that are applied to the message
    */
-  public flags: Readonly<MessageFlags>;
+  public flags: Readonly<MessageFlagsBitField>;
 
   /**
    * Message reference data
@@ -6386,15 +6311,16 @@ export class MessageContextMenuCommandInteraction<
   public inRawGuild(): this is MessageContextMenuCommandInteraction<'raw'>;
 }
 
+export type MessageFlagsString = keyof typeof MessageFlags;
+
 /**
  * Data structure that makes it easy to interact with a {@link Message.flags} bitfield.
  */
-export class MessageFlags extends BitField<MessageFlagsString> {
+export class MessageFlagsBitField extends BitField<MessageFlagsString> {
   /**
    * Numeric message flags.
-   * @see {@link [Message Flags](https://discord.com/developers/docs/resources/channel#message-object-message-flags)}
    */
-  public static FLAGS: Record<MessageFlagsString, number>;
+  public static flags: MessageFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -6452,8 +6378,9 @@ export class MessageMentions {
   public readonly guild: Guild;
 
   /**
-   * Checks if a user, guild member, role, or channel is mentioned.
-   * Takes into account user mentions, role mentions, and `@everyone`/`@here` mentions.
+   * Checks if a user, guild member, thread member, role, or channel is mentioned.
+   * Takes into account user mentions, role mentions, channel mentions,
+   * replied user mention, and `@everyone`/`@here` mentions.
    * @param data The User/Role/Channel to check for
    * @param options The options for the check
    */
@@ -6525,9 +6452,9 @@ export class MessagePayload {
   public constructor(target: MessageTarget, options: MessageOptions | WebhookMessageOptions);
 
   /**
-   * Data sendable to the API
+   * Body sendable to the API
    */
-  public data: RawMessagePayloadData | null;
+  public body: RawMessagePayloadData | null;
 
   /**
    * Whether or not the target is a {@link User}
@@ -6557,7 +6484,7 @@ export class MessagePayload {
   /**
    * Files sendable to the API
    */
-  public files: HTTPAttachmentData[] | null;
+  public files: RawFile[] | null;
 
   /**
    * Options passed in from send
@@ -6585,9 +6512,7 @@ export class MessagePayload {
    * Resolves a single file into an object sendable to the API.
    * @param fileLike Something that could be resolved to a file
    */
-  public static resolveFile(
-    fileLike: BufferResolvable | Stream | FileOptions | MessageAttachment,
-  ): Promise<HTTPAttachmentData>;
+  public static resolveFile(fileLike: BufferResolvable | Stream | FileOptions | MessageAttachment): Promise<RawFile>;
 
   /**
    * Makes the content of this message.
@@ -6595,9 +6520,9 @@ export class MessagePayload {
   public makeContent(): string | undefined;
 
   /**
-   * Resolves data.
+   * Resolves the body.
    */
-  public resolveData(): this;
+  public resolveBody(): this;
 
   /**
    * Resolves files.
@@ -6716,7 +6641,7 @@ export class OAuth2Guild extends BaseGuild {
   /**
    * The permissions that the client user has in this guild
    */
-  public permissions: Readonly<Permissions>;
+  public permissions: Readonly<PermissionsBitField>;
 }
 
 /**
@@ -6756,7 +6681,7 @@ export class PermissionOverwrites extends Base {
   /**
    * The permissions that are allowed for the user or role.
    */
-  public allow: Readonly<Permissions>;
+  public allow: Readonly<PermissionsBitField>;
 
   /**
    * The GuildChannel this overwrite is for
@@ -6766,7 +6691,7 @@ export class PermissionOverwrites extends Base {
   /**
    * The permissions that are denied for the user or role.
    */
-  public deny: Readonly<Permissions>;
+  public deny: Readonly<PermissionsBitField>;
 
   /**
    * The overwrite's id, either a {@link User} or a {@link Role} id
@@ -6821,12 +6746,14 @@ export class PermissionOverwrites extends Base {
   public static resolve(overwrite: OverwriteResolvable, guild: Guild): APIOverwrite;
 }
 
+export type PermissionsString = keyof typeof PermissionFlagsBits;
+
 /**
  * Data structure that makes it easy to interact with a permission bitfield. All {@link GuildMember}s have a set of
  * permissions in their guild, and each channel in the guild may also have {@link PermissionOverwrites} for the member
  * that override their default permissions.
  */
-export class Permissions extends BitField<PermissionString, bigint> {
+export class PermissionsBitField extends BitField<PermissionsString, bigint> {
   /**
    * Checks whether the bitfield has a permission, or any of multiple permissions.
    * @param permission Permission(s) to check for
@@ -6846,40 +6773,40 @@ export class Permissions extends BitField<PermissionString, bigint> {
    * @param bits Bit(s) to check for
    * @param {} [checkAdmin=true] Whether to allow the administrator permission to override
    */
-  public missing(bits: BitFieldResolvable<PermissionString, bigint>, checkAdmin?: boolean): PermissionString[];
+  public missing(bits: BitFieldResolvable<PermissionsString, bigint>, checkAdmin?: boolean): PermissionsString[];
 
   /**
    * Gets an object mapping field names to a boolean indicating whether the
    * bit is available.
    * @param hasParams Additional parameters for the has method, if any
    */
-  public serialize(checkAdmin?: boolean): Record<PermissionString, boolean>;
+  public serialize(checkAdmin?: boolean): Record<PermissionsString, boolean>;
 
   /**
    * Gets an {@link Array} of bitfield names based on the permissions available.
    */
-  public toArray(): PermissionString[];
+  public toArray(): PermissionsString[];
 
   /**
    * Bitfield representing every permission combined
    */
-  public static ALL: bigint;
+  public static All: bigint;
 
   /**
    * Bitfield representing the default permissions for users
    */
-  public static DEFAULT: bigint;
+  public static Default: bigint;
 
   /**
    * Bitfield representing the permissions required for moderators of stage channels
    */
-  public static STAGE_MODERATOR: bigint;
+  public static StageModerator: bigint;
 
   /**
    * Numeric permission flags.
    * @see {@link [Bitwise Permission Flags](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags)}
    */
-  public static FLAGS: PermissionFlags;
+  public static flags: typeof PermissionFlagsBits;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -7199,7 +7126,7 @@ export class Role extends Base {
   /**
    * The permissions of the role
    */
-  public permissions: Readonly<Permissions>;
+  public permissions: Readonly<PermissionsBitField>;
 
   /**
    * The position of the role in the role manager
@@ -7277,7 +7204,10 @@ export class Role extends Base {
    * @param channel The guild channel to use as context
    * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
-  public permissionsIn(channel: NonThreadGuildBasedChannel | Snowflake, checkAdmin?: boolean): Readonly<Permissions>;
+  public permissionsIn(
+    channel: NonThreadGuildBasedChannel | Snowflake,
+    checkAdmin?: boolean,
+  ): Readonly<PermissionsBitField>;
 
   /**
    * Sets a new color for the role.
@@ -7333,7 +7263,7 @@ export class Role extends Base {
    * @param reason Reason for changing the role's permissions
    * @example
    * // Set the permissions of the role
-   * role.setPermissions([Permissions.FLAGS.KICK_MEMBERS, Permissions.FLAGS.BAN_MEMBERS])
+   * role.setPermissions([PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers])
    *   .then(updated => console.log(`Updated permissions to ${updated.permissions.bitfield}`))
    *   .catch(console.error);
    * @example
@@ -8519,17 +8449,18 @@ export class Sweepers {
   ): GlobalSweepFilter<SweeperDefinitions['messages'][0], SweeperDefinitions['messages'][1]>;
 }
 
+export type SystemChannelFlagsString = keyof typeof GuildSystemChannelFlags;
+
 /**
  * Data structure that makes it easy to interact with a {@link Guild.systemChannelFlags} bitfield.
  * <info>Note that all event message types are enabled by default,
  * and by setting their corresponding flags you are disabling them</info>
  */
-export class SystemChannelFlags extends BitField<SystemChannelFlagsString> {
+export class SystemChannelFlagsBitField extends BitField<SystemChannelFlagsString> {
   /**
    * Numeric system channel flags.
-   * @see {@link [System Channel Flags](https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags)}
    */
-  public static FLAGS: Record<SystemChannelFlagsString, number>;
+  public static flags: GuildSystemChannelFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -8708,11 +8639,13 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    */
   public readonly createdAt: Date | null;
 
+  private _createdTimestamp: number | null;
+
   /**
    * The timestamp when this thread was created. This isn't available for threads
    * created before 2022-01-09
    */
-  public createdTimestamp: number | null;
+  public readonly createdTimestamp: number | null;
 
   /**
    * The amount of time (in minutes) after which the thread will automatically archive in case of no recent activity
@@ -8883,11 +8816,11 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * @param memberOrRole The member or role to obtain the overall permissions for
    * @param {} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
    */
-  public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<Permissions>;
+  public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
     memberOrRole: GuildMemberResolvable | RoleResolvable,
     checkAdmin?: boolean,
-  ): Readonly<Permissions> | null;
+  ): Readonly<PermissionsBitField> | null;
 
   /**
    * Fetches the owner of this thread. If the thread member object isn't needed,
@@ -8988,7 +8921,7 @@ export class ThreadMember extends Base {
   /**
    * The flags for this thread member
    */
-  public flags: ThreadMemberFlags;
+  public flags: ThreadMemberFlagsBitField;
 
   /**
    * The guild member associated with this thread member
@@ -9032,14 +8965,16 @@ export class ThreadMember extends Base {
   public remove(reason?: string): Promise<ThreadMember>;
 }
 
+export type ThreadMemberFlagsString = keyof typeof ThreadMemberFlags;
+
 /**
  * Data structure that makes it easy to interact with a {@link ThreadMember.flags} bitfield.
  */
-export class ThreadMemberFlags extends BitField<ThreadMemberFlagsString> {
+export class ThreadMemberFlagsBitField extends BitField<ThreadMemberFlagsString> {
   /**
    * Numeric thread member flags. There are currently no bitflags relevant to bots for this.
    */
-  public static FLAGS: Record<ThreadMemberFlagsString, number>;
+  public static flags: ThreadMemberFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -9164,7 +9099,7 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * The flags for this user
    */
-  public flags: Readonly<UserFlags> | null;
+  public flags: Readonly<UserFlagsBitField> | null;
 
   /**
    * The hexadecimal version of the user accent color, with a leading hash
@@ -9245,7 +9180,7 @@ export class User extends PartialTextBasedChannel(Base) {
    * Fetches this user's flags.
    * @param {} [force=false] Whether to skip the cache check and request the API
    */
-  public fetchFlags(force?: boolean): Promise<UserFlags>;
+  public fetchFlags(force?: boolean): Promise<UserFlagsBitField>;
 
   /**
    * When concatenated with a string, this automatically returns the user's mention instead of the User object.
@@ -9288,15 +9223,17 @@ export class UserContextMenuCommandInteraction<
   public inRawGuild(): this is UserContextMenuCommandInteraction<'raw'>;
 }
 
+export type UserFlagsString = keyof typeof UserFlags;
+
 /**
  * Data structure that makes it easy to interact with a {@link User.flags} bitfield.
  */
-export class UserFlags extends BitField<UserFlagsString> {
+export class UserFlagsBitField extends BitField<UserFlagsString> {
   /**
    * Numeric user flags.
    * @see {@link [User Flags](https://discord.com/developers/docs/resources/user#user-object-user-flags)}
    */
-  public static FLAGS: Record<UserFlagsString, number>;
+  public static flags: UserFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -9476,6 +9413,7 @@ export class Util extends null {
    * @param position New position for the object
    * @param relative Whether `position` is relative to its current position
    * @param sorted A collection of the objects sorted properly
+   * @param client The client to use to patch the data
    * @param route Route to call PATCH on
    * @param reason Reason for the change
    * @returns Updated item list, with `id` and `position` properties
@@ -9485,7 +9423,8 @@ export class Util extends null {
     position: number,
     relative: boolean,
     sorted: Collection<Snowflake, T>,
-    route: unknown,
+    client: Client,
+    route: string,
     reason?: string,
   ): Promise<{ id: Snowflake; position: number }[]>;
 
@@ -10623,30 +10562,6 @@ export const Constants: {
     [key: string]: unknown;
   };
   UserAgent: string;
-  Endpoints: {
-    botGateway: string;
-    invite: (root: string, code: string, eventId?: Snowflake) => string;
-    scheduledEvent: (root: string, guildId: Snowflake, eventId: Snowflake) => string;
-    CDN: (root: string) => {
-      Emoji: (emojiId: Snowflake, format: 'gif' | 'png') => string;
-      Asset: (name: string) => string;
-      DefaultAvatar: (discriminator: number) => string;
-      Avatar: (userId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      Banner: (id: Snowflake, hash: string, options: ImageURLOptions) => string;
-      GuildMemberAvatar: (guildId: Snowflake, memberId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      Icon: (guildId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      AppIcon: (appId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      AppAsset: (appId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      StickerPackBanner: (bannerId: Snowflake, options: ImageURLOptions) => string;
-      GDMIcon: (channelId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      Splash: (guildId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      DiscoverySplash: (guildId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      TeamIcon: (teamId: Snowflake, hash: string, options: ImageURLOptions) => string;
-      Sticker: (stickerId: Snowflake, format: StickerFormatType) => string;
-      RoleIcon: (roleId: Snowflake, hash: string, options: ImageURLOptions) => string;
-    };
-  };
-
   WSCodes: {
     1000: 'WS_CLOSE_REQUESTED';
     4004: 'TOKEN_INVALID';
@@ -10657,15 +10572,6 @@ export const Constants: {
   Events: ConstantsEvents;
 
   ShardEvents: ConstantsShardEvents;
-
-  /**
-   * The type of Structure allowed to be a partial
-   * <warn>Partials require you to put checks in place when handling data. See the "Partial Structures" topic on the
-   * [guide](https://discordjs.guide/popular-topics/partials.html) for more information.</warn>
-   */
-  PartialTypes: {
-    [K in PartialTypes]: K;
-  };
 
   /**
    * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
@@ -10698,12 +10604,6 @@ export const Constants: {
    * The types of channels that are voice-based.
    */
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
-
-  /**
-   * The behavior of expiring subscribers for Integrations.
-   * @see {@link [Integration Expire Behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
-   */
-  IntegrationExpireBehaviors: IntegrationExpireBehaviors[];
 
   /**
    * A valid scope to request when generating an invite link.
@@ -10828,7 +10728,7 @@ export class ApplicationCommandManager<
    * @param guildId The guild's id to use in the path,
    * ignored when using a {@link GuildApplicationCommandManager}
    */
-  private commandPath({ id, guildId }: { id?: Snowflake; guildId?: Snowflake }): unknown;
+  private commandPath({ id, guildId }: { id?: Snowflake; guildId?: Snowflake }): string;
 
   /**
    * Creates an application command.
@@ -11100,7 +11000,7 @@ export class ApplicationCommandPermissionsManager<
    * @param guildId The guild's id to use in the path,
    * @param commandId The application command's id
    */
-  private permissionsPath(guildId: Snowflake, commandId?: Snowflake): unknown;
+  private permissionsPath(guildId: Snowflake, commandId?: Snowflake): string;
 }
 
 /**
@@ -11276,7 +11176,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   permissionOverwrites: [
    *      {
    *        id: message.author.id,
-   *        deny: [Permissions.FLAGS.VIEW_CHANNEL],
+   *        deny: [PermissionFlagsBits.ViewChannel],
    *     },
    *   ],
    * })
@@ -12545,7 +12445,7 @@ export class UserManager extends CachedManager<Snowflake, User, UserResolvable> 
    * @param user The UserResolvable to identify
    * @param options Additional options for this fetch
    */
-  public fetchFlags(user: UserResolvable, options?: BaseFetchOptions): Promise<UserFlags>;
+  public fetchFlags(user: UserResolvable, options?: BaseFetchOptions): Promise<UserFlagsBitField>;
 
   /**
    * Sends a message to a user.
@@ -12873,22 +12773,11 @@ export interface WebhookFields extends PartialWebhookFields {
 
 //#region Typedefs
 
-export type ActivityFlagsString =
-  | 'INSTANCE'
-  | 'JOIN'
-  | 'SPECTATE'
-  | 'JOIN_REQUEST'
-  | 'SYNC'
-  | 'PLAY'
-  | 'PARTY_PRIVACY_FRIENDS'
-  | 'PARTY_PRIVACY_VOICE_CHANNEL'
-  | 'EMBEDDED';
+export type ActivitiesOptions = Omit<ActivityOptions, 'shardId'>;
 
 /**
  * Options for setting activities
  */
-export type ActivitiesOptions = Omit<ActivityOptions, 'shardId'>;
-
 export interface ActivityOptions {
   /**
    * Name of the activity
@@ -12960,51 +12849,11 @@ export interface AddGuildMemberOptions {
   fetchWhenExisting?: boolean;
 }
 
-/**
- * A list of image formats
- */
-export type AllowedImageFormat = 'webp' | 'png' | 'jpg' | 'jpeg';
-
-/**
- * A list of image sizes
- */
-export type AllowedImageSize = 16 | 32 | 56 | 64 | 96 | 128 | 256 | 300 | 512 | 600 | 1024 | 2048 | 4096;
-
 export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction;
 
 export type AllowedThreadTypeForNewsChannel = ChannelType.GuildNewsThread;
 
 export type AllowedThreadTypeForTextChannel = ChannelType.GuildPublicThread | ChannelType.GuildPrivateThread;
-
-/**
- * Represents a request that will or has been made to the Discord API
- */
-export interface APIRequest {
-  /**
-   * The HTTP method used in this request
-   */
-  method: 'get' | 'post' | 'delete' | 'patch' | 'put';
-
-  /**
-   * Additional options for this request
-   */
-  options: unknown;
-
-  /**
-   * The full path used to make the request
-   */
-  path: string;
-
-  /**
-   * The number of times this request has been attempted
-   */
-  retries: number;
-
-  /**
-   * The API route identifying the rate limit for this request
-   */
-  route: string;
-}
 
 /**
  * Base data for creating or editing an application command.
@@ -13376,15 +13225,7 @@ export interface ApplicationCommandPermissions extends ApplicationCommandPermiss
  */
 export type ApplicationCommandResolvable = ApplicationCommand | Snowflake;
 
-export type ApplicationFlagsString =
-  | 'GATEWAY_PRESENCE'
-  | 'GATEWAY_PRESENCE_LIMITED'
-  | 'GATEWAY_GUILD_MEMBERS'
-  | 'GATEWAY_GUILD_MEMBERS_LIMITED'
-  | 'VERIFICATION_PENDING_GUILD_LIMIT'
-  | 'EMBEDDED'
-  | 'GATEWAY_MESSAGE_CONTENT'
-  | 'GATEWAY_MESSAGE_CONTENT_LIMITED';
+export type ApplicationFlagsString = keyof typeof ApplicationFlags;
 
 /**
  * An entry in the audit log representing a specific change.
@@ -13495,7 +13336,7 @@ export interface BaseMessageComponentOptions {
 
 /**
  * Data that can be resolved to give a bitfield. This can be:
- * * A bit number (this can be a number literal or a value taken from {@link BitField.FLAGS})
+ * * A bit number (this can be a number literal or a value taken from {@link BitField.Flags})
  * * A string bit number
  * * An instance of BitField
  * * An Array of BitFieldResolvable
@@ -13861,47 +13702,7 @@ export interface ChannelWebhookCreateOptions {
   reason?: string;
 }
 
-export interface BaseClientEvents {
-  /**
-   * Emitted after every API request has received a response.
-   * This event does not necessarily correlate to completion of the request, e.g. when hitting a rate limit.
-   * <info>This is an informational event that is emitted quite frequently,
-   * it is highly recommended to check `request.path` to filter the data.</info>
-   * @param request The request that triggered this response
-   * @param response The response received from the Discord API
-   */
-  apiResponse: [request: APIRequest, response: Response];
-
-  /**
-   * Emitted before every API request.
-   * This event can emit several times for the same request, e.g. when hitting a rate limit.
-   * <info>This is an informational event that is emitted quite frequently,
-   * it is highly recommended to check `request.path` to filter the data.</info>
-   * @param request The request that is about to be sent
-   */
-  apiRequest: [request: APIRequest];
-
-  /**
-   * Emitted for general debugging information.
-   * @param message The debug information
-   */
-  debug: [message: string];
-
-  /**
-   * Emitted when the client hits a rate limit while making a request
-   * @param rateLimitData Object containing the rate limit info
-   */
-  rateLimit: [rateLimitData: RateLimitData];
-
-  /**
-   * Emitted periodically when the process sends invalid requests to let users avoid the
-   * 10k invalid requests in 10 minutes threshold that causes a ban
-   * @param invalidRequestWarningData Object containing the invalid request info
-   */
-  invalidRequestWarning: [invalidRequestWarningData: InvalidRequestWarningData];
-}
-
-export interface ClientEvents extends BaseClientEvents {
+export interface ClientEvents {
   cacheSweep: [message: string];
 
   /**
@@ -13933,6 +13734,12 @@ export interface ClientEvents extends BaseClientEvents {
     oldChannel: DMChannel | NonThreadGuildBasedChannel,
     newChannel: DMChannel | NonThreadGuildBasedChannel,
   ];
+
+  /**
+   * Emitted for general debugging information.
+   * @param message The debug information
+   */
+  debug: [message: string];
 
   /**
    * Emitted for general warnings.
@@ -14394,63 +14201,18 @@ export interface ClientOptions {
   allowedMentions?: MessageMentionOptions;
 
   /**
-   * The number of invalid REST requests (those that return 401, 403, or 429) in a 10 minute window between
-   * emitted warnings (0 for no warnings). That is, if set to 500, warnings will be emitted at invalid request
-   * number 500, 1000, 1500, and so on.
-   * @default 0
-   */
-  invalidRequestWarningInterval?: number;
-
-  /**
    * Structures allowed to be partial. This means events can be emitted even when they're missing all the data
    * for a particular structure. See the "Partial Structures" topic on the
    * [guide](https://discordjs.guide/popular-topics/partials.html) for some important usage information, as
    * partials require you to put checks in place when handling data.
    */
-  partials?: PartialTypes[];
-
-  /**
-   * Extra time in milliseconds to wait before continuing to make REST
-   * requests (higher values will reduce rate-limiting errors on bad connections)
-   * @default 500
-   */
-  restTimeOffset?: number;
-
-  /**
-   * Time to wait before cancelling a REST request, in milliseconds
-   * @default 15000
-   */
-  restRequestTimeout?: number;
-
-  /**
-   * How many requests to allow sending per second (0 for unlimited, 50 for the standard global limit used by Discord)
-   * @default 0
-   */
-  restGlobalRateLimit?: number;
-
-  /**
-   * How frequently to delete inactive request buckets, in seconds (or 0 for never)
-   * @default 60
-   */
-  restSweepInterval?: number;
-
-  /**
-   * How many times to retry on 5XX errors (Infinity for an indefinite amount of retries)
-   * @default 1
-   */
-  retryLimit?: number;
+  partials?: Partials[];
 
   /**
    * Default value for {@link ReplyMessageOptions.failIfNotExists}
    * @default true
    */
   failIfNotExists?: boolean;
-
-  /**
-   * An array of additional bot info to be appended to the end of the required
-   * [User Agent](https://discord.com/developers/docs/reference#user-agent) header
-   */
-  userAgentSuffix?: string[];
 
   /**
    * Presence data to use upon login
@@ -14461,7 +14223,7 @@ export interface ClientOptions {
   /**
    * Intents to enable for this connection
    */
-  intents: BitFieldResolvable<IntentsString, number>;
+  intents: BitFieldResolvable<GatewayIntentsString, number>;
 
   /**
    * Time in milliseconds that Clients with the GUILDS intent should wait for
@@ -14482,17 +14244,9 @@ export interface ClientOptions {
   ws?: WebSocketOptions;
 
   /**
-   * HTTP options
+   * Options for the REST manager
    */
-  http?: HTTPOptions;
-
-  /**
-   * Decides how rate limits and pre-emptive throttles should be handled. If this option is an array containing
-   * the prefix of the request route (e.g. /channels to match any route starting with /channels, such as
-   * /channels/222197033908436994/messages) or a function returning true, a {@link RateLimitError} will be thrown.
-   * Otherwise the request will be queued for later
-   */
-  rejectOnRateLimit?: string[] | ((data: RateLimitData) => boolean | Promise<boolean>);
+  rest?: Partial<RESTOptions>;
 }
 
 /**
@@ -14745,33 +14499,6 @@ export interface ConstantsColors {
 }
 
 export interface ConstantsEvents {
-  /**
-   * Emitted when the client hits a rate limit while making a request
-   */
-  RATE_LIMIT: 'rateLimit';
-
-  /**
-   * Emitted periodically when the process sends invalid requests to let users avoid the
-   * 10k invalid requests in 10 minutes threshold that causes a ban
-   */
-  INVALID_REQUEST_WARNING: 'invalidRequestWarning';
-
-  /**
-   * Emitted after every API request has received a response.
-   * This event does not necessarily correlate to completion of the request, e.g. when hitting a rate limit.
-   * <info>This is an informational event that is emitted quite frequently,
-   * it is highly recommended to check `request.path` to filter the data.</info>
-   */
-  API_RESPONSE: 'apiResponse';
-
-  /**
-   * Emitted before every API request.
-   * This event can emit several times for the same request, e.g. when hitting a rate limit.
-   * <info>This is an informational event that is emitted quite frequently,
-   * it is highly recommended to check `request.path` to filter the data.</info>
-   */
-  API_REQUEST: 'apiRequest';
-
   /**
    * Emitted when the client becomes ready to start working.
    */
@@ -15317,6 +15044,148 @@ export type EmojiIdentifierResolvable = string | EmojiResolvable;
  * Data that can be resolved into a GuildEmoji object.
  */
 export type EmojiResolvable = Snowflake | GuildEmoji | ReactionEmoji;
+
+/**
+ * A string that can be resolved to a {@link ChannelType} enum value.
+ */
+export type ChannelTypeEnumResolvable =
+  | 'GUILD_TEXT'
+  | 'DM'
+  | 'GUILD_VOICE'
+  | 'GROUP_DM'
+  | 'GUILD_CATEGORY'
+  | 'GUILD_NEWS'
+  | 'GUILD_NEWS_THREAD'
+  | 'GUILD_PUBLIC_THREAD'
+  | 'GUILD_PRIVATE_THREAD'
+  | 'GUILD_STAGE_VOICE';
+
+/**
+ * A string that can be resolved to an {@link InteractionType} enum value.
+ */
+export type InteractionTypeEnumResolvable =
+  | 'PING'
+  | 'APPLICATION_COMMAND'
+  | 'MESSAGE_COMPONENT'
+  | 'APPLICATION_COMMAND_AUTOCOMPLETE';
+
+/**
+ * A string that can be resolved to an {@link ApplicationCommandType} enum value.
+ */
+export type ApplicationCommandTypeEnumResolvable = 'CHAT_INPUT' | 'USER' | 'MESSAGE';
+
+/**
+ * A string that can be resolved to an {@link ApplicationCommandOptionType} enum value.
+ */
+export type ApplicationCommandOptionTypeEnumResolvable =
+  | 'SUB_COMMAND'
+  | 'SUB_COMMAND_GROUP'
+  | 'STRING'
+  | 'INTEGER'
+  | 'BOOLEAN'
+  | 'USER'
+  | 'CHANNEL'
+  | 'ROLE'
+  | 'NUMBER'
+  | 'MENTIONABLE';
+
+/**
+ *  A string that can be resolved to an {@link ApplicationCommandPermissionType} enum value.
+ */
+export type ApplicationCommandPermissionTypeEnumResolvable = 'ROLE' | 'USER';
+
+/**
+ * A string that can be resolved to a {@link ComponentType} enum value.
+ */
+export type ComponentTypeEnumResolvable = 'ACTION_ROW' | 'BUTTON' | 'SELECT_MENU';
+
+/**
+ * A string that can be resolved to a {@link ButtonStyle} enum value.
+ */
+export type ButtonStyleEnumResolvable = 'PRIMARY' | 'SECONDARY' | 'SUCCESS' | 'DANGER' | 'LINK';
+
+/**
+ * A string that can be resolved to a {@link MessageType} enum value.
+ */
+export type MessageTypeEnumResolvable =
+  | 'DEFAULT'
+  | 'RECIPIENT_ADD'
+  | 'RECIPIENT_REMOVE'
+  | 'CALL'
+  | 'CHANNEL_NAME_CHANGE'
+  | 'CHANNEL_ICON_CHANGE'
+  | 'CHANNEL_PINNED_MESSAGE'
+  | 'GUILD_MEMBER_JOIN'
+  | 'USER_PREMIUM_GUILD_SUBSCRIPTION'
+  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_1'
+  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2'
+  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3'
+  | 'CHANNEL_FOLLOW_ADD'
+  | 'GUILD_DISCOVERY_DISQUALIFIED'
+  | 'GUILD_DISCOVERY_REQUALIFIED'
+  | 'GUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING'
+  | 'GUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING'
+  | 'THREAD_CREATED'
+  | 'REPLY'
+  | 'CHAT_INPUT_COMMAND'
+  | 'THREAD_STARTER_MESSAGE'
+  | 'GUILD_INVITE_REMINDER'
+  | 'CONTEXT_MENU_COMMAND';
+
+/**
+ * A string that can be resolved to a {@link GuildNSFWLevel} enum value.
+ */
+export type GuildNSFWLevelEnumResolvable = 'DEFAULT' | 'EXPLICIT' | 'SAFE' | 'AGE_RESTRICTED';
+
+/**
+ * A string that can be resolved to a {@link GuildVerificationLevel} enum value.
+ */
+export type GuildVerificationLevelEnumResolvable = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+
+/**
+ * A string that can be resolved to a {@link GuildDefaultMessageNotifications} enum value.
+ */
+export type GuildDefaultMessageNotificationsEnumResolvable = 'ALL_MESSAGES' | 'ONLY_MENTIONS';
+
+/**
+ * A string that can be resolved to a {@link GuildExplicitContentFilter} enum value.
+ */
+export type GuildExplicitContentFilterEnumResolvable = 'DISABLED' | 'MEMBERS_WITHOUT_ROLES' | 'ALL_MEMBERS';
+
+/**
+ * A string that can be resolved to a {@link GuildPremiumTier} enum value.
+ */
+export type GuildPremiumTierEnumResolvable = 'NONE' | 'TIER_1' | 'TIER_2' | 'TIER_3';
+
+/**
+ * A string that can be resolved to a {@link GuildScheduledEventStatus} enum value.
+ */
+export type GuildScheduledEventStatusEnumResolvable = 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
+
+/**
+ * A string that can be resolved to a {@link StageInstancePrivacyLevel} enum value.
+ */
+export type StageInstancePrivacyLevelEnumResolvable = 'PUBLIC' | 'GUILD_ONLY';
+
+/**
+ * A string that can be resolved to a {@link GuildMFALevel} enum value.
+ */
+export type GuildMFALevelEnumResolvable = 'NONE' | 'ELEVATED';
+
+/**
+ * A string that can be resolved to a {@link TeamMemberMembershipState} enum value.
+ */
+export type TeamMemberMembershipStateEnumResolvable = 'INVITED' | 'ACCEPTED';
+
+/**
+ * A string that can be resolved to a {@link GuildScheduledEventEntityType} enum value.
+ */
+export type GuildScheduledEventEntityTypeEnumResolvable = 'STAGE_INSTANCE' | 'VOICE' | 'EXTERNAL';
+
+/**
+ * A string that can be resolved to a {@link IntegrationExpireBehavior} enum value.
+ */
+export type IntegrationExpireBehaviorEnumResolvable = 'REMOVE_ROLE' | 'KICK';
 
 /**
  * @external ErrorEvent
@@ -16551,118 +16420,6 @@ export type GuildVoiceChannelResolvable = VoiceBasedChannel | Snowflake;
 export type HexColorString = `#${string}`;
 
 /**
- * The attachment data that is sent to Discord
- */
-export interface HTTPAttachmentData {
-  /**
-   * The source of this attachment data
-   */
-  attachment: string | Buffer | Stream;
-
-  /**
-   * The file name
-   */
-  name: string;
-
-  /**
-   * The file buffer
-   */
-  file: Buffer | Stream;
-}
-
-/**
- * The HTTP data that was sent to Discord
- */
-export interface HTTPErrorData {
-  /**
-   * The JSON data that was sent
-   */
-  json: unknown;
-
-  /**
-   * The files that were sent with this request, if any
-   */
-  files: HTTPAttachmentData[];
-}
-
-/**
- * HTTP options
- */
-export interface HTTPOptions {
-  /**
-   * HTTPS Agent options
-   * @default {}
-   */
-  agent?: Omit<AgentOptions, 'keepAlive'>;
-
-  /**
-   * Base URL of the API
-   * @default 'https://discord.com/api'
-   */
-  api?: string;
-
-  /**
-   * API version to use
-   * @default 9
-   */
-  version?: number;
-
-  host?: string;
-
-  /**
-   * Base URL of the CDN
-   * @default 'https://cdn.discordapp.com'
-   */
-  cdn?: string;
-
-  /**
-   * Base URL of invites
-   * @default 'https://discord.gg'
-   */
-  invite?: string;
-
-  /**
-   * Base URL of templates
-   * @default 'https://discord.new'
-   */
-  template?: string;
-
-  /**
-   * Additional headers to send for all API requests
-   */
-  headers?: Record<string, string>;
-
-  /**
-   * Base URL of guild scheduled events
-   * @default 'https://discord.com/events'
-   */
-  scheduledEvent?: string;
-}
-
-/**
- * Options for image URLs.
- */
-export interface ImageURLOptions {
-  /**
-   * An image format.
-   * @default 'webp'
-   */
-  format?: AllowedImageFormat;
-
-  /**
-   * If `true`, the format will be as specified.
-   * If `false`, `format` may be a `gif` if animated.
-   * @default false
-   */
-  forceStatic?: boolean;
-
-  /**
-   * An image size.
-   */
-  size?: AllowedImageSize;
-}
-
-/**
  * The information account for an integration
  */
 export interface IntegrationAccount {
@@ -16761,9 +16518,9 @@ export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'us
 
   /**
    * Which flags to set for the message.
-   * Only `SUPPRESS_EMBEDS` and `EPHEMERAL` can be set.
+   * Only `MessageFlags.SuppressEmbeds` and `MessageFlags.Ephemeral` can be set.
    */
-  flags?: BitFieldResolvable<'SUPPRESS_EMBEDS' | 'EPHEMERAL', number>;
+  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds' | 'Ephemeral'>, number>;
 }
 
 /**
@@ -16775,24 +16532,6 @@ export interface InteractionUpdateOptions extends MessageEditOptions {
    */
   fetchReply?: boolean;
 }
-
-export type IntentsString =
-  | 'GUILDS'
-  | 'GUILD_MEMBERS'
-  | 'GUILD_BANS'
-  | 'GUILD_EMOJIS_AND_STICKERS'
-  | 'GUILD_INTEGRATIONS'
-  | 'GUILD_WEBHOOKS'
-  | 'GUILD_INVITES'
-  | 'GUILD_VOICE_STATES'
-  | 'GUILD_PRESENCES'
-  | 'GUILD_MESSAGES'
-  | 'GUILD_MESSAGE_REACTIONS'
-  | 'GUILD_MESSAGE_TYPING'
-  | 'DIRECT_MESSAGES'
-  | 'DIRECT_MESSAGE_REACTIONS'
-  | 'DIRECT_MESSAGE_TYPING'
-  | 'GUILD_SCHEDULED_EVENTS';
 
 /**
  * Options for {@link Client.generateInvite}.
@@ -16881,12 +16620,6 @@ export interface CreateInviteOptions {
    */
   targetType?: InviteTargetType;
 }
-
-/**
- * The behavior of expiring subscribers for Integrations.
- * @see {@link [Integration Expire Behaviors](https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors)}
- */
-export type IntegrationExpireBehaviors = 'REMOVE_ROLE' | 'KICK';
 
 /**
  * Data that resolves to give an Invite object.
@@ -17107,7 +16840,7 @@ export interface MessageEditOptions {
   files?: (FileOptions | BufferResolvable | Stream | MessageAttachment)[];
 
   /**
-   * Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be edited.
+   * Which flags to set for the message. Only `MessageFlags.SuppressEmbeds` can be edited.
    */
   flags?: BitFieldResolvable<MessageFlagsString, number>;
 
@@ -17131,16 +16864,6 @@ export interface MessageEvent {
   type: string;
   target: WebSocket;
 }
-
-export type MessageFlagsString =
-  | 'CROSSPOSTED'
-  | 'IS_CROSSPOST'
-  | 'SUPPRESS_EMBEDS'
-  | 'SOURCE_MESSAGE_DELETED'
-  | 'URGENT'
-  | 'HAS_THREAD'
-  | 'EPHEMERAL'
-  | 'LOADING';
 
 /**
  * Partial data of the interaction that a message is a reply to
@@ -17184,7 +16907,13 @@ export interface MessageMentionsHasOptions {
   ignoreRoles?: boolean;
 
   /**
-   * Whether to ignore everyone/here mentions
+   * Whether to ignore replied user mention to an user
+   * @default false
+   */
+  ignoreRepliedUser?: boolean;
+
+  /**
+   * Whether to ignore `@everyone`/`@here` mentions
    * @default false
    */
   ignoreEveryone?: boolean;
@@ -17284,9 +17013,9 @@ export interface MessageOptions {
   attachments?: MessageAttachment[];
 
   /**
-   * Which flags to set for the message. Only `SUPPRESS_EMBEDS` can be set.
+   * Which flags to set for the message. Only `MessageFlags.SuppressEmbeds` and `MessageFlags.Ephemeral` can be set.
    */
-  flags?: BitFieldResolvable<'SUPPRESS_EMBEDS', number>;
+  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds'>, number>;
 }
 
 /**
@@ -17303,7 +17032,7 @@ export type MessageReactionResolvable =
 /**
  * Reference data sent in a message that contains ids identifying the referenced message.
  * This can be present in the following types of message:
- * * Crossposted messages (IS_CROSSPOST {@link MessageFlags.FLAGS message flag})
+ * * Crossposted messages (`MessageFlags.Crossposted`)
  * * {@link MessageType.ChannelFollowAdd}
  * * {@link MessageType.ChannelPinnedMessage}
  * * {@link MessageType.Reply}
@@ -17508,69 +17237,26 @@ export interface OverwriteData {
  */
 export type OverwriteResolvable = PermissionOverwrites | OverwriteData;
 
-export type PermissionFlags = Record<PermissionString, bigint>;
+export type PermissionFlags = Record<keyof typeof PermissionFlagsBits, bigint>;
 
 /**
  * An object mapping permission flags to `true` (enabled), `null` (unset) or `false` (disabled).
  * ```js
  * {
- *  'SEND_MESSAGES': true,
- *  'EMBED_LINKS': null,
- *  'ATTACH_FILES': false,
+ *  'SendMessages': true,
+ *  'EmbedLinks': null,
+ *  'AttachFiles': false,
  * }
  * ```
  */
-export type PermissionOverwriteOptions = Partial<Record<PermissionString, boolean | null>>;
+export type PermissionOverwriteOptions = Partial<Record<keyof typeof PermissionFlagsBits, boolean | null>>;
 
 /**
  * Data that can be resolved to give a permission number.
  */
-export type PermissionResolvable = BitFieldResolvable<PermissionString, bigint>;
+export type PermissionResolvable = BitFieldResolvable<keyof typeof PermissionFlagsBits, bigint>;
 
 export type PermissionOverwriteResolvable = UserResolvable | RoleResolvable | PermissionOverwrites;
-
-export type PermissionString =
-  | 'CREATE_INSTANT_INVITE'
-  | 'KICK_MEMBERS'
-  | 'BAN_MEMBERS'
-  | 'ADMINISTRATOR'
-  | 'MANAGE_CHANNELS'
-  | 'MANAGE_GUILD'
-  | 'ADD_REACTIONS'
-  | 'VIEW_AUDIT_LOG'
-  | 'PRIORITY_SPEAKER'
-  | 'STREAM'
-  | 'VIEW_CHANNEL'
-  | 'SEND_MESSAGES'
-  | 'SEND_TTS_MESSAGES'
-  | 'MANAGE_MESSAGES'
-  | 'EMBED_LINKS'
-  | 'ATTACH_FILES'
-  | 'READ_MESSAGE_HISTORY'
-  | 'MENTION_EVERYONE'
-  | 'USE_EXTERNAL_EMOJIS'
-  | 'VIEW_GUILD_INSIGHTS'
-  | 'CONNECT'
-  | 'SPEAK'
-  | 'MUTE_MEMBERS'
-  | 'DEAFEN_MEMBERS'
-  | 'MOVE_MEMBERS'
-  | 'USE_VAD'
-  | 'CHANGE_NICKNAME'
-  | 'MANAGE_NICKNAMES'
-  | 'MANAGE_ROLES'
-  | 'MANAGE_WEBHOOKS'
-  | 'MANAGE_EMOJIS_AND_STICKERS'
-  | 'USE_APPLICATION_COMMANDS'
-  | 'REQUEST_TO_SPEAK'
-  | 'MANAGE_THREADS'
-  | 'CREATE_PUBLIC_THREADS'
-  | 'CREATE_PRIVATE_THREADS'
-  | 'USE_EXTERNAL_STICKERS'
-  | 'SEND_MESSAGES_IN_THREADS'
-  | 'START_EMBEDDED_ACTIVITIES'
-  | 'MODERATE_MEMBERS'
-  | 'MANAGE_EVENTS';
 
 export type RecursiveArray<T> = ReadonlyArray<T | RecursiveArray<T>>;
 
@@ -17659,57 +17345,20 @@ export interface PartialRoleData extends RoleData {
  * <warn>Partials require you to put checks in place when handling data. See the "Partial Structures" topic on the
  * [guide](https://discordjs.guide/popular-topics/partials.html) for more information.</warn>
  */
-export type PartialTypes = 'USER' | 'CHANNEL' | 'GUILD_MEMBER' | 'MESSAGE' | 'REACTION' | 'GUILD_SCHEDULED_EVENT';
+export enum Partials {
+  User,
+  Channel,
+  GuildMember,
+  Message,
+  Reaction,
+  GuildScheduledEvent,
+}
 
 export interface PartialUser extends Partialize<User, 'username' | 'tag' | 'discriminator'> {}
 
 export type PresenceStatusData = ClientPresenceStatus | 'invisible';
 
 export type PresenceStatus = PresenceStatusData | 'offline';
-
-export interface RateLimitData {
-  /**
-   * Time until this rate limit ends, in milliseconds
-   */
-  timeout: number;
-
-  /**
-   * The maximum amount of requests of this endpoint
-   */
-  limit: number;
-
-  /**
-   * The HTTP method of this request
-   */
-  method: string;
-
-  /**
-   * The path of the request relative to the HTTP endpoint
-   */
-  path: string;
-
-  /**
-   * The route of the request relative to the HTTP endpoint
-   */
-  route: string;
-
-  /**
-   * Whether this rate limit is global
-   */
-  global: boolean;
-}
-
-export interface InvalidRequestWarningData {
-  /**
-   * Number of invalid requests that have been made in the window
-   */
-  count: number;
-
-  /**
-   * Time in milliseconds remaining before the count resets
-   */
-  remainingTime: number;
-}
 
 export interface ReactionCollectorOptions extends CollectorOptions<[MessageReaction, User]> {
   /**
@@ -17756,12 +17405,12 @@ export interface ResolvedOverwriteOptions {
   /**
    * The allowed permissions
    */
-  allow: Permissions;
+  allow: PermissionsBitField;
 
   /**
    * The denied permissions
    */
-  deny: Permissions;
+  deny: PermissionsBitField;
 }
 
 /**
@@ -18028,12 +17677,6 @@ export type Status = number;
  */
 export type StickerResolvable = Sticker | Snowflake;
 
-export type SystemChannelFlagsString =
-  | 'SUPPRESS_JOIN_NOTIFICATIONS'
-  | 'SUPPRESS_PREMIUM_SUBSCRIPTIONS'
-  | 'SUPPRESS_GUILD_REMINDER_NOTIFICATIONS'
-  | 'SUPPRESS_JOIN_NOTIFICATION_REPLIES';
-
 /**
  * Data that can be resolved to give a system channel flag bitfield.
  */
@@ -18277,28 +17920,10 @@ export interface ThreadEditData {
   invitable?: boolean;
 }
 
-export type ThreadMemberFlagsString = '';
-
 /**
  * Data that resolves to give a ThreadMember object.
  */
 export type ThreadMemberResolvable = ThreadMember | UserResolvable;
-
-export type UserFlagsString =
-  | 'STAFF'
-  | 'PARTNER'
-  | 'HYPESQUAD'
-  | 'BUG_HUNTER_LEVEL_1'
-  | 'HYPESQUAD_ONLINE_HOUSE_1'
-  | 'HYPESQUAD_ONLINE_HOUSE_2'
-  | 'HYPESQUAD_ONLINE_HOUSE_3'
-  | 'PREMIUM_EARLY_SUPPORTER'
-  | 'TEAM_PSEUDO_USER'
-  | 'BUG_HUNTER_LEVEL_2'
-  | 'VERIFIED_BOT'
-  | 'VERIFIED_DEVELOPER'
-  | 'CERTIFIED_MODERATOR'
-  | 'BOT_HTTP_INTERACTIONS';
 
 export type UserMention = `<@${Snowflake}>`;
 
@@ -18356,10 +17981,7 @@ export interface WebhookClientDataURL {
   url: string;
 }
 
-export type WebhookClientOptions = Pick<
-  ClientOptions,
-  'allowedMentions' | 'restTimeOffset' | 'restRequestTimeout' | 'retryLimit' | 'http'
->;
+export type WebhookClientOptions = Pick<ClientOptions, 'allowedMentions' | 'rest'>;
 
 /**
  * Options used to edit a {@link Webhook}.
@@ -18615,6 +18237,7 @@ export type InternalDiscordGatewayAdapterCreator = (
 // External
 export {
   ActivityType,
+  ActivityFlags,
   ApplicationCommandType,
   ApplicationCommandOptionType,
   ApplicationCommandPermissionType,
@@ -18624,6 +18247,7 @@ export {
   GuildMFALevel,
   GuildNSFWLevel,
   GuildPremiumTier,
+  GatewayIntentBits,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
   GuildScheduledEventStatus,
@@ -18632,10 +18256,15 @@ export {
   InteractionResponseType,
   InviteTargetType,
   MessageType,
+  MessageFlags,
+  PermissionFlagsBits,
   RESTJSONErrorCodes,
   StageInstancePrivacyLevel,
   StickerType,
   StickerFormatType,
+  GuildSystemChannelFlags,
+  ThreadMemberFlags,
+  UserFlags,
   WebhookType,
 } from 'discord-api-types/v9';
 export {
@@ -18645,3 +18274,4 @@ export {
   SelectMenuOption,
   ActionRowComponent,
 } from '@discordjs/builders';
+export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';

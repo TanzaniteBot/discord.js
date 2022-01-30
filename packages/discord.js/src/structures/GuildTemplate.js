@@ -1,6 +1,7 @@
 'use strict';
 
 const { setTimeout, clearTimeout } = require('node:timers');
+const { RouteBases, Routes } = require('discord-api-types/v9');
 const Base = require('./Base');
 const { Events } = require('../util/Constants');
 const DataResolver = require('../util/DataResolver');
@@ -124,8 +125,8 @@ class GuildTemplate extends Base {
    */
   async createGuild(name, icon) {
     const { client } = this;
-    const data = await client.api.guilds.templates(this.code).post({
-      data: {
+    const data = await client.rest.post(Routes.template(this.code), {
+      body: {
         name,
         icon: await DataResolver.resolveImage(icon),
       },
@@ -167,7 +168,9 @@ class GuildTemplate extends Base {
    * @returns {Promise<GuildTemplate>}
    */
   async edit({ name, description } = {}) {
-    const data = await this.client.api.guilds(this.guildId).templates(this.code).patch({ data: { name, description } });
+    const data = await this.client.rest.patch(Routes.guildTemplate(this.guildId, this.code), {
+      body: { name, description },
+    });
     return this._patch(data);
   }
 
@@ -176,7 +179,7 @@ class GuildTemplate extends Base {
    * @returns {Promise<GuildTemplate>}
    */
   async delete() {
-    await this.client.api.guilds(this.guildId).templates(this.code).delete();
+    await this.client.rest.delete(Routes.guildTemplate(this.guildId, this.code));
     return this;
   }
 
@@ -185,7 +188,7 @@ class GuildTemplate extends Base {
    * @returns {Promise<GuildTemplate>}
    */
   async sync() {
-    const data = await this.client.api.guilds(this.guildId).templates(this.code).put();
+    const data = await this.client.rest.put(Routes.guildTemplate(this.guildId, this.code));
     return this._patch(data);
   }
 
@@ -222,7 +225,7 @@ class GuildTemplate extends Base {
    * @readonly
    */
   get url() {
-    return `${this.client.options.http.template}/${this.code}`;
+    return `${RouteBases.template}/${this.code}`;
   }
 
   /**

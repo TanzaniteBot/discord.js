@@ -1,9 +1,8 @@
 'use strict';
 
 const process = require('node:process');
-const { ChannelType, MessageType, StickerFormatType } = require('discord-api-types/v9');
+const { ChannelType, MessageType } = require('discord-api-types/v9');
 const Package = (exports.Package = require('../../package.json'));
-const { Error, RangeError, TypeError } = require('../errors');
 
 exports.UserAgent = `DiscordBot (${Package.homepage}, ${Package.version}) Node.js/${process.version}`;
 
@@ -14,84 +13,6 @@ exports.WSCodes = {
   4011: 'SHARDING_REQUIRED',
   4013: 'INVALID_INTENTS',
   4014: 'DISALLOWED_INTENTS',
-};
-
-const AllowedImageFormats = ['webp', 'png', 'jpg', 'jpeg'];
-
-const AllowedImageSizes = [16, 32, 56, 64, 96, 128, 256, 300, 512, 600, 1024, 2048, 4096];
-
-function makeImageUrl(root, { hash, format = 'webp', forceStatic = false, size } = {}) {
-  if (!['undefined', 'number'].includes(typeof size)) throw new TypeError('INVALID_TYPE', 'size', 'number');
-  if (!AllowedImageFormats.includes(format)) throw new Error('IMAGE_FORMAT', format);
-  if (size && !AllowedImageSizes.includes(size)) throw new RangeError('IMAGE_SIZE', size);
-  if (!forceStatic && hash?.startsWith('a_')) format = 'gif';
-  return `${root}${hash ? `/${hash}` : ''}.${format}${size ? `?size=${size}` : ''}`;
-}
-
-/**
- * A list of image sizes:
- * * `16`
- * * `32`
- * * `56`
- * * `64`
- * * `96`
- * * `128`
- * * `256`
- * * `300`
- * * `512`
- * * `600`
- * * `1024`
- * * `2048`
- * * `4096`
- * @typedef {number} ImageSize
- */
-
-/**
- * A list of image formats:
- * * `webp`
- * * `png`
- * * `jpg`
- * * `jpeg`
- * @typedef {string} ImageFormat
- */
-
-/**
- * Options for image URLs.
- * @typedef {Object} ImageURLOptions
- * @property {ImageFormat} [format='webp'] An image format.
- * @property {boolean} [forceStatic=false] If `true`, the format will be as specified.
- * If `false`, `format` may be a `gif` if animated.
- * @property {ImageSize} [size] An image size.
- */
-
-// https://discord.com/developers/docs/reference#image-formatting-cdn-endpoints
-exports.Endpoints = {
-  CDN(root) {
-    return {
-      Emoji: (emojiId, format) => `${root}/emojis/${emojiId}.${format}`,
-      DefaultAvatar: discriminator => `${root}/embed/avatars/${discriminator}.png`,
-      Avatar: (userId, hash, options) => makeImageUrl(`${root}/avatars/${userId}`, { hash, ...options }),
-      GuildMemberAvatar: (guildId, memberId, hash, options) =>
-        makeImageUrl(`${root}/guilds/${guildId}/users/${memberId}/avatars`, { hash, ...options }),
-      Banner: (id, hash, options) => makeImageUrl(`${root}/banners/${id}`, { hash, ...options }),
-      Icon: (guildId, hash, options) => makeImageUrl(`${root}/icons/${guildId}`, { hash, ...options }),
-      AppIcon: (appId, hash, options) => makeImageUrl(`${root}/app-icons/${appId}`, { hash, ...options }),
-      AppAsset: (appId, hash, options) => makeImageUrl(`${root}/app-assets/${appId}`, { hash, ...options }),
-      StickerPackBanner: (bannerId, options) =>
-        makeImageUrl(`${root}/app-assets/710982414301790216/store/${bannerId}`, options),
-      GDMIcon: (channelId, hash, options) => makeImageUrl(`${root}/channel-icons/${channelId}`, { hash, ...options }),
-      Splash: (guildId, hash, options) => makeImageUrl(`${root}/splashes/${guildId}`, { hash, ...options }),
-      DiscoverySplash: (guildId, hash, options) =>
-        makeImageUrl(`${root}/discovery-splashes/${guildId}`, { hash, ...options }),
-      TeamIcon: (teamId, hash, options) => makeImageUrl(`${root}/team-icons/${teamId}`, { hash, ...options }),
-      Sticker: (stickerId, format) =>
-        `${root}/stickers/${stickerId}.${format === StickerFormatType.Lottie ? 'json' : 'png'}`,
-      RoleIcon: (roleId, hash, options) => makeImageUrl(`${root}/role-icons/${roleId}`, { hash, ...options }),
-    };
-  },
-  invite: (root, code, eventId) => (eventId ? `${root}/${code}?event=${eventId}` : `${root}/${code}`),
-  scheduledEvent: (root, guildId, eventId) => `${root}/${guildId}/${eventId}`,
-  botGateway: '/gateway/bot',
 };
 
 /**
@@ -135,10 +56,6 @@ exports.Opcodes = {
 };
 
 exports.Events = {
-  RATE_LIMIT: 'rateLimit',
-  INVALID_REQUEST_WARNING: 'invalidRequestWarning',
-  API_RESPONSE: 'apiResponse',
-  API_REQUEST: 'apiRequest',
   CLIENT_READY: 'ready',
   GUILD_CREATE: 'guildCreate',
   GUILD_DELETE: 'guildDelete',
@@ -217,20 +134,6 @@ exports.ShardEvents = {
   RESUMED: 'resumed',
   ALL_READY: 'allReady',
 };
-
-/**
- * The type of Structure allowed to be a partial:
- * * USER
- * * CHANNEL (only affects DMChannels)
- * * GUILD_MEMBER
- * * MESSAGE
- * * REACTION
- * * GUILD_SCHEDULED_EVENT
- * <warn>Partials require you to put checks in place when handling data. See the "Partial Structures" topic on the
- * [guide](https://discordjs.guide/popular-topics/partials.html) for more information.</warn>
- * @typedef {string} PartialType
- */
-exports.PartialTypes = keyMirror(['USER', 'CHANNEL', 'GUILD_MEMBER', 'MESSAGE', 'REACTION', 'GUILD_SCHEDULED_EVENT']);
 
 /**
  * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`. Here are the available events:
@@ -378,15 +281,6 @@ exports.InviteScopes = [
 ];
 
 /**
- * The behavior of expiring subscribers for Integrations. This can be:
- * * REMOVE_ROLE
- * * KICK
- * @typedef {string} IntegrationExpireBehavior
- * @see {@link https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors}
- */
-exports.IntegrationExpireBehaviors = createEnum(['REMOVE_ROLE', 'KICK']);
-
-/**
  * The name of an item to be swept in Sweepers
  * * `applicationCommands` - both global and guild commands
  * * `bans`
@@ -524,16 +418,6 @@ function keyMirror(arr) {
   let tmp = Object.create(null);
   for (const value of arr) tmp[value] = value;
   return tmp;
-}
-
-function createEnum(keys) {
-  const obj = {};
-  for (const [index, key] of keys.entries()) {
-    if (key === null) continue;
-    obj[key] = index;
-    obj[index] = key;
-  }
-  return obj;
 }
 
 /**

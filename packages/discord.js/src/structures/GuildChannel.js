@@ -1,12 +1,12 @@
 'use strict';
 
-const { ChannelType } = require('discord-api-types/v9');
+const { ChannelType, Routes, PermissionFlagsBits } = require('discord-api-types/v9');
 const { Channel } = require('./Channel');
 const PermissionOverwrites = require('./PermissionOverwrites');
 const { Error } = require('../errors');
 const PermissionOverwriteManager = require('../managers/PermissionOverwriteManager');
 const { VoiceBasedChannelTypes } = require('../util/Constants');
-const Permissions = require('../util/Permissions');
+const PermissionsBitField = require('../util/PermissionsBitField');
 const Util = require('../util/Util');
 
 /**
@@ -128,11 +128,11 @@ class GuildChannel extends Channel {
       // Handle empty overwrite
       if (
         (!channelVal &&
-          parentVal.deny.bitfield === Permissions.defaultBit &&
-          parentVal.allow.bitfield === Permissions.defaultBit) ||
+          parentVal.deny.bitfield === PermissionsBitField.defaultBit &&
+          parentVal.allow.bitfield === PermissionsBitField.defaultBit) ||
         (!parentVal &&
-          channelVal.deny.bitfield === Permissions.defaultBit &&
-          channelVal.allow.bitfield === Permissions.defaultBit)
+          channelVal.deny.bitfield === PermissionsBitField.defaultBit &&
+          channelVal.allow.bitfield === PermissionsBitField.defaultBit)
       ) {
         return true;
       }
@@ -161,7 +161,7 @@ class GuildChannel extends Channel {
    * Gets the overall set of permissions for a member or role in this channel, taking into account channel overwrites.
    * @param {GuildMemberResolvable|RoleResolvable} memberOrRole The member or role to obtain the overall permissions for
    * @param {boolean} [checkAdmin=true] Whether having `ADMINISTRATOR` will return all permissions
-   * @returns {?Readonly<Permissions>}
+   * @returns {?Readonly<PermissionsBitField>}
    */
   permissionsFor(memberOrRole, checkAdmin = true) {
     const member = this.guild.members.resolve(memberOrRole);
@@ -200,28 +200,30 @@ class GuildChannel extends Channel {
    * Gets the overall set of permissions for a member in this channel, taking into account channel overwrites.
    * @param {GuildMember} member The member to obtain the overall permissions for
    * @param {boolean} checkAdmin=true Whether having `ADMINISTRATOR` will return all permissions
-   * @returns {Readonly<Permissions>}
+   * @returns {Readonly<PermissionsBitField>}
    * @private
    */
   memberPermissions(member, checkAdmin) {
-    if (checkAdmin && member.id === this.guild.ownerId) return new Permissions(Permissions.ALL).freeze();
+    if (checkAdmin && member.id === this.guild.ownerId) {
+      return new PermissionsBitField(PermissionsBitField.All).freeze();
+    }
 
     const roles = member.roles.cache;
-    const permissions = new Permissions(roles.map(role => role.permissions));
+    const permissions = new PermissionsBitField(roles.map(role => role.permissions));
 
-    if (checkAdmin && permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
-      return new Permissions(Permissions.ALL).freeze();
+    if (checkAdmin && permissions.has(PermissionFlagsBits.Administrator)) {
+      return new PermissionsBitField(PermissionsBitField.All).freeze();
     }
 
     const overwrites = this.overwritesFor(member, true, roles);
 
     return permissions
-      .remove(overwrites.everyone?.deny ?? Permissions.defaultBit)
-      .add(overwrites.everyone?.allow ?? Permissions.defaultBit)
-      .remove(overwrites.roles.length > 0 ? overwrites.roles.map(role => role.deny) : Permissions.defaultBit)
-      .add(overwrites.roles.length > 0 ? overwrites.roles.map(role => role.allow) : Permissions.defaultBit)
-      .remove(overwrites.member?.deny ?? Permissions.defaultBit)
-      .add(overwrites.member?.allow ?? Permissions.defaultBit)
+      .remove(overwrites.everyone?.deny ?? PermissionsBitField.defaultBit)
+      .add(overwrites.everyone?.allow ?? PermissionsBitField.defaultBit)
+      .remove(overwrites.roles.length > 0 ? overwrites.roles.map(role => role.deny) : PermissionsBitField.defaultBit)
+      .add(overwrites.roles.length > 0 ? overwrites.roles.map(role => role.allow) : PermissionsBitField.defaultBit)
+      .remove(overwrites.member?.deny ?? PermissionsBitField.defaultBit)
+      .add(overwrites.member?.allow ?? PermissionsBitField.defaultBit)
       .freeze();
   }
 
@@ -229,22 +231,22 @@ class GuildChannel extends Channel {
    * Gets the overall set of permissions for a role in this channel, taking into account channel overwrites.
    * @param {Role} role The role to obtain the overall permissions for
    * @param {boolean} checkAdmin Whether having `ADMINISTRATOR` will return all permissions
-   * @returns {Readonly<Permissions>}
+   * @returns {Readonly<PermissionsBitField>}
    * @private
    */
   rolePermissions(role, checkAdmin) {
-    if (checkAdmin && role.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
-      return new Permissions(Permissions.ALL).freeze();
+    if (checkAdmin && role.permissions.has(PermissionFlagsBits.Administrator)) {
+      return new PermissionsBitField(PermissionsBitField.All).freeze();
     }
 
     const everyoneOverwrites = this.permissionOverwrites.cache.get(this.guild.id);
     const roleOverwrites = this.permissionOverwrites.cache.get(role.id);
 
     return role.permissions
-      .remove(everyoneOverwrites?.deny ?? Permissions.defaultBit)
-      .add(everyoneOverwrites?.allow ?? Permissions.defaultBit)
-      .remove(roleOverwrites?.deny ?? Permissions.defaultBit)
-      .add(roleOverwrites?.allow ?? Permissions.defaultBit)
+      .remove(everyoneOverwrites?.deny ?? PermissionsBitField.defaultBit)
+      .add(everyoneOverwrites?.allow ?? PermissionsBitField.defaultBit)
+      .remove(roleOverwrites?.deny ?? PermissionsBitField.defaultBit)
+      .add(roleOverwrites?.allow ?? PermissionsBitField.defaultBit)
       .freeze();
   }
 
@@ -266,7 +268,7 @@ class GuildChannel extends Channel {
    * @readonly
    */
   get members() {
-    return this.guild.members.cache.filter(m => this.permissionsFor(m).has(Permissions.FLAGS.VIEW_CHANNEL, false));
+    return this.guild.members.cache.filter(m => this.permissionsFor(m).has(PermissionFlagsBits.ViewChannel, false));
   }
 
   /**
@@ -329,8 +331,8 @@ class GuildChannel extends Channel {
       }
     }
 
-    const newData = await this.client.api.channels(this.id).patch({
-      data: {
+    const newData = await this.client.rest.patch(Routes.channel(this.id), {
+      body: {
         name: (data.name ?? this.name).trim(),
         type: data.type,
         topic: data.topic,
@@ -417,7 +419,8 @@ class GuildChannel extends Channel {
       position,
       relative,
       this.guild._sortedChannels(this),
-      this.client.api.guilds(this.guild.id).channels,
+      this.client,
+      Routes.guildChannels(this.guild.id),
       reason,
     );
     this.client.actions.GuildChannelsPositionUpdate.handle({
@@ -508,12 +511,12 @@ class GuildChannel extends Channel {
     if (!permissions) return false;
 
     // This flag allows managing even if timed out
-    if (permissions.has(Permissions.FLAGS.ADMINISTRATOR, false)) return true;
+    if (permissions.has(PermissionFlagsBits.Administrator, false)) return true;
     if (this.guild.me.communicationDisabledUntilTimestamp > Date.now()) return false;
 
     const bitfield = VoiceBasedChannelTypes.includes(this.type)
-      ? Permissions.FLAGS.MANAGE_CHANNELS | Permissions.FLAGS.CONNECT
-      : Permissions.FLAGS.VIEW_CHANNEL | Permissions.FLAGS.MANAGE_CHANNELS;
+      ? PermissionFlagsBits.ManageChannels | PermissionFlagsBits.Connect
+      : PermissionFlagsBits.ViewChannel | PermissionFlagsBits.ManageChannels;
     return permissions.has(bitfield, false);
   }
 
@@ -526,7 +529,7 @@ class GuildChannel extends Channel {
     if (this.client.user.id === this.guild.ownerId) return true;
     const permissions = this.permissionsFor(this.client.user);
     if (!permissions) return false;
-    return permissions.has(Permissions.FLAGS.VIEW_CHANNEL, false);
+    return permissions.has(PermissionFlagsBits.ViewChannel, false);
   }
 
   /**
@@ -540,7 +543,7 @@ class GuildChannel extends Channel {
    *   .catch(console.error);
    */
   async delete(reason) {
-    await this.client.api.channels(this.id).delete({ reason });
+    await this.client.rest.delete(Routes.channel(this.id), { reason });
     return this;
   }
 }
