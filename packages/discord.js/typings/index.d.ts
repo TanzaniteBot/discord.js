@@ -272,7 +272,7 @@ export class ActivityFlagsBitField extends BitField<ActivityFlagsString> {
   /**
    * Numeric activity flags.
    */
-  public static flags: ActivityFlags;
+  public static Flags: typeof ActivityFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -594,7 +594,7 @@ export class ApplicationFlagsBitField extends BitField<ApplicationFlagsString> {
   /**
    * Numeric application flags.
    */
-  public static flags: ApplicationFlags;
+  public static Flags: typeof ApplicationFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -4932,7 +4932,7 @@ export class IntentsBitField extends BitField<GatewayIntentsString> {
   /**
    * Numeric WebSocket intents.
    */
-  public static flags: GatewayIntentBits;
+  public static Flags: typeof GatewayIntentBits;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -5277,12 +5277,7 @@ export class Invite extends Base {
   /**
    * The channel this invite is for
    */
-  public readonly channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
-
-  /**
-   * The channel's id this invite is for
-   */
-  public channelId: Snowflake | null;
+  public channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
 
   /**
    * The code for this invite
@@ -6329,7 +6324,7 @@ export class MessageFlagsBitField extends BitField<MessageFlagsString> {
   /**
    * Numeric message flags.
    */
-  public static flags: MessageFlags;
+  public static Flags: typeof MessageFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -6818,9 +6813,8 @@ export class PermissionsBitField extends BitField<PermissionsString, bigint> {
 
   /**
    * Numeric permission flags.
-   * @see {@link [Bitwise Permission Flags](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags)}
    */
-  public static flags: typeof PermissionFlagsBits;
+  public static Flags: typeof PermissionFlagsBits;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -8474,7 +8468,7 @@ export class SystemChannelFlagsBitField extends BitField<SystemChannelFlagsStrin
   /**
    * Numeric system channel flags.
    */
-  public static flags: GuildSystemChannelFlags;
+  public static Flags: typeof GuildSystemChannelFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -8988,7 +8982,7 @@ export class ThreadMemberFlagsBitField extends BitField<ThreadMemberFlagsString>
   /**
    * Numeric thread member flags. There are currently no bitflags relevant to bots for this.
    */
-  public static flags: ThreadMemberFlags;
+  public static Flags: typeof ThreadMemberFlags;
 
   /**
    * Resolves bitfields to their numeric form.
@@ -9245,9 +9239,8 @@ export type UserFlagsString = keyof typeof UserFlags;
 export class UserFlagsBitField extends BitField<UserFlagsString> {
   /**
    * Numeric user flags.
-   * @see {@link [User Flags](https://discord.com/developers/docs/resources/user#user-object-user-flags)}
    */
-  public static flags: UserFlags;
+  public static Flags: typeof UserFlags;
 
   /**
    * Resolves bitfields to their numeric form.
