@@ -13975,8 +13975,9 @@ export interface ClientEvents {
   /**
    * Emitted whenever a thread is created or when the client user is added to a thread.
    * @param thread The thread that was created
+   * @param newlyCreated Whether the thread was newly created
    */
-  threadCreate: [thread: ThreadChannel];
+  threadCreate: [thread: ThreadChannel, newlyCreated: boolean];
 
   /**
    * Emitted whenever a thread is deleted.
