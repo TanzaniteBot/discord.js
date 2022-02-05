@@ -1,0 +1,6 @@
+undecided:
+  - notenoughupdates
+  - "@discordjs/builders"
+  - "@discordjs/collection"
+  - "@notenoughupdates/discord.js"
+  - "@discordjs/voice"

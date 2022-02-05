@@ -54,6 +54,7 @@ import {
   ComponentType,
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
+  GuildFeature,
   GuildMFALevel,
   GuildNSFWLevel,
   GuildPremiumTier,
@@ -949,7 +950,7 @@ export abstract class BaseGuild extends Base {
   /**
    * An array of features available to this guild
    */
-  public features: GuildFeatures[];
+  public features: GuildFeature[];
 
   /**
    * The icon hash of this guild
@@ -4308,7 +4309,7 @@ export class GuildPreview extends Base {
   /**
    * An array of enabled guild features
    */
-  public features: GuildFeatures[];
+  public features: GuildFeature[];
 
   /**
    * The icon of this guild
@@ -16030,7 +16031,7 @@ export interface GuildEditData {
   /**
    * The features of the guild
    */
-  features?: GuildFeatures[];
+  features?: GuildFeature[];
 }
 
 /**
@@ -16097,30 +16098,6 @@ export interface GuildStickerEditData {
    */
   tags?: string;
 }
-
-export type GuildFeatures =
-  | 'ANIMATED_ICON'
-  | 'BANNER'
-  | 'COMMERCE'
-  | 'COMMUNITY'
-  | 'DISCOVERABLE'
-  | 'FEATURABLE'
-  | 'INVITE_SPLASH'
-  | 'MEMBER_VERIFICATION_GATE_ENABLED'
-  | 'NEWS'
-  | 'PARTNERED'
-  | 'PREVIEW_ENABLED'
-  | 'VANITY_URL'
-  | 'VERIFIED'
-  | 'VIP_REGIONS'
-  | 'WELCOME_SCREEN_ENABLED'
-  | 'TICKETED_EVENTS_ENABLED'
-  | 'MONETIZATION_ENABLED'
-  | 'MORE_STICKERS'
-  | 'THREE_DAY_THREAD_ARCHIVE'
-  | 'SEVEN_DAY_THREAD_ARCHIVE'
-  | 'PRIVATE_THREADS'
-  | 'ROLE_ICONS';
 
 /**
  * The data for editing a guild member.
@@ -16944,8 +16921,6 @@ export interface MessageMentionOptions {
  * Types of mentions to enable in MessageMentionOptions.
  */
 export type MessageMentionTypes = 'roles' | 'users' | 'everyone';
-
-export { Embed };
 
 /**
  * Options provided when sending a message.
@@ -18239,6 +18214,7 @@ export {
   ButtonStyle,
   ChannelType,
   ComponentType,
+  GuildFeature,
   GuildMFALevel,
   GuildNSFWLevel,
   GuildPremiumTier,
@@ -18265,8 +18241,13 @@ export {
 export {
   ActionRow,
   ButtonComponent,
+  UnsafeButtonComponent,
   SelectMenuComponent,
+  UnsafeSelectMenuComponent,
   SelectMenuOption,
+  UnsafeSelectMenuOption,
   ActionRowComponent,
+  Embed,
+  UnsafeEmbed,
 } from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';
