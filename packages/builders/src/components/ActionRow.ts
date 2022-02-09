@@ -1,13 +1,13 @@
-import { type APIActionRowComponent, ComponentType, APIMessageComponent } from 'discord-api-types/v9';
+import { APIActionRowComponent, APIMessageComponent, APIModalComponent, ComponentType } from 'discord-api-types/v9';
 import type { ButtonComponent, SelectMenuComponent } from '..';
 import { Component } from './Component';
 import { createComponent } from './Components';
-import type { InputTextComponent } from './InputText';
+import type { TextInputComponent } from './InputText';
 
 export type MessageComponent = ActionRowComponent | ActionRow;
 
 export type ActionRowComponent = ButtonComponent | SelectMenuComponent;
-export type ModalActionRowComponent = InputTextComponent;
+export type ModalActionRowComponent = TextInputComponent;
 
 // TODO: Add valid form component types
 /**
