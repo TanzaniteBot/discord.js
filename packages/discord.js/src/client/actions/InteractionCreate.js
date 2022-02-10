@@ -2,7 +2,7 @@
 
 const { InteractionType, ComponentType, ApplicationCommandType } = require('discord-api-types/v9');
 const Action = require('./Action');
-const { Events } = require('../../util/Constants');
+const Events = require('../../util/Events');
 const Structures = require('../../util/Structures');
 
 class InteractionCreateAction extends Action {
@@ -27,7 +27,7 @@ class InteractionCreateAction extends Action {
             break;
           default:
             client.emit(
-              Events.DEBUG,
+              Events.Debug,
               `[INTERACTION] Received application command interaction with unknown type: ${data.data.type}`,
             );
             return;
@@ -43,7 +43,7 @@ class InteractionCreateAction extends Action {
             break;
           default:
             client.emit(
-              Events.DEBUG,
+              Events.Debug,
               `[INTERACTION] Received component interaction with unknown type: ${data.data.component_type}`,
             );
             return;
@@ -53,7 +53,7 @@ class InteractionCreateAction extends Action {
         InteractionClass = Structures.get('AutocompleteInteraction');
         break;
       default:
-        client.emit(Events.DEBUG, `[INTERACTION] Received interaction with unknown type: ${data.type}`);
+        client.emit(Events.Debug, `[INTERACTION] Received interaction with unknown type: ${data.type}`);
         return;
     }
 
@@ -64,7 +64,7 @@ class InteractionCreateAction extends Action {
      * @event Client#interactionCreate
      * @param {Interaction} interaction The interaction which was created
      */
-    client.emit(Events.INTERACTION_CREATE, interaction);
+    client.emit(Events.InteractionCreate, interaction);
   }
 }
 

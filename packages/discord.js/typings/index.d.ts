@@ -52,6 +52,7 @@ import {
   ButtonStyle,
   ChannelType,
   ComponentType,
+  GatewayDispatchEvents,
   GatewayVoiceServerUpdateDispatchData,
   GatewayVoiceStateUpdateDispatchData,
   GuildFeature,
@@ -62,6 +63,7 @@ import {
   InteractionType,
   InviteTargetType,
   MessageType,
+  OAuth2Scopes,
   RESTPostAPIApplicationCommandsJSONBody,
   Snowflake,
   StageInstancePrivacyLevel,
@@ -534,7 +536,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    */
   public equals(
     command: ApplicationCommand | ApplicationCommandData | RawApplicationCommandData,
-    enforceOptionorder?: boolean,
+    enforceOptionOrder?: boolean,
   ): boolean;
 
   /**
@@ -549,7 +551,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   public static optionsEqual(
     existing: ApplicationCommandOption[],
     options: ApplicationCommandOption[] | ApplicationCommandOptionData[] | APIApplicationCommandOption[],
-    enforceOptionorder?: boolean,
+    enforceOptionOrder?: boolean,
   ): boolean;
 
   /**
@@ -565,7 +567,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   private static _optionEquals(
     existing: ApplicationCommandOption,
     options: ApplicationCommandOption | ApplicationCommandOptionData | APIApplicationCommandOption,
-    enforceOptionorder?: boolean,
+    enforceOptionOrder?: boolean,
   ): boolean;
 
   /**
@@ -1453,6 +1455,11 @@ export abstract class Channel extends Base {
    * The type of the channel
    */
   public type: ChannelType;
+
+  /**
+   * The URL to the channel
+   */
+  public readonly url: string;
 
   /**
    * Deletes this channel.
@@ -2640,12 +2647,11 @@ export class DataResolver extends null {
    * @param data The string to resolve
    * @param regex The RegExp used to extract the code
    */
-  public static resolveCode(data: string, regx: RegExp): string;
+  public static resolveCode(data: string, regex: RegExp): string;
 
   /**
    * Resolves a BufferResolvable to a Buffer.
-   * @param {BufferResolvable|Stream} resource The buffer or stream resolvable to resolve
-   * @returns {Promise<Buffer>}
+   * @param resource The buffer or stream resolvable to resolve
    */
   public static resolveFile(resource: BufferResolvable | Stream): Promise<Buffer>;
 
@@ -10058,9 +10064,9 @@ export class WebSocketManager extends EventEmitter {
    */
   public readonly ping: number;
 
-  public on(event: WSEventType, listener: (data: any, shardId: number) => void): this;
+  public on(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
 
-  public once(event: WSEventType, listener: (data: any, shardId: number) => void): this;
+  public once(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
 
   /**
    * Emits a debug message.
@@ -10569,34 +10575,8 @@ export const Constants: {
     devDependencies: Record<string, string>;
     [key: string]: unknown;
   };
+
   UserAgent: string;
-  WSCodes: {
-    1000: 'WS_CLOSE_REQUESTED';
-    4004: 'TOKEN_INVALID';
-    4010: 'SHARDING_INVALID';
-    4011: 'SHARDING_REQUIRED';
-  };
-
-  Events: ConstantsEvents;
-
-  ShardEvents: ConstantsShardEvents;
-
-  /**
-   * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
-   * @see {@link [Gateway Events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
-   */
-  WSEvents: {
-    [K in WSEventType]: K;
-  };
-
-  Colors: ConstantsColors;
-
-  /**
-   * The current status of the client.
-   */
-  Status: ConstantsStatus;
-
-  Opcodes: ConstantsOpcodes;
 
   /**
    * The types of channels that are threads.
@@ -10614,26 +10594,7 @@ export const Constants: {
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
 
   /**
-   * A valid scope to request when generating an invite link.
-   * <warn>Scopes that require whitelist are not considered valid for this generator</warn>
-   * * `applications.builds.read`: allows reading build data for a users applications
-   * * `applications.commands`: allows this bot to create commands in the server
-   * * `applications.entitlements`: allows reading entitlements for a users applications
-   * * `applications.store.update`: allows reading and updating of store data for a users applications
-   * * `bot`: makes the bot join the selected guild
-   * * `connections`: makes the endpoint for getting a users connections available
-   * * `email`: allows the `/users/@me` endpoint return with an email
-   * * `identify`: allows the `/users/@me` endpoint without an email
-   * * `guilds`: makes the `/users/@me/guilds` endpoint available for a user
-   * * `guilds.join`: allows the bot to join the user to any guild it is in using Guild#addMember
-   * * `gdm.join`: allows joining the user to a group dm
-   * * `webhook.incoming`: generates a webhook to a channel
-   * @see {@link [OAuth2 Scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
-   */
-  InviteScopes: InviteScope[];
-
-  /**
-   * The type of a message, e.g. `DEFAULT`.
+   * The type of a message, e.g. `MessageType.Default`.
    * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
    */
   MessageTypes: MessageType[];
@@ -11220,8 +11181,41 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
     name: string,
     options: GuildChannelCreateOptions & { type: ChannelType.GuildStore },
   ): Promise<StoreChannel>;
-
   public create(name: string, options?: GuildChannelCreateOptions): Promise<TextChannel>;
+
+  /**
+   * Creates a webhook for the channel.
+   * @param channel The channel to create the webhook for
+   * @param name The name of the webhook
+   * @param options Options for creating the webhook
+   * @returns Returns the created Webhook
+   * @example
+   * // Create a webhook for the current channel
+   * guild.channels.createWebhook('222197033908436994', 'Snek', {
+   *   avatar: 'https://i.imgur.com/mI8XcpG.jpg',
+   *   reason: 'Needed a cool new Webhook'
+   * })
+   *   .then(console.log)
+   *   .catch(console.error)
+   */
+  public createWebhook(
+    channel: GuildChannelResolvable,
+    name: string,
+    options?: ChannelWebhookCreateOptions,
+  ): Promise<Webhook>;
+
+  /**
+   * Edits the channel.
+   * @param channel The channel to edit
+   * @param data The new data for the channel
+   * @param reason Reason for editing this channel
+   * @example
+   * // Edit a channel
+   * guild.channels.edit('222197033908436994', { name: 'new-channel' })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  public edit(channel: GuildChannelResolvable, data: ChannelData, reason?: string): Promise<GuildChannel>;
 
   /**
    * Obtains one or more guild channels from Discord, or the channel cache if they're already available.
@@ -11240,6 +11234,34 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    */
   public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<NonThreadGuildBasedChannel | null>;
   public fetch(id?: undefined, options?: BaseFetchOptions): Promise<Collection<Snowflake, NonThreadGuildBasedChannel>>;
+
+  /**
+   * Fetches all webhooks for the channel.
+   * @param channel The channel to fetch webhooks for
+   * @example
+   * // Fetch webhooks
+   * guild.channels.fetchWebhooks('769862166131245066')
+   *   .then(hooks => console.log(`This channel has ${hooks.size} hooks`))
+   *   .catch(console.error);
+   */
+  public fetchWebhooks(channel: GuildChannelResolvable): Promise<Collection<Snowflake, Webhook>>;
+
+  /**
+   * Sets a new position for the guild channel.
+   * @param channel The channel to set the position for
+   * @param position The new position for the guild channel
+   * @param options Options for setting position
+   * @example
+   * // Set a new channel position
+   * guild.channels.setPosition('222078374472843266', 2)
+   *   .then(newChannel => console.log(`Channel's new position is ${newChannel.position}`))
+   *   .catch(console.error);
+   */
+  public setPosition(
+    channel: GuildChannelResolvable,
+    position: number,
+    options?: SetChannelPositionOptions,
+  ): Promise<GuildChannel>;
 
   /**
    * Batch-updates the guild's channels' positions.
@@ -11262,6 +11284,18 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .catch(console.error);
    */
   public fetchActiveThreads(cache?: boolean): Promise<FetchedThreads>;
+
+  /**
+   * Deletes the channel.
+   * @param channel The channel to delete
+   * @param reason Reason for deleting this channel
+   * @example
+   * // Delete the channel
+   * guild.channels.delete('858850993013260338', 'making room for new channels')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  public delete(channel: GuildChannelResolvable, reason?: string): Promise<void>;
 }
 
 /**
@@ -11315,6 +11349,13 @@ export class GuildEmojiManager extends BaseGuildEmojiManager {
    */
   public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<GuildEmoji>;
   public fetch(id?: undefined, options?: BaseFetchOptions): Promise<Collection<Snowflake, GuildEmoji>>;
+
+  /**
+   * Fetches the author for this emoji
+   * @param {EmojiResolvable} emoji The emoji to fetch the author of
+   * @returns {Promise<User>}
+   */
+  public fetchAuthor(emoji: EmojiResolvable): Promise<User>;
 
   /**
    * Deletes an emoji.
@@ -11821,6 +11862,12 @@ export class GuildStickerManager extends CachedManager<Snowflake, Sticker, Stick
    */
   public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<Sticker>;
   public fetch(id?: Snowflake, options?: BaseFetchOptions): Promise<Collection<Snowflake, Sticker>>;
+
+  /**
+   * Fetches the user who uploaded this sticker, if this is a guild sticker.
+   * @param sticker The sticker to fetch the user for
+   */
+  public fetchUser(sticker: StickerResolvable): Promise<User | null>;
 }
 
 /**
@@ -12236,6 +12283,19 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
    *   .catch(console.error);
    */
   public delete(role: RoleResolvable, reason?: string): Promise<void>;
+
+  /**
+   * Sets the new position of the role.
+   * @param role The role to change the position of
+   * @param position The new position for the role
+   * @param options Options for setting the position
+   * @example
+   * // Set the position of the role
+   * guild.roles.setPosition('222197033908436994', 1)
+   *   .then(updated => console.log(`Role position: ${updated.position}`))
+   *   .catch(console.error);
+   */
+  public setPosition(role: RoleResolvable, position: number, options?: SetRolePositionOptions): Promise<Role>;
 
   /**
    * Batch-updates the guild's role positions
@@ -14336,37 +14396,37 @@ export interface CollectorResetTimerOptions {
  * Can be a number, hex string, an RGB array
  */
 export type ColorResolvable =
-  | 'DEFAULT'
-  | 'WHITE'
-  | 'AQUA'
-  | 'GREEN'
-  | 'BLUE'
-  | 'YELLOW'
-  | 'PURPLE'
-  | 'LUMINOUS_VIVID_PINK'
-  | 'FUCHSIA'
-  | 'GOLD'
-  | 'ORANGE'
-  | 'RED'
-  | 'GREY'
-  | 'DARKER_GREY'
-  | 'NAVY'
-  | 'DARK_AQUA'
-  | 'DARK_GREEN'
-  | 'DARK_BLUE'
-  | 'DARK_PURPLE'
-  | 'DARK_VIVID_PINK'
-  | 'DARK_GOLD'
-  | 'DARK_ORANGE'
-  | 'DARK_RED'
-  | 'DARK_GREY'
-  | 'LIGHT_GREY'
-  | 'DARK_NAVY'
-  | 'BLURPLE'
-  | 'GREYPLE'
-  | 'DARK_BUT_NOT_BLACK'
-  | 'NOT_QUITE_BLACK'
-  | 'RANDOM'
+  | 'Default'
+  | 'White'
+  | 'Aqua'
+  | 'Green'
+  | 'Blue'
+  | 'Yellow'
+  | 'Purple'
+  | 'LuminousVividPink'
+  | 'Fuchsia'
+  | 'Gold'
+  | 'Orange'
+  | 'Red'
+  | 'Grey'
+  | 'Navy'
+  | 'DarkAqua'
+  | 'DarkGreen'
+  | 'DarkBlue'
+  | 'DarkPurple'
+  | 'DarkVividPink'
+  | 'DarkGold'
+  | 'DarkOrange'
+  | 'DarkRed'
+  | 'DarkGrey'
+  | 'DarkerGrey'
+  | 'LightGrey'
+  | 'DarkNavy'
+  | 'Blurple'
+  | 'Greyple'
+  | 'DarkButNotBlack'
+  | 'NotQuiteBlack'
+  | 'Random'
   | readonly [number, number, number]
   | number
   | HexColorString;
@@ -14461,413 +14521,399 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
   messages?: Collection<Snowflake, CacheTypeReducer<Cached, Message, APIMessage>>;
 }
 
-export interface ConstantsColors {
-  DEFAULT: 0x000000;
-  WHITE: 0xffffff;
-  AQUA: 0x1abc9c;
-  GREEN: 0x57f287;
-  BLUE: 0x3498db;
-  YELLOW: 0xfee75c;
-  PURPLE: 0x9b59b6;
-  LUMINOUS_VIVID_PINK: 0xe91e63;
-  FUCHSIA: 0xeb459e;
-  GOLD: 0xf1c40f;
-  ORANGE: 0xe67e22;
-  RED: 0xed4245;
-  GREY: 0x95a5a6;
-  NAVY: 0x34495e;
-  DARK_AQUA: 0x11806a;
-  DARK_GREEN: 0x1f8b4c;
-  DARK_BLUE: 0x206694;
-  DARK_PURPLE: 0x71368a;
-  DARK_VIVID_PINK: 0xad1457;
-  DARK_GOLD: 0xc27c0e;
-  DARK_ORANGE: 0xa84300;
-  DARK_RED: 0x992d22;
-  DARK_GREY: 0x979c9f;
-  DARKER_GREY: 0x7f8c8d;
-  LIGHT_GREY: 0xbcc0c0;
-  DARK_NAVY: 0x2c3e50;
-  BLURPLE: 0x5865f2;
-  GREYPLE: 0x99aab5;
-  DARK_BUT_NOT_BLACK: 0x2c2f33;
-  NOT_QUITE_BLACK: 0x23272a;
-}
+export declare const Colors: {
+  Default: 0x000000;
+  White: 0xffffff;
+  Aqua: 0x1abc9c;
+  Green: 0x57f287;
+  Blue: 0x3498db;
+  Yellow: 0xfee75c;
+  Purple: 0x9b59b6;
+  LuminousVividPink: 0xe91e63;
+  Fuchsia: 0xeb459e;
+  Gold: 0xf1c40f;
+  Orange: 0xe67e22;
+  Red: 0xed4245;
+  Grey: 0x95a5a6;
+  Navy: 0x34495e;
+  DarkAqua: 0x11806a;
+  DarkGreen: 0x1f8b4c;
+  DarkBlue: 0x206694;
+  DarkPurple: 0x71368a;
+  DarkVividPink: 0xad1457;
+  DarkGold: 0xc27c0e;
+  DarkOrange: 0xa84300;
+  DarkRed: 0x992d22;
+  DarkGrey: 0x979c9f;
+  DarkerGrey: 0x7f8c8d;
+  LightGrey: 0xbcc0c0;
+  DarkNavy: 0x2c3e50;
+  Blurple: 0x5865f2;
+  Greyple: 0x99aab5;
+  DarkButNotBlack: 0x2c2f33;
+  NotQuiteBlack: 0x23272a;
+};
 
-export interface ConstantsEvents {
+export declare const Events: {
   /**
    * Emitted when the client becomes ready to start working.
    */
-  CLIENT_READY: 'ready';
+  ClientReady: 'ready';
 
   /**
    * Emitted whenever the client joins a guild.
    */
-  GUILD_CREATE: 'guildCreate';
+  GuildCreate: 'guildCreate';
 
   /**
    * Emitted whenever a guild kicks the client or the guild is deleted/left.
    */
-  GUILD_DELETE: 'guildDelete';
+  GuildDelete: 'guildDelete';
 
   /**
    * Emitted whenever a guild is updated - e.g. name change.
    */
-  GUILD_UPDATE: 'guildUpdate';
+  GuildUpdate: 'guildUpdate';
+
+  /**
+   * Emitted whenever a guild becomes unavailable, likely due to a server outage.
+   */
+  GuildUnavailable: 'guildUnavailable';
+
+  /**
+   * Emitted whenever a user joins a guild.
+   */
+  GuildMemberAdd: 'guildMemberAdd';
+
+  /**
+   * Emitted whenever a member leaves a guild, or is kicked.
+   */
+  GuildMemberRemove: 'guildMemberRemove';
+
+  /**
+   * Emitted whenever a guild member changes - i.e. new role, removed role, nickname.
+   */
+  GuildMemberUpdate: 'guildMemberUpdate';
+
+  /**
+   * Emitted whenever a member becomes available in a large guild.
+   */
+  GuildMemberAvailable: 'guildMemberAvailable';
+
+  /**
+   * Emitted whenever a chunk of guild members is received (all members come from the same guild).
+   */
+  GuildMembersChunk: 'guildMembersChunk';
+
+  /**
+   * Emitted whenever a guild integration is updated
+   */
+  GuildIntegrationsUpdate: 'guildIntegrationsUpdate';
+
+  /**
+   * Emitted whenever a role is created.
+   */
+  GuildRoleCreate: 'roleCreate';
+
+  /**
+   * Emitted whenever a guild role is deleted.
+   */
+  GuildRoleDelete: 'roleDelete';
 
   /**
    * Emitted when an invite is created.
    * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
    * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    */
-  INVITE_CREATE: 'inviteCreate';
+  InviteCreate: 'inviteCreate';
 
   /**
    * Emitted when an invite is deleted.
    * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
    * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
    */
-  INVITE_DELETE: 'inviteDelete';
-
-  /**
-   * Emitted whenever a guild becomes unavailable, likely due to a server outage.
-   */
-  GUILD_UNAVAILABLE: 'guildUnavailable';
-
-  /**
-   * Emitted whenever a user joins a guild.
-   */
-  GUILD_MEMBER_ADD: 'guildMemberAdd';
-
-  /**
-   * Emitted whenever a member leaves a guild, or is kicked.
-   */
-  GUILD_MEMBER_REMOVE: 'guildMemberRemove';
-
-  /**
-   * Emitted whenever a guild member changes - i.e. new role, removed role, nickname.
-   */
-  GUILD_MEMBER_UPDATE: 'guildMemberUpdate';
-
-  /**
-   * Emitted whenever a member becomes available in a large guild.
-   */
-  GUILD_MEMBER_AVAILABLE: 'guildMemberAvailable';
-
-  /**
-   * Emitted whenever a chunk of guild members is received (all members come from the same guild).
-   */
-  GUILD_MEMBERS_CHUNK: 'guildMembersChunk';
-
-  /**
-   * Emitted whenever a guild integration is updated
-   */
-  GUILD_INTEGRATIONS_UPDATE: 'guildIntegrationsUpdate';
-
-  /**
-   * Emitted whenever a role is created.
-   */
-  GUILD_ROLE_CREATE: 'roleCreate';
-
-  /**
-   * Emitted whenever a guild role is deleted.
-   */
-  GUILD_ROLE_DELETE: 'roleDelete';
+  InviteDelete: 'inviteDelete';
 
   /**
    * Emitted whenever a guild role is updated.
    */
-  GUILD_ROLE_UPDATE: 'roleUpdate';
+  GuildRoleUpdate: 'roleUpdate';
 
   /**
    * Emitted whenever a custom emoji is created in a guild.
    */
-  GUILD_EMOJI_CREATE: 'emojiCreate';
+  GuildEmojiCreate: 'emojiCreate';
 
   /**
    * Emitted whenever a custom emoji is deleted in a guild.
    */
-  GUILD_EMOJI_DELETE: 'emojiDelete';
+  GuildEmojiDelete: 'emojiDelete';
 
   /**
    * Emitted whenever a custom emoji is updated in a guild.
    */
-  GUILD_EMOJI_UPDATE: 'emojiUpdate';
+  GuildEmojiUpdate: 'emojiUpdate';
 
   /**
    * Emitted whenever a member is banned from a guild.
    */
-  GUILD_BAN_ADD: 'guildBanAdd';
+  GuildBanAdd: 'guildBanAdd';
 
   /**
    * Emitted whenever a member is unbanned from a guild.
    */
-  GUILD_BAN_REMOVE: 'guildBanRemove';
+  GuildBanRemove: 'guildBanRemove';
 
   /**
    * Emitted whenever a guild channel is created.
    */
-  CHANNEL_CREATE: 'channelCreate';
+  ChannelCreate: 'channelCreate';
 
   /**
    * Emitted whenever a channel is deleted.
    */
-  CHANNEL_DELETE: 'channelDelete';
+  ChannelDelete: 'channelDelete';
 
   /**
    * Emitted whenever a channel is updated - e.g. name change, topic change, channel type change.
    */
-  CHANNEL_UPDATE: 'channelUpdate';
+  ChannelUpdate: 'channelUpdate';
 
   /**
    * Emitted whenever the pins of a channel are updated. Due to the nature of the WebSocket event,
    * not much information can be provided easily here - you need to manually check the pins yourself.
    */
-  CHANNEL_PINS_UPDATE: 'channelPinsUpdate';
+  ChannelPinsUpdate: 'channelPinsUpdate';
 
   /**
    * Emitted whenever a message is created.
    */
-  MESSAGE_CREATE: 'messageCreate';
+  MessageCreate: 'messageCreate';
 
   /**
    * Emitted whenever a message is deleted.
    */
-  MESSAGE_DELETE: 'messageDelete';
+  MessageDelete: 'messageDelete';
 
   /**
    * Emitted whenever a message is updated - e.g. embed or content change.
    */
-  MESSAGE_UPDATE: 'messageUpdate';
+  MessageUpdate: 'messageUpdate';
 
   /**
    * Emitted whenever messages are deleted in bulk.
    */
-  MESSAGE_BULK_DELETE: 'messageDeleteBulk';
+  MessageBulkDelete: 'messageDeleteBulk';
 
   /**
    * Emitted whenever a reaction is added to a cached message.
    */
-  MESSAGE_REACTION_ADD: 'messageReactionAdd';
+  MessageReactionAdd: 'messageReactionAdd';
 
   /**
    * Emitted whenever a reaction is removed from a cached message.
    */
-  MESSAGE_REACTION_REMOVE: 'messageReactionRemove';
+  MessageReactionRemove: 'messageReactionRemove';
 
   /**
    * Emitted whenever all reactions are removed from a cached message.
    */
-  MESSAGE_REACTION_REMOVE_ALL: 'messageReactionRemoveAll';
+  MessageReactionRemoveAll: 'messageReactionRemoveAll';
 
   /**
    * Emitted when a bot removes an emoji reaction from a cached message.
    */
-  MESSAGE_REACTION_REMOVE_EMOJI: 'messageReactionRemoveEmoji';
+  MessageReactionRemoveEmoji: 'messageReactionRemoveEmoji';
 
   /**
    * Emitted whenever a thread is created or when the client user is added to a thread.
    */
-  THREAD_CREATE: 'threadCreate';
+  ThreadCreate: 'threadCreate';
 
   /**
    * Emitted whenever a thread is deleted.
    */
-  THREAD_DELETE: 'threadDelete';
+  ThreadDelete: 'threadDelete';
 
   /**
    * Emitted whenever a thread is updated - e.g. name change, archive state change, locked state change.
    */
-  THREAD_UPDATE: 'threadUpdate';
+  ThreadUpdate: 'threadUpdate';
 
   /**
    * Emitted whenever the client user gains access to a text or news channel that contains threads
    */
-  THREAD_LIST_SYNC: 'threadListSync';
+  ThreadListSync: 'threadListSync';
 
   /**
    * Emitted whenever the client user's thread member is updated.
    */
-  THREAD_MEMBER_UPDATE: 'threadMemberUpdate';
+  ThreadMemberUpdate: 'threadMemberUpdate';
 
   /**
    * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
    */
-  THREAD_MEMBERS_UPDATE: 'threadMembersUpdate';
+  ThreadMembersUpdate: 'threadMembersUpdate';
 
   /**
    * Emitted whenever a user's details (e.g. username) are changed.
    * Triggered by the Discord gateway events USER_UPDATE, GUILD_MEMBER_UPDATE, and PRESENCE_UPDATE.
    */
-  USER_UPDATE: 'userUpdate';
+  UserUpdate: 'userUpdate';
 
   /**
    * Emitted whenever a guild member's presence (e.g. status, activity) is changed.
    */
-  PRESENCE_UPDATE: 'presenceUpdate';
+  PresenceUpdate: 'presenceUpdate';
 
-  VOICE_SERVER_UPDATE: 'voiceServerUpdate';
+  VoiceServerUpdate: 'voiceServerUpdate';
 
   /**
    * Emitted whenever a member changes voice state - e.g. joins/leaves a channel, mutes/unmutes.
    */
-  VOICE_STATE_UPDATE: 'voiceStateUpdate';
+  VoiceStateUpdate: 'voiceStateUpdate';
 
   /**
    * Emitted whenever a user starts typing in a channel.
    */
-  TYPING_START: 'typingStart';
+  TypingStart: 'typingStart';
 
   /**
    * Emitted whenever a channel has its webhooks changed.
    */
-  WEBHOOKS_UPDATE: 'webhookUpdate';
+  WebhooksUpdate: 'webhookUpdate';
 
   /**
    * Emitted when an interaction is created.
    */
-  INTERACTION_CREATE: 'interactionCreate';
+  InteractionCreate: 'interactionCreate';
 
   /**
    * Emitted when the client encounters an error.
    */
-  ERROR: 'error';
+  Error: 'error';
 
   /**
    * Emitted for general warnings.
    */
-  WARN: 'warn';
+  Warn: 'warn';
 
   /**
    * Emitted for general debugging information.
    */
-  DEBUG: 'debug';
+  Debug: 'debug';
 
-  CACHE_SWEEP: 'cacheSweep';
+  CacheSweep: 'cacheSweep';
 
   /**
    * Emitted when a shard's WebSocket disconnects and will no longer reconnect.
    */
-  SHARD_DISCONNECT: 'shardDisconnect';
+  ShardDisconnect: 'shardDisconnect';
 
   /**
    * Emitted whenever a shard's WebSocket encounters a connection error.
    */
-  SHARD_ERROR: 'shardError';
+  ShardError: 'shardError';
 
   /**
    * Emitted when a shard is attempting to reconnect or re-identify.
    */
-  SHARD_RECONNECTING: 'shardReconnecting';
+  ShardReconnecting: 'shardReconnecting';
 
   /**
    * Emitted when a shard turns ready.
    */
-  SHARD_READY: 'shardReady';
+  ShardReady: 'shardReady';
 
   /**
    * Emitted when a shard resumes successfully.
    */
-  SHARD_RESUME: 'shardResume';
+  ShardResume: 'shardResume';
 
   /**
    * Emitted when the client's session becomes invalidated.
    * You are expected to handle closing the process gracefully and preventing a boot loop
    * if you are listening to this event.
    */
-  INVALIDATED: 'invalidated';
+  Invalidated: 'invalidated';
 
-  RAW: 'raw';
+  Raw: 'raw';
 
   /**
    * Emitted whenever a stage instance is created.
    */
-  STAGE_INSTANCE_CREATE: 'stageInstanceCreate';
+  StageInstanceCreate: 'stageInstanceCreate';
 
   /**
    * Emitted whenever a stage instance gets updated - e.g. change in topic or privacy level
    */
-  STAGE_INSTANCE_UPDATE: 'stageInstanceUpdate';
+  StageInstanceUpdate: 'stageInstanceUpdate';
 
   /**
    * Emitted whenever a stage instance is deleted.
    */
-  STAGE_INSTANCE_DELETE: 'stageInstanceDelete';
+  StageInstanceDelete: 'stageInstanceDelete';
 
   /**
    * Emitted whenever a custom sticker is created in a guild.
    */
-  GUILD_STICKER_CREATE: 'stickerCreate';
+  GuildStickerCreate: 'stickerCreate';
 
   /**
    * Emitted whenever a custom sticker is deleted in a guild.
    */
-  GUILD_STICKER_DELETE: 'stickerDelete';
+  GuildStickerDelete: 'stickerDelete';
 
   /**
    * Emitted whenever a custom sticker is updated in a guild.
    */
-  GUILD_STICKER_UPDATE: 'stickerUpdate';
+  GuildStickerUpdate: 'stickerUpdate';
 
   /**
    * Emitted whenever a guild scheduled event is created.
    */
-  GUILD_SCHEDULED_EVENT_CREATE: 'guildScheduledEventCreate';
+  GuildScheduledEventCreate: 'guildScheduledEventCreate';
 
   /**
    * Emitted whenever a guild scheduled event gets updated.
    */
-  GUILD_SCHEDULED_EVENT_UPDATE: 'guildScheduledEventUpdate';
+  GuildScheduledEventUpdate: 'guildScheduledEventUpdate';
 
   /**
    * Emitted whenever a guild scheduled event is deleted.
    */
-  GUILD_SCHEDULED_EVENT_DELETE: 'guildScheduledEventDelete';
+  GuildScheduledEventDelete: 'guildScheduledEventDelete';
 
   /**
    * Emitted whenever a user subscribes to a guild scheduled event
    */
-  GUILD_SCHEDULED_EVENT_USER_ADD: 'guildScheduledEventUserAdd';
+  GuildScheduledEventUserAdd: 'guildScheduledEventUserAdd';
 
   /**
    * Emitted whenever a user unsubscribes from a guild scheduled event
    */
-  GUILD_SCHEDULED_EVENT_USER_REMOVE: 'guildScheduledEventUserRemove';
-}
+  GuildScheduledEventUserRemove: 'guildScheduledEventUserRemove';
+};
 
-export interface ConstantsOpcodes {
-  DISPATCH: 0;
-  HEARTBEAT: 1;
-  IDENTIFY: 2;
-  STATUS_UPDATE: 3;
-  VOICE_STATE_UPDATE: 4;
-  VOICE_GUILD_PING: 5;
-  RESUME: 6;
-  RECONNECT: 7;
-  REQUEST_GUILD_MEMBERS: 8;
-  INVALID_SESSION: 9;
-  HELLO: 10;
-  HEARTBEAT_ACK: 11;
-}
-
-export interface ConstantsShardEvents {
-  CLOSE: 'close';
-  DESTROYED: 'destroyed';
-  INVALID_SESSION: 'invalidSession';
-  READY: 'ready';
-  RESUMED: 'resumed';
+export enum ShardEvents {
+  Close = 'close',
+  Destroyed = 'destroyed',
+  InvalidSession = 'invalidSession',
+  Ready = 'ready',
+  Resumed = 'resumed',
+  AllReady = 'allReady',
 }
 
 /**
  * The current status of the client.
  */
-export interface ConstantsStatus {
-  READY: 0;
-  CONNECTING: 1;
-  RECONNECTING: 2;
-  IDLE: 3;
-  NEARLY: 4;
-  DISCONNECTED: 5;
+export enum Status {
+  Ready = 0,
+  Connecting = 1,
+  Reconnecting = 2,
+  Idle = 3,
+  Nearly = 4,
+  Disconnected = 5,
 }
 
 /**
@@ -15646,10 +15692,10 @@ interface GuildAuditLogsTypes {
   StageInstanceDelete: ['StageInstance', 'Delete'];
   StickerCreate: ['Sticker', 'Create'];
   StickerUpdate: ['Sticker', 'Update'];
-  StickerDelete: ['Sticket', 'Delete'];
-  GUILD_SCHEDULED_EVENT_CREATE: ['GuildScheduledEvent', 'Create'];
-  GUILD_SCHEDULED_EVENT_UPDATE: ['GuildScheduledEvent', 'Update'];
-  GUILD_SCHEDULED_EVENT_DELETE: ['GuildScheduledEvent', 'Delete'];
+  StickerDelete: ['Sticker', 'Delete'];
+  GuildScheduledEventCreate: ['GuildScheduledEvent', 'Create'];
+  GuildScheduledEventUpdate: ['GuildScheduledEvent', 'Update'];
+  GuildScheduledEventDelete: ['GuildScheduledEvent', 'Delete'];
   ThreadCreate: ['Thread', 'Create'];
   ThreadUpdate: ['Thread', 'Update'];
   ThreadDelete: ['Thread', 'Delete'];
@@ -15790,22 +15836,6 @@ export type GuildAuditLogsTargets = {
  * Data that resolves to give a GuildBan object.
  */
 export type GuildBanResolvable = GuildBan | UserResolvable;
-
-/**
- * Extra information about the overwrite
- */
-export interface GuildChannelOverwriteOptions {
-  /**
-   * Reason for creating/editing this overwrite
-   */
-  reason?: string;
-
-  /**
-   * The type of overwrite, either `0` for a role or `1` for a member. Use this to bypass
-   * automatic resolution of type that results in an error for uncached structure
-   */
-  type?: number;
-}
 
 /**
  * Data that can be resolved to give a Guild Channel object.
@@ -16527,7 +16557,7 @@ export interface InviteGenerationOptions {
   /**
    * Scopes that should be requested
    */
-  scopes: InviteScope[];
+  scopes: OAuth2Scopes[];
 }
 
 /**
@@ -16597,37 +16627,6 @@ export interface CreateInviteOptions {
  * Data that resolves to give an Invite object.
  */
 export type InviteResolvable = string;
-
-/**
- * A valid scope to request when generating an invite link.
- * <warn>Scopes that require whitelist are not considered valid for this generator</warn>
- * * `applications.builds.read`: allows reading build data for a users applications
- * * `applications.commands`: allows this bot to create commands in the server
- * * `applications.entitlements`: allows reading entitlements for a users applications
- * * `applications.store.update`: allows reading and updating of store data for a users applications
- * * `bot`: makes the bot join the selected guild
- * * `connections`: makes the endpoint for getting a users connections available
- * * `email`: allows the `/users/@me` endpoint return with an email
- * * `identify`: allows the `/users/@me` endpoint without an email
- * * `guilds`: makes the `/users/@me/guilds` endpoint available for a user
- * * `guilds.join`: allows the bot to join the user to any guild it is in using Guild#addMember
- * * `gdm.join`: allows joining the user to a group dm
- * * `webhook.incoming`: generates a webhook to a channel
- * @see {@link [OAuth2 Scopes](https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes)}
- */
-export type InviteScope =
-  | 'applications.builds.read'
-  | 'applications.commands'
-  | 'applications.entitlements'
-  | 'applications.store.update'
-  | 'bot'
-  | 'connections'
-  | 'email'
-  | 'identify'
-  | 'guilds'
-  | 'guilds.join'
-  | 'gdm.join'
-  | 'webhook.incoming';
 
 /**
  * Options for generating a filter function based on lifetime
@@ -17292,7 +17291,7 @@ export interface PartialDMChannel extends Partialize<DMChannel, null, null, 'las
   lastMessageId: undefined;
 }
 
-export interface PartialGuildMember extends Partialize<GuildMember, 'joinedAt' | 'joinedTimestamp'> {}
+export interface PartialGuildMember extends Partialize<GuildMember, 'joinedAt' | 'joinedTimestamp' | 'pending'> {}
 
 export interface PartialMessage
   extends Partialize<Message, 'type' | 'system' | 'pinned' | 'tts', 'content' | 'cleanContent' | 'author'> {}
@@ -17640,7 +17639,7 @@ export interface StartThreadOptions {
  * * IDENTIFYING: 7
  * * RESUMING: 8
  */
-export type Status = number;
+export type ClientStatus = number;
 
 /**
  * Data that resolves to give a Sticker object.
@@ -18109,59 +18108,6 @@ export interface WelcomeScreenEditData {
   welcomeChannels?: WelcomeChannelData[];
 }
 
-/**
- * The type of a WebSocket message event, e.g. `MESSAGE_CREATE`.
- * @see {@link [Gateway Events](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events)}
- */
-export type WSEventType =
-  | 'READY'
-  | 'RESUMED'
-  | 'GUILD_CREATE'
-  | 'GUILD_DELETE'
-  | 'GUILD_UPDATE'
-  | 'INVITE_CREATE'
-  | 'INVITE_DELETE'
-  | 'GUILD_MEMBER_ADD'
-  | 'GUILD_MEMBER_REMOVE'
-  | 'GUILD_MEMBER_UPDATE'
-  | 'GUILD_MEMBERS_CHUNK'
-  | 'GUILD_ROLE_CREATE'
-  | 'GUILD_ROLE_DELETE'
-  | 'GUILD_ROLE_UPDATE'
-  | 'GUILD_BAN_ADD'
-  | 'GUILD_BAN_REMOVE'
-  | 'GUILD_EMOJIS_UPDATE'
-  | 'GUILD_INTEGRATIONS_UPDATE'
-  | 'CHANNEL_CREATE'
-  | 'CHANNEL_DELETE'
-  | 'CHANNEL_UPDATE'
-  | 'CHANNEL_PINS_UPDATE'
-  | 'MESSAGE_CREATE'
-  | 'MESSAGE_DELETE'
-  | 'MESSAGE_UPDATE'
-  | 'MESSAGE_DELETE_BULK'
-  | 'MESSAGE_REACTION_ADD'
-  | 'MESSAGE_REACTION_REMOVE'
-  | 'MESSAGE_REACTION_REMOVE_ALL'
-  | 'MESSAGE_REACTION_REMOVE_EMOJI'
-  | 'THREAD_CREATE'
-  | 'THREAD_UPDATE'
-  | 'THREAD_DELETE'
-  | 'THREAD_LIST_SYNC'
-  | 'THREAD_MEMBER_UPDATE'
-  | 'THREAD_MEMBERS_UPDATE'
-  | 'USER_UPDATE'
-  | 'PRESENCE_UPDATE'
-  | 'TYPING_START'
-  | 'VOICE_STATE_UPDATE'
-  | 'VOICE_SERVER_UPDATE'
-  | 'WEBHOOKS_UPDATE'
-  | 'INTERACTION_CREATE'
-  | 'STAGE_INSTANCE_CREATE'
-  | 'STAGE_INSTANCE_UPDATE'
-  | 'STAGE_INSTANCE_DELETE'
-  | 'GUILD_STICKERS_UPDATE';
-
 export type Serialized<T> = T extends symbol | bigint | (() => any)
   ? never
   : T extends number | string | boolean | undefined
@@ -18218,7 +18164,10 @@ export {
   GuildMFALevel,
   GuildNSFWLevel,
   GuildPremiumTier,
+  GatewayCloseCodes,
+  GatewayDispatchEvents,
   GatewayIntentBits,
+  GatewayOpcodes,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
   GuildScheduledEventStatus,
@@ -18228,6 +18177,7 @@ export {
   InviteTargetType,
   MessageType,
   MessageFlags,
+  OAuth2Scopes,
   PermissionFlagsBits,
   RESTJSONErrorCodes,
   StageInstancePrivacyLevel,

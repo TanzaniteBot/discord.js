@@ -22,9 +22,9 @@ const PresenceManager = require('../managers/PresenceManager');
 const RoleManager = require('../managers/RoleManager');
 const StageInstanceManager = require('../managers/StageInstanceManager');
 const VoiceStateManager = require('../managers/VoiceStateManager');
-const { Status } = require('../util/Constants');
 const DataResolver = require('../util/DataResolver');
 const Partials = require('../util/Partials');
+const Status = require('../util/Status');
 const SystemChannelFlagsBitField = require('../util/SystemChannelFlagsBitField');
 const Util = require('../util/Util');
 
@@ -1249,7 +1249,7 @@ class Guild extends AnonymousGuild {
       this.client.voice.adapters.set(this.id, methods);
       return {
         sendPayload: data => {
-          if (this.shard.status !== Status.READY) return false;
+          if (this.shard.status !== Status.Ready) return false;
           this.shard.send(data);
           return true;
         },
