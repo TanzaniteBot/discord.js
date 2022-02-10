@@ -97,8 +97,3 @@ class StickerPack extends Base {
 }
 
 module.exports = StickerPack;
-
-/**
- * @external APIStickerPack
- * @see {@link https://discord.com/developers/docs/resources/sticker#sticker-pack-object}
- */

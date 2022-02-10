@@ -1,5 +1,5 @@
 {
-	"name": "@notenoughupdates/rest",
+	"name": "@discordjs/rest",
 	"version": "0.3.0-dev",
 	"description": "The REST API for discord.js",
 	"scripts": {

@@ -62,8 +62,3 @@ class GuildBan extends Base {
 }
 
 module.exports = GuildBan;
-
-/**
- * @external APIBanData
- * @see {@link https://discord.com/developers/docs/resources/guild#create-guild-ban-json-params}
- */

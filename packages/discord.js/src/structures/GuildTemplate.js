@@ -247,9 +247,3 @@ class GuildTemplate extends Base {
 GuildTemplate.GUILD_TEMPLATES_PATTERN = /discord(?:app)?\.(?:com\/template|new)\/([\w-]{2,255})/gi;
 
 module.exports = GuildTemplate;
-
-/* eslint-disable max-len */
-/**
- * @external APIGuildTemplate
- * @see {@link https://discord.com/developers/docs/resources/guild-template#guild-template-object-guild-template-structure}
- */

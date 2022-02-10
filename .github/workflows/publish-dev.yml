@@ -16,8 +16,8 @@ jobs:
           #   folder: 'collection'
           - package: '@notenoughupdates/discord.js'
             folder: 'discord.js'
-          - package: '@notenoughupdates/rest'
-            folder: 'rest'
+          # - package: '@discordjs/rest'
+          #   folder: 'rest'
           # - package: '@discordjs/voice'
           #   folder: 'voice'
     runs-on: ubuntu-latest

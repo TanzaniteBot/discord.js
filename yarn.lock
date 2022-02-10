@@ -1818,21 +1818,40 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@discordjs/rest@npm:@notenoughupdates/rest@dev":
-  version: 0.3.0-dev.1644082504.d5ed9fc6
-  resolution: "@notenoughupdates/rest@npm:0.3.0-dev.1644082504.d5ed9fc6"
+"@discordjs/rest@workspace:^, @discordjs/rest@workspace:packages/rest":
+  version: 0.0.0-use.local
+  resolution: "@discordjs/rest@workspace:packages/rest"
   dependencies:
+    "@babel/core": ^7.17.0
+    "@babel/plugin-proposal-decorators": ^7.17.0
+    "@babel/preset-env": ^7.16.11
+    "@babel/preset-typescript": ^7.16.7
     "@discordjs/collection": "workspace:^"
+    "@discordjs/ts-docgen": ^0.3.4
     "@sapphire/async-queue": ^1.2.0
     "@sapphire/snowflake": ^3.1.0
+    "@types/jest": ^27.4.0
     "@types/node-fetch": ^2.5.12
+    "@typescript-eslint/eslint-plugin": ^5.10.2
+    "@typescript-eslint/parser": ^5.10.2
+    babel-plugin-const-enum: ^1.2.0
+    babel-plugin-transform-typescript-metadata: ^0.3.2
     discord-api-types: ^0.26.1
+    eslint: ^8.8.0
+    eslint-config-marine: ^9.3.2
+    eslint-config-prettier: ^8.3.0
+    eslint-plugin-prettier: ^4.0.0
     form-data: ^4.0.0
+    jest: ^27.4.7
+    nock: ^13.2.4
     node-fetch: ^2.6.7
+    prettier: ^2.5.1
     tslib: ^2.3.1
-  checksum: eb03e5a4e1dfb5e1b80ae4c5f25f097876a7a0713232bd945b6c273ddf186ff8402368c3bd4d09106dc4ca731535758c9d3619d6d1b1283a29c13b704eb5acdf
-  languageName: node
-  linkType: hard
+    tsup: ^5.11.13
+    typedoc: ^0.22.11
+    typescript: ^4.5.5
+  languageName: unknown
+  linkType: soft
 
 "@discordjs/ts-docgen@npm:^0.3.2, @discordjs/ts-docgen@npm:^0.3.4":
   version: 0.3.4
@@ -2217,7 +2236,7 @@ __metadata:
     "@discordjs/builders": "workspace:^"
     "@discordjs/collection": "workspace:^"
     "@discordjs/docgen": ^0.11.0
-    "@discordjs/rest": "npm:@notenoughupdates/rest@dev"
+    "@discordjs/rest": "workspace:^"
     "@sapphire/snowflake": ^3.1.0
     "@types/node": ^16.11.12
     "@types/ws": ^8.2.2
@@ -2236,41 +2255,6 @@ __metadata:
     tslint: ^6.1.3
     typescript: ^4.5.5
     ws: ^8.4.2
-  languageName: unknown
-  linkType: soft
-
-"@notenoughupdates/rest@workspace:packages/rest":
-  version: 0.0.0-use.local
-  resolution: "@notenoughupdates/rest@workspace:packages/rest"
-  dependencies:
-    "@babel/core": ^7.17.0
-    "@babel/plugin-proposal-decorators": ^7.17.0
-    "@babel/preset-env": ^7.16.11
-    "@babel/preset-typescript": ^7.16.7
-    "@discordjs/collection": "workspace:^"
-    "@discordjs/ts-docgen": ^0.3.4
-    "@sapphire/async-queue": ^1.2.0
-    "@sapphire/snowflake": ^3.1.0
-    "@types/jest": ^27.4.0
-    "@types/node-fetch": ^2.5.12
-    "@typescript-eslint/eslint-plugin": ^5.10.2
-    "@typescript-eslint/parser": ^5.10.2
-    babel-plugin-const-enum: ^1.2.0
-    babel-plugin-transform-typescript-metadata: ^0.3.2
-    discord-api-types: ^0.26.1
-    eslint: ^8.8.0
-    eslint-config-marine: ^9.3.2
-    eslint-config-prettier: ^8.3.0
-    eslint-plugin-prettier: ^4.0.0
-    form-data: ^4.0.0
-    jest: ^27.4.7
-    nock: ^13.2.4
-    node-fetch: ^2.6.7
-    prettier: ^2.5.1
-    tslib: ^2.3.1
-    tsup: ^5.11.13
-    typedoc: ^0.22.11
-    typescript: ^4.5.5
   languageName: unknown
   linkType: soft
 
