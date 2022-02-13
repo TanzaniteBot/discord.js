@@ -276,7 +276,11 @@ class GuildMember extends Base {
    * @readonly
    */
   get moderatable() {
-    return this.manageable && (this.guild.me?.permissions.has(PermissionFlagsBits.ModerateMembers) ?? false);
+    return (
+      !this.permissions.has(PermissionFlagsBits.Administrator) &&
+      this.manageable &&
+      (this.guild.me?.permissions.has(PermissionFlagsBits.ModerateMembers) ?? false)
+    );
   }
 
   /**
@@ -351,7 +355,7 @@ class GuildMember extends Base {
    * @returns {Promise<GuildMember>}
    * @example
    * // ban a guild member
-   * guildMember.ban({ days: 7, reason: 'They deserved it' })
+   * guildMember.ban({ deleteMessageDays: 7, reason: 'They deserved it' })
    *   .then(console.log)
    *   .catch(console.error);
    */

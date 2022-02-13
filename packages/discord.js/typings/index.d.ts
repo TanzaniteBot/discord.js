@@ -1,13 +1,13 @@
 import {
-  ActionRow,
+  ActionRow as BuilderActionRow,
   ActionRowComponent,
   blockQuote,
   bold,
-  ButtonComponent,
+  ButtonComponent as BuilderButtonComponent,
   channelMention,
   codeBlock,
   Component,
-  Embed,
+  Embed as BuildersEmbed,
   formatEmoji,
   hideLinkEmbed,
   hyperlink,
@@ -16,7 +16,7 @@ import {
   memberNicknameMention,
   quote,
   roleMention,
-  SelectMenuComponent,
+  SelectMenuComponent as BuilderSelectMenuComponent,
   spoiler,
   strikethrough,
   time,
@@ -90,6 +90,8 @@ import {
   GuildSystemChannelFlags,
   GatewayIntentBits,
   ActivityFlags,
+  APIMessageComponentEmoji,
+  EmbedType,
 } from 'discord-api-types/v9';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -267,6 +269,20 @@ export class Activity {
 }
 
 export type ActivityFlagsString = keyof typeof ActivityFlags;
+
+export interface BaseComponentData {
+  type?: ComponentType;
+}
+
+export type ActionRowComponentData = ButtonComponentData | SelectMenuComponentData;
+
+export interface ActionRowData extends BaseComponentData {
+  components: ActionRowComponentData[];
+}
+
+export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extends BuilderActionRow<T> {
+  constructor(data?: ActionRowData | APIActionRowComponent<APIMessageComponent>);
+}
 
 /**
  * Data structure that makes it easy to interact with an {@link Activity.flags} bitfield.
@@ -1356,6 +1372,42 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
    * Indicates whether or not this interaction is received from an uncached guild.
    */
   public inRawGuild(): this is ButtonInteraction<'raw'>;
+}
+
+export class ButtonComponent extends BuilderButtonComponent {
+  public constructor(data?: ButtonComponentData | APIButtonComponent);
+}
+
+export class SelectMenuComponent extends BuilderSelectMenuComponent {
+  public constructor(data?: SelectMenuComponentData | APISelectMenuComponent);
+}
+
+export interface EmbedData {
+  title?: string;
+  type?: EmbedType;
+  description?: string;
+  url?: string;
+  timestamp?: string;
+  color?: number;
+  footer?: EmbedFooterData;
+  image?: EmbedImageData;
+  thumbnail?: EmbedImageData;
+  provider?: EmbedProviderData;
+  author?: EmbedAuthorData;
+  fields?: EmbedFieldData[];
+}
+
+export interface EmbedImageData {
+  url?: string;
+}
+
+export interface EmbedProviderData {
+  name?: string;
+  url?: string;
+}
+
+export class Embed extends BuildersEmbed {
+  public constructor(data?: EmbedData | APIEmbed);
 }
 
 export interface MappedChannelCategoryTypes {
@@ -3026,7 +3078,7 @@ export class Guild extends AnonymousGuild {
   public maximumMembers: number | null;
 
   /**
-   * The maximum amount of presences the guild can have
+   * The maximum amount of presences the guild can have (this is `null` for all but the largest of guilds)
    * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
    */
   public maximumPresences: number | null;
@@ -4156,7 +4208,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * @param options Options for the ban
    * @example
    * // ban a guild member
-   * guildMember.ban({ days: 7, reason: 'They deserved it' })
+   * guildMember.ban({ deleteMessageDays: 7, reason: 'They deserved it' })
    *   .then(console.log)
    *   .catch(console.error);
    */
@@ -5534,6 +5586,7 @@ export interface MappedInteractionTypes<Cached extends boolean = boolean> {
   [ComponentType.Button]: ButtonInteraction<WrapBooleanCache<Cached>>;
   [ComponentType.SelectMenu]: SelectMenuInteraction<WrapBooleanCache<Cached>>;
   [ComponentType.ActionRow]: MessageComponentInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.TextInput]: never;
 }
 
 /**
@@ -6130,9 +6183,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public readonly component: CacheTypeReducer<
     Cached,
     ActionRowComponent,
-    Exclude<APIMessageComponent, APIActionRowComponent>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent>
+    Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>
   >;
 
   /**
@@ -9579,6 +9632,28 @@ export class Formatters extends null {
    * @param userId The user id to format.
    */
   public static userMention: typeof userMention;
+}
+
+export type ComponentData = ActionRowComponentData | ButtonComponentData | SelectMenuComponentData;
+
+export class Components extends null {
+  private constructor();
+
+  /**
+   * Transforms json data into api-compatible json data.
+   * @param data The data to transform.
+   */
+  public static transformJSON(data: ComponentData | APIMessageComponent): APIMessageComponent;
+}
+
+export class Embeds extends null {
+  private constructor();
+
+  /**
+   * Transforms json data into api-compatible json data.
+   * @param data The data to transform.
+   */
+  public static transformJSON(data: EmbedData | APIEmbed): APIEmbed;
 }
 
 /**
@@ -13353,7 +13428,7 @@ export interface BanOptions {
    * Number of days of messages to delete, must be between 0 and 7, inclusive
    * @default 0
    */
-  days?: number;
+  deleteMessageDays?: number;
 
   /**
    * The reason for the ban
@@ -13390,16 +13465,6 @@ export interface ThreadMemberFetchOptions extends BaseFetchOptions {
    * The specific user to fetch from the thread
    */
   member?: UserResolvable;
-}
-
-/**
- * Options for a BaseMessageComponent
- */
-export interface BaseMessageComponentOptions {
-  /**
-   * The type of this component
-   */
-  type?: ComponentType;
 }
 
 /**
@@ -16319,6 +16384,11 @@ export interface GuildScheduledEventCreateOptions {
   entityMetadata?: GuildScheduledEventEntityMetadataOptions;
 
   /**
+   * The cover image of the guild scheduled event
+   */
+  image?: BufferResolvable | Base64Resolvable | null;
+
+  /**
    * The reason for creating the guild scheduled event
    */
   reason?: string;
@@ -16446,7 +16516,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The channel to listen to interactions from
    */
-  channel?: TextBasedChannel;
+  channel?: TextBasedChannelResolvable;
 
   /**
    * The type of component to listen for
@@ -16456,7 +16526,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The guild to listen to interactions from
    */
-  guild?: Guild;
+  guild?: GuildResolvable;
 
   /**
    * The type of interaction to listen for
@@ -16679,20 +16749,13 @@ export type MemberMention = UserMention | `<@!${Snowflake}>`;
  * Options for components that can be placed in an action row
  */
 export type ActionRowComponentOptions =
-  | (Required<BaseMessageComponentOptions> & MessageButtonOptions)
-  | (Required<BaseMessageComponentOptions> & MessageSelectMenuOptions);
+  | (Required<BaseComponentData> & ButtonComponentData)
+  | (Required<BaseComponentData> & SelectMenuComponentData);
 
 /**
  * Data that can be resolved into components that can be placed in an action row
  */
 export type MessageActionRowComponentResolvable = ActionRowComponent | ActionRowComponentOptions;
-
-export interface ActionRowOptions extends BaseMessageComponentOptions {
-  /**
-   * The components to place in this action row
-   */
-  components: ActionRowComponent[];
-}
 
 /**
  * Activity sent in a message.
@@ -16709,7 +16772,7 @@ export interface MessageActivity {
   type: number;
 }
 
-export interface BaseButtonOptions extends BaseMessageComponentOptions {
+export interface BaseButtonComponentData extends BaseComponentData {
   /**
    * Disables the button to prevent interactions
    */
@@ -16718,7 +16781,7 @@ export interface BaseButtonOptions extends BaseMessageComponentOptions {
   /**
    * The emoji to be displayed to the left of the text
    */
-  emoji?: EmojiIdentifierResolvable;
+  emoji?: APIMessageComponentEmoji;
 
   /**
    * The text to be displayed on this button
@@ -16726,11 +16789,11 @@ export interface BaseButtonOptions extends BaseMessageComponentOptions {
   label?: string;
 }
 
-export interface LinkButtonOptions extends BaseButtonOptions {
+export interface LinkButtonComponentData extends BaseButtonComponentData {
   /**
    * The style of this button
    */
-  style: 'Link' | ButtonStyle.Link;
+  style: ButtonStyle.Link;
 
   /**
    * Optional URL for link-style buttons
@@ -16738,7 +16801,7 @@ export interface LinkButtonOptions extends BaseButtonOptions {
   url: string;
 }
 
-export interface InteractionButtonOptions extends BaseButtonOptions {
+export interface InteractionButtonComponentData extends BaseButtonComponentData {
   /**
    * The style of this button
    */
@@ -16750,7 +16813,7 @@ export interface InteractionButtonOptions extends BaseButtonOptions {
   customId: string;
 }
 
-export type MessageButtonOptions = InteractionButtonOptions | LinkButtonOptions;
+export type ButtonComponentData = InteractionButtonComponentData | LinkButtonComponentData;
 
 export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
   /**
@@ -16779,15 +16842,6 @@ export type MessageChannelComponentCollectorOptions<T extends MessageComponentIn
   InteractionCollectorOptions<T>,
   'channel' | 'guild' | 'interactionType'
 >;
-
-/**
- * Data that can be resolved into options for a MessageComponent.
- */
-export type MessageComponentOptions =
-  | BaseMessageComponentOptions
-  | ActionRowOptions
-  | MessageButtonOptions
-  | MessageSelectMenuOptions;
 
 export interface MessageEditOptions {
   /**
@@ -16823,7 +16877,7 @@ export interface MessageEditOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (ActionRow<ActionRowComponent> | (Required<BaseMessageComponentOptions> & ActionRowOptions))[];
+  components?: (ActionRow<ActionRowComponent> | (Required<BaseComponentData> & ActionRowData))[];
 }
 
 /**
@@ -16952,7 +17006,7 @@ export interface MessageOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (ActionRow<ActionRowComponent> | (Required<BaseMessageComponentOptions> & ActionRowOptions))[];
+  components?: (ActionRow<ActionRowComponent> | (Required<BaseComponentData> & ActionRowData))[];
 
   /**
    * Which mentions should be parsed from the message content
@@ -17030,7 +17084,7 @@ export interface MessageReference {
  */
 export type MessageResolvable = Message | Snowflake;
 
-export interface MessageSelectMenuOptions extends BaseMessageComponentOptions {
+export interface SelectMenuComponentData extends BaseComponentData {
   /**
    * A unique string to be sent in the interaction when clicked
    */
@@ -17054,7 +17108,7 @@ export interface MessageSelectMenuOptions extends BaseMessageComponentOptions {
   /**
    * Options for the select menu
    */
-  options?: MessageSelectOptionData[];
+  options?: SelectMenuComponentOptionData[];
 
   /**
    * Custom placeholder text to display when nothing is selected
@@ -17089,7 +17143,7 @@ export interface MessageSelectOption {
   value: string;
 }
 
-export interface MessageSelectOptionData {
+export interface SelectMenuComponentOptionData {
   /**
    * Render this option as the default selection
    */
@@ -17103,7 +17157,7 @@ export interface MessageSelectOptionData {
   /**
    * Emoji to display for this option
    */
-  emoji?: EmojiIdentifierResolvable;
+  emoji?: APIMessageComponentEmoji;
 
   /**
    * The text to be displayed on this option
@@ -17354,7 +17408,7 @@ export interface ReplyOptions {
 
   /**
    * Whether to error if the referenced message does not exist (creates a standard message in this case when false)
-   * @default true
+   * @default this.client.options.failIfNotExists
    */
   failIfNotExists?: boolean;
 }
@@ -17365,7 +17419,7 @@ export interface ReplyOptions {
 export interface ReplyMessageOptions extends Omit<MessageOptions, 'reply'> {
   /**
    * Whether to error if the referenced message does not exist (creates a standard message in this case when false)
-   * @default true
+   * @default this.client.options.failIfNotExists
    */
   failIfNotExists?: boolean;
 }
@@ -17799,6 +17853,8 @@ export type GuildTextBasedChannel = Extract<GuildBasedChannel, TextBasedChannel>
  */
 export type TextChannelResolvable = Snowflake | TextChannel;
 
+export type TextBasedChannelResolvable = Snowflake | TextBasedChannel;
+
 /**
  * A number that is allowed to be the duration (in minutes) of inactivity after which a thread is automatically
  * archived. This can be:
@@ -18189,15 +18245,11 @@ export {
   WebhookType,
 } from 'discord-api-types/v9';
 export {
-  ActionRow,
-  ButtonComponent,
   UnsafeButtonComponent,
-  SelectMenuComponent,
   UnsafeSelectMenuComponent,
   SelectMenuOption,
   UnsafeSelectMenuOption,
   ActionRowComponent,
-  Embed,
   UnsafeEmbed,
 } from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';
