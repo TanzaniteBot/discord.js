@@ -95,6 +95,7 @@ import {
   EmbedType,
   APIModalInteractionResponseCallbackData,
   APIModalSubmitInteraction,
+  APIMessageActionRowComponent,
 } from 'discord-api-types/v9';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -204,7 +205,7 @@ export interface ActionRowData extends BaseComponentData {
 }
 
 export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extends BuilderActionRow<T> {
-  constructor(data?: ActionRowData | APIActionRowComponent<APIMessageComponent>);
+  constructor(data?: ActionRowData | APIActionRowComponent<APIMessageActionRowComponent>);
 }
 
 export class ActivityFlagsBitField extends BitField<ActivityFlagsString> {
@@ -1624,9 +1625,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public readonly component: CacheTypeReducer<
     Cached,
     ActionRowComponent,
-    Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>
+    Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>,
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>,
+    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>
   >;
   public componentType: Exclude<ComponentType, ComponentType.ActionRow>;
   public customId: string;

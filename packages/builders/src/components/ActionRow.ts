@@ -1,24 +1,29 @@
-import { APIActionRowComponent, APIMessageComponent, APIModalComponent, ComponentType } from 'discord-api-types/v9';
+import { APIActionRowComponent, APIMessageActionRowComponent, ComponentType } from 'discord-api-types/v9';
 import type { ButtonComponent, SelectMenuComponent } from '..';
 import { Component } from './Component';
 import { createComponent } from './Components';
-import type { TextInputComponent } from './InputText';
+import type { UnsafeTextInputComponent } from './textInput/UnsafeTextInput';
 
 export type MessageComponent = ActionRowComponent | ActionRow;
 
 export type ActionRowComponent = ButtonComponent | SelectMenuComponent;
-export type ModalActionRowComponent = TextInputComponent;
+export type ModalActionRowComponent = UnsafeTextInputComponent;
 
 // TODO: Add valid form component types
 /**
  * Represents an action row component
  */
-export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extends Component<
-	Omit<Partial<APIActionRowComponent<APIMessageComponent>> & { type: ComponentType.ActionRow }, 'components'>
+export class ActionRow<
+	T extends ModalActionRowComponent | ActionRowComponent = ModalActionRowComponent | ActionRowComponent,
+> extends Component<
+	Omit<Partial<APIActionRowComponent<APIMessageActionRowComponent>> & { type: ComponentType.ActionRow }, 'components'>
 > {
 	public readonly components: T[];
 
-	public constructor({ components, ...data }: Partial<APIActionRowComponent<APIMessageComponent>> = {}) {
+	public constructor({
+		components,
+		...data
+	}: Partial<APIActionRowComponent<APIMessageActionRowComponent | APIMessageActionRowComponent>> = {}) {
 		super({ type: ComponentType.ActionRow, ...data });
 		this.components = (components?.map((c) => createComponent(c)) ?? []) as T[];
 	}
@@ -42,10 +47,10 @@ export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extend
 		return this;
 	}
 
-	public toJSON(): APIActionRowComponent<APIMessageComponent> {
+	public toJSON(): APIActionRowComponent<ReturnType<T['toJSON']>> {
 		return {
 			...this.data,
-			components: this.components.map((component) => component.toJSON()),
+			components: this.components.map((component) => component.toJSON()) as ReturnType<T['toJSON']>[],
 		};
 	}
 }
