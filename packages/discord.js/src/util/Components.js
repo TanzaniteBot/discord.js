@@ -40,14 +40,26 @@
  */
 
 /**
- * @typedef {ActionRowData|ButtonComponentData|SelectMenuComponentData} ComponentData
+ * @typedef {BaseComponentData} TextInputComponentData
+ * @property {string} customId
+ * @property {TextInputStyle} style
+ * @property {string} label
+ * @property {?number} minLength
+ * @property {?number} maxLength
+ * @property {?boolean} required
+ * @property {?string} value
+ * @property {?string} placeholder
+ */
+
+/**
+ * @typedef {ActionRowData|ButtonComponentData|SelectMenuComponentData|TextInputComponentData} ComponentData
  */
 
 class Components extends null {
   /**
    * Transforms json data into api-compatible json data.
-   * @param {ComponentData|APIMessageComponent} data The data to transform.
-   * @returns {APIMessageComponentData}
+   * @param {ComponentData|APIMessageComponent|TextInputComponentData} data The data to transform.
+   * @returns {APIMessageComponent|APIModalComponent}
    */
   static transformJSON(data) {
     return {
@@ -63,6 +75,9 @@ class Components extends null {
       min_values: data?.minValues ?? data?.min_values,
       max_values: data?.maxValues ?? data?.max_values,
       components: data?.components?.map(c => Components.transformJSON(c)),
+      min_length: data?.minLength ?? data?.min_length,
+      max_length: data?.maxLength ?? data?.max_length,
+      value: data?.value,
     };
   }
 }
