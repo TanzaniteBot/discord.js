@@ -46,6 +46,7 @@ import {
   APIPartialEmoji,
   APIPartialGuild,
   APIRole,
+  APIAttachment,
   APISelectMenuComponent,
   APITemplateSerializedSourceGuild,
   APIUser,
@@ -90,6 +91,7 @@ import {
   GuildSystemChannelFlags,
   GatewayIntentBits,
   ActivityFlags,
+  AuditLogEvent,
   APIMessageComponentEmoji,
   EmbedType,
 } from 'discord-api-types/v9';
@@ -320,6 +322,11 @@ export abstract class AnonymousGuild extends BaseGuild {
    * The NSFW level of this guild
    */
   public nsfwLevel: GuildNSFWLevel;
+
+  /**
+   * The total number of boosts for this server
+   */
+  public premiumSubscriptionCount: number | null;
 
   /**
    * The hash of the guild invite splash image
@@ -789,6 +796,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
     | 'getFocused'
     | 'getMentionable'
     | 'getRole'
+    | 'getAttachment'
     | 'getNumber'
     | 'getInteger'
     | 'getString'
@@ -2331,6 +2339,15 @@ export interface ApplicationCommandInteractionOptionResolver<Cached extends Cach
   getRole(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['role']> | null;
 
   /**
+   * Gets an attachment option.
+   * @param name The name of the option.
+   * @param {} [required=false] Whether to throw an error if the option is not found.
+   * @returns The value of the option, or null if not set and not required.
+   */
+  getAttachment(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['attachment']>;
+  getAttachment(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['attachment']> | null;
+
+  /**
    * Gets a mentionable option.
    * @param name The name of the option.
    * @param {} [required=false] Whether to throw an error if the option is not found.
@@ -2867,6 +2884,12 @@ export class EnumResolvers extends null {
   public static resolveIntegrationExpireBehavior(
     key: IntegrationExpireBehaviorEnumResolvable | IntegrationExpireBehavior,
   ): IntegrationExpireBehavior;
+
+  /**
+   * Resolves enum key to {@link AuditLogEvent} enum value
+   * @param key The key to lookup
+   */
+  public static resolveAuditLogEvent(key: AuditLogEventEnumResolvable | AuditLogEvent): AuditLogEvent;
 }
 
 /**
@@ -3115,11 +3138,6 @@ export class Guild extends AnonymousGuild {
   public preferredLocale: string;
 
   /**
-   * The total number of boosts for this server
-   */
-  public premiumSubscriptionCount: number | null;
-
-  /**
    * Whether this guild has its premium (boost) progress bar enabled
    */
   public premiumProgressBarEnabled: boolean;
@@ -3307,7 +3325,7 @@ export class Guild extends AnonymousGuild {
    *   .then(audit => console.log(audit.entries.first()))
    *   .catch(console.error);
    */
-  public fetchAuditLogs<T extends GuildAuditLogsResolvable = 'All'>(
+  public fetchAuditLogs<T extends GuildAuditLogsResolvable = null>(
     options?: GuildAuditLogsFetchOptions<T>,
   ): Promise<GuildAuditLogs<T>>;
 
@@ -3601,7 +3619,7 @@ export class Guild extends AnonymousGuild {
   public toJSON(): unknown;
 }
 
-export class GuildAuditLogs<T extends GuildAuditLogsResolvable = 'All'> {
+export class GuildAuditLogs<T extends GuildAuditLogsResolvable = null> {
   public constructor(guild: Guild, data: RawGuildAuditLogData);
 
   /**
@@ -3618,11 +3636,6 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = 'All'> {
    * The entries for this guild's audit logs
    */
   public entries: Collection<Snowflake, GuildAuditLogsEntry<T>>;
-
-  /**
-   * All available actions keyed under their names to their numeric values.
-   */
-  public static Actions: GuildAuditLogsActions;
 
   /**
    * Key mirror of all available audit log targets.
@@ -3661,12 +3674,7 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = 'All'> {
  * Audit logs entry.
  */
 export class GuildAuditLogsEntry<
-  TActionRaw extends GuildAuditLogsResolvable = 'All',
-  TAction = TActionRaw extends keyof GuildAuditLogsIds
-    ? GuildAuditLogsIds[TActionRaw]
-    : TActionRaw extends null
-    ? 'All'
-    : TActionRaw,
+  TAction extends GuildAuditLogsResolvable = null,
   TActionType extends GuildAuditLogsActionType = TAction extends keyof GuildAuditLogsTypes
     ? GuildAuditLogsTypes[TAction][1]
     : 'All',
@@ -13134,6 +13142,13 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   channelTypes?: ChannelType[];
 }
 
+export interface ApplicationCommandAttachmentOption extends BaseApplicationCommandOptionsData {
+  /**
+   * The type of the option
+   */
+  type: ApplicationCommandOptionType.Attachment;
+}
+
 export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
@@ -13316,6 +13331,7 @@ export type ApplicationCommandOption =
   | ApplicationCommandChannelOption
   | ApplicationCommandChoicesOption
   | ApplicationCommandNumericOption
+  | ApplicationCommandAttachmentOption
   | ApplicationCommandSubCommand;
 
 /**
@@ -14551,6 +14567,11 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   role?: CacheTypeReducer<Cached, Role, APIRole>;
 
   /**
+   * The resolved attachment
+   */
+  attachment?: Collection<Snowflake, MessageAttachment>;
+
+  /**
    * The resolved message
    */
   message?: GuildCacheMessage<Cached>;
@@ -14584,6 +14605,11 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
    * The resolved messages
    */
   messages?: Collection<Snowflake, CacheTypeReducer<Cached, Message, APIMessage>>;
+
+  /**
+   * The resolved attachments
+   */
+  attachments?: Collection<Snowflake, MessageAttachment>;
 }
 
 export declare const Colors: {
@@ -15295,6 +15321,51 @@ export type GuildScheduledEventEntityTypeEnumResolvable = 'STAGE_INSTANCE' | 'VO
 export type IntegrationExpireBehaviorEnumResolvable = 'REMOVE_ROLE' | 'KICK';
 
 /**
+ * A string that can be resolved to a {@link AuditLogEvent} enum value.
+ */
+export type AuditLogEventEnumResolvable =
+  | 'GUILD_UPDATE'
+  | 'CHANNEL_CREATE'
+  | 'CHANNEL_UPDATE'
+  | 'CHANNEL_DELETE'
+  | 'CHANNEL_OVERWRITE_CREATE'
+  | 'CHANNEL_OVERWRITE_UPDATE'
+  | 'CHANNEL_OVERWRITE_DELETE'
+  | 'MEMBER_KICK'
+  | 'MEMBER_PRUNE'
+  | 'MEMBER_BAN_ADD'
+  | 'MEMBER_BAN_REMOVE'
+  | 'MEMBER_UPDATE'
+  | 'MEMBER_ROLE_UPDATE'
+  | 'MEMBER_MOVE'
+  | 'MEMBER_DISCONNECT'
+  | 'BOT_ADD'
+  | 'ROLE_CREATE'
+  | 'ROLE_UPDATE'
+  | 'ROLE_DELETE'
+  | 'INVITE_CREATE'
+  | 'INVITE_UPDATE'
+  | 'INVITE_DELETE'
+  | 'WEBHOOK_CREATE'
+  | 'WEBHOOK_UPDATE'
+  | 'WEBHOOK_DELETE'
+  | 'INTEGRATION_CREATE'
+  | 'INTEGRATION_UPDATE'
+  | 'INTEGRATION_DELETE'
+  | 'STAGE_INSTANCE_CREATE'
+  | 'STAGE_INSTANCE_UPDATE'
+  | 'STAGE_INSTANCE_DELETE'
+  | 'STICKER_CREATE'
+  | 'STICKER_UPDATE'
+  | 'STICKER_DELETE'
+  | 'GUILD_SCHEDULED_EVENT_CREATE'
+  | 'GUILD_SCHEDULED_EVENT_UPDATE'
+  | 'GUILD_SCHEDULED_EVENT_DELETE'
+  | 'THREAD_CREATE'
+  | 'THREAD_UPDATE'
+  | 'THREAD_DELETE';
+
+/**
  * @external ErrorEvent
  * @see {@link [ErrorEvent](https://developer.mozilla.org/en-US/docs/Web/API/ErrorEvent)}
  */
@@ -15717,137 +15788,83 @@ export interface GuildApplicationCommandPermissionData {
 }
 
 interface GuildAuditLogsTypes {
-  GuildUpdate: ['Guild', 'Update'];
-  ChannelCreate: ['Channel', 'Create'];
-  ChannelUpdate: ['Channel', 'Update'];
-  ChannelDelete: ['Channel', 'Delete'];
-  ChannelOverwriteCreate: ['Channel', 'Create'];
-  ChannelOverwriteUpdate: ['Channel', 'Update'];
-  ChannelOverwriteDelete: ['Channel', 'Delete'];
-  MemberKick: ['User', 'Delete'];
-  MemberPrune: ['User', 'Delete'];
-  MemberBanAdd: ['User', 'Delete'];
-  MemberBanRemove: ['User', 'Create'];
-  MemberUpdate: ['User', 'Update'];
-  MemberRoleUpdate: ['User', 'Update'];
-  MemberMove: ['User', 'Update'];
-  MemberDisconnect: ['User', 'Delete'];
-  BotAdd: ['User', 'Create'];
-  RoleCreate: ['Role', 'Create'];
-  RoleUpdate: ['Role', 'Update'];
-  RoleDelete: ['Role', 'Delete'];
-  InviteCreate: ['Invite', 'Create'];
-  InviteUpdate: ['Invite', 'Update'];
-  InviteDelete: ['Invite', 'Delete'];
-  WebhookCreate: ['Webhook', 'Create'];
-  WebhookUpdate: ['Webhook', 'Update'];
-  WebhookDelete: ['Webhook', 'Delete'];
-  EmojiCreate: ['Emoji', 'Create'];
-  EmojiUpdate: ['Emoji', 'Update'];
-  EmojiDelete: ['Emoji', 'Delete'];
-  MessageDelete: ['Message', 'Delete'];
-  MessageBulkDelete: ['Message', 'Delete'];
-  MessagePin: ['Message', 'Create'];
-  MessageUnpin: ['Message', 'Delete'];
-  IntegrationCreate: ['Integration', 'Create'];
-  IntegrationUpdate: ['Integration', 'Update'];
-  IntegrationDelete: ['Integration', 'Delete'];
-  StageInstanceCreate: ['StageInstance', 'Create'];
-  StageInstanceUpdate: ['StageInstance', 'Update'];
-  StageInstanceDelete: ['StageInstance', 'Delete'];
-  StickerCreate: ['Sticker', 'Create'];
-  StickerUpdate: ['Sticker', 'Update'];
-  StickerDelete: ['Sticker', 'Delete'];
-  GuildScheduledEventCreate: ['GuildScheduledEvent', 'Create'];
-  GuildScheduledEventUpdate: ['GuildScheduledEvent', 'Update'];
-  GuildScheduledEventDelete: ['GuildScheduledEvent', 'Delete'];
-  ThreadCreate: ['Thread', 'Create'];
-  ThreadUpdate: ['Thread', 'Update'];
-  ThreadDelete: ['Thread', 'Delete'];
+  [AuditLogEvent.GuildUpdate]: ['Guild', 'Update'];
+  [AuditLogEvent.ChannelCreate]: ['Channel', 'Create'];
+  [AuditLogEvent.ChannelUpdate]: ['Channel', 'Update'];
+  [AuditLogEvent.ChannelDelete]: ['Channel', 'Delete'];
+  [AuditLogEvent.ChannelOverwriteCreate]: ['Channel', 'Create'];
+  [AuditLogEvent.ChannelOverwriteUpdate]: ['Channel', 'Update'];
+  [AuditLogEvent.ChannelOverwriteDelete]: ['Channel', 'Delete'];
+  [AuditLogEvent.MemberKick]: ['User', 'Delete'];
+  [AuditLogEvent.MemberPrune]: ['User', 'Delete'];
+  [AuditLogEvent.MemberBanAdd]: ['User', 'Delete'];
+  [AuditLogEvent.MemberBanRemove]: ['User', 'Create'];
+  [AuditLogEvent.MemberUpdate]: ['User', 'Update'];
+  [AuditLogEvent.MemberRoleUpdate]: ['User', 'Update'];
+  [AuditLogEvent.MemberMove]: ['User', 'Update'];
+  [AuditLogEvent.MemberDisconnect]: ['User', 'Delete'];
+  [AuditLogEvent.BotAdd]: ['User', 'Create'];
+  [AuditLogEvent.RoleCreate]: ['Role', 'Create'];
+  [AuditLogEvent.RoleUpdate]: ['Role', 'Update'];
+  [AuditLogEvent.RoleDelete]: ['Role', 'Delete'];
+  [AuditLogEvent.InviteCreate]: ['Invite', 'Create'];
+  [AuditLogEvent.InviteUpdate]: ['Invite', 'Update'];
+  [AuditLogEvent.InviteDelete]: ['Invite', 'Delete'];
+  [AuditLogEvent.WebhookCreate]: ['Webhook', 'Create'];
+  [AuditLogEvent.WebhookUpdate]: ['Webhook', 'Update'];
+  [AuditLogEvent.WebhookDelete]: ['Webhook', 'Delete'];
+  [AuditLogEvent.EmojiCreate]: ['Emoji', 'Create'];
+  [AuditLogEvent.EmojiUpdate]: ['Emoji', 'Update'];
+  [AuditLogEvent.EmojiDelete]: ['Emoji', 'Delete'];
+  [AuditLogEvent.MessageDelete]: ['Message', 'Delete'];
+  [AuditLogEvent.MessageBulkDelete]: ['Message', 'Delete'];
+  [AuditLogEvent.MessagePin]: ['Message', 'Create'];
+  [AuditLogEvent.MessageUnpin]: ['Message', 'Delete'];
+  [AuditLogEvent.IntegrationCreate]: ['Integration', 'Create'];
+  [AuditLogEvent.IntegrationUpdate]: ['Integration', 'Update'];
+  [AuditLogEvent.IntegrationDelete]: ['Integration', 'Delete'];
+  [AuditLogEvent.StageInstanceCreate]: ['StageInstance', 'Create'];
+  [AuditLogEvent.StageInstanceUpdate]: ['StageInstance', 'Update'];
+  [AuditLogEvent.StageInstanceDelete]: ['StageInstance', 'Delete'];
+  [AuditLogEvent.StickerCreate]: ['Sticker', 'Create'];
+  [AuditLogEvent.StickerUpdate]: ['Sticker', 'Update'];
+  [AuditLogEvent.StickerDelete]: ['Sticker', 'Delete'];
+  [AuditLogEvent.GuildScheduledEventCreate]: ['GuildScheduledEvent', 'Create'];
+  [AuditLogEvent.GuildScheduledEventUpdate]: ['GuildScheduledEvent', 'Update'];
+  [AuditLogEvent.GuildScheduledEventDelete]: ['GuildScheduledEvent', 'Delete'];
+  [AuditLogEvent.ThreadCreate]: ['Thread', 'Create'];
+  [AuditLogEvent.ThreadUpdate]: ['Thread', 'Update'];
+  [AuditLogEvent.ThreadDelete]: ['Thread', 'Delete'];
 }
-
-export interface GuildAuditLogsIds {
-  1: 'GuildUpdate';
-  10: 'ChannelCreate';
-  11: 'ChannelUpdate';
-  12: 'ChannelDelete';
-  13: 'ChannelOverwriteCreate';
-  14: 'ChannelOverwriteUpdate';
-  15: 'ChannelOverwriteDelete';
-  20: 'MemberKick';
-  21: 'MemberPrune';
-  22: 'MemberBanAdd';
-  23: 'MemberBanRemove';
-  24: 'MemberUpdate';
-  25: 'MemberRoleUpdate';
-  26: 'MemberMove';
-  27: 'MemberDisconnect';
-  28: 'BotAdd';
-  30: 'RoleCreate';
-  31: 'RoleUpdate';
-  32: 'RoleDelete';
-  40: 'InviteCreate';
-  41: 'InviteUpdate';
-  42: 'InviteDelete';
-  50: 'WebhookCreate';
-  51: 'WebhookUpdate';
-  52: 'WebhookDelete';
-  60: 'EmojiCreate';
-  61: 'EmojiUpdate';
-  62: 'EmojiDelete';
-  72: 'MessageDelete';
-  73: 'MessageBulkDelete';
-  74: 'MessagePin';
-  75: 'MessageUnpin';
-  80: 'IntegrationCreate';
-  81: 'IntegrationUpdate';
-  82: 'IntegrationDelete';
-  83: 'StageInstanceCreate';
-  84: 'StageInstanceUpdate';
-  85: 'StageInstanceDelete';
-  90: 'StickerCreate';
-  91: 'StickerUpdate';
-  92: 'StickerDelete';
-  100: 'GuildScheduledEventCreate';
-  101: 'GuildScheduledEventUpdate';
-  102: 'GuildScheduledEventDelete';
-  110: 'ThreadCreate';
-  111: 'ThreadUpdate';
-  112: 'ThreadDelete';
-}
-
-export type GuildAuditLogsActions = { [Key in keyof GuildAuditLogsIds as GuildAuditLogsIds[Key]]: Key } & { All: null };
-
-export type GuildAuditLogsAction = keyof GuildAuditLogsActions;
 
 export type GuildAuditLogsActionType = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][1] | 'All';
 
 export interface GuildAuditLogsEntryExtraField {
-  MemberPrune: { removed: number; days: number };
-  MemberMove: { channel: VoiceBasedChannel | { id: Snowflake }; count: number };
-  MessageDelete: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
-  MessageBulkDelete: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
-  MessagePin: { channel: GuildTextBasedChannel | { id: Snowflake }; messageId: Snowflake };
-  MessageUnpin: { channel: GuildTextBasedChannel | { id: Snowflake }; messageId: Snowflake };
-  MemberDisconnect: { count: number };
-  ChannelOverwriteCreate:
+  [AuditLogEvent.MemberPrune]: { removed: number; days: number };
+  [AuditLogEvent.MemberMove]: { channel: VoiceBasedChannel | { id: Snowflake }; count: number };
+  [AuditLogEvent.MessageDelete]: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
+  [AuditLogEvent.MessageBulkDelete]: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
+  [AuditLogEvent.MessagePin]: { channel: GuildTextBasedChannel | { id: Snowflake }; messageId: Snowflake };
+  [AuditLogEvent.MessageUnpin]: { channel: GuildTextBasedChannel | { id: Snowflake }; messageId: Snowflake };
+  [AuditLogEvent.MemberDisconnect]: { count: number };
+  [AuditLogEvent.ChannelOverwriteCreate]:
     | Role
     | GuildMember
     | { id: Snowflake; name: string; type: 'Role' }
     | { id: Snowflake; type: 'Member' };
-  ChannelOverwriteUpdate:
+  [AuditLogEvent.ChannelOverwriteUpdate]:
     | Role
     | GuildMember
     | { id: Snowflake; name: string; type: 'Role' }
     | { id: Snowflake; type: 'Member' };
-  ChannelOverwriteDelete:
+  [AuditLogEvent.ChannelOverwriteDelete]:
     | Role
     | GuildMember
     | { id: Snowflake; name: string; type: OverwriteType.Role }
     | { id: Snowflake; type: OverwriteType.Member };
-  StageInstanceCreate: StageChannel | { id: Snowflake };
-  StageInstanceDelete: StageChannel | { id: Snowflake };
-  StageInstanceUpdate: StageChannel | { id: Snowflake };
+  [AuditLogEvent.StageInstanceCreate]: StageChannel | { id: Snowflake };
+  [AuditLogEvent.StageInstanceDelete]: StageChannel | { id: Snowflake };
+  [AuditLogEvent.StageInstanceUpdate]: StageChannel | { id: Snowflake };
 }
 
 export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLogsActionType> {
@@ -15855,7 +15872,7 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
   Guild: Guild;
   Webhook: Webhook;
   Invite: Invite;
-  Message: TActionType extends 'MESSAGE_BULK_DELETE' ? Guild | { id: Snowflake } : User;
+  Message: TActionType extends AuditLogEvent.MessageBulkDelete ? Guild | { id: Snowflake } : User;
   Integration: Integration;
   Channel: NonThreadGuildBasedChannel | { id: Snowflake; [x: string]: unknown };
   Thread: ThreadChannel | { id: Snowflake; [x: string]: unknown };
@@ -15889,12 +15906,12 @@ export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> 
   type?: T;
 }
 
-export type GuildAuditLogsResolvable = keyof GuildAuditLogsIds | GuildAuditLogsAction | null;
+export type GuildAuditLogsResolvable = AuditLogEvent | null;
 
 export type GuildAuditLogsTarget = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][0] | 'All' | 'Unknown';
 
 export type GuildAuditLogsTargets = {
-  [key in GuildAuditLogsTarget]?: string;
+  [key in GuildAuditLogsTarget]: GuildAuditLogsTarget;
 };
 
 /**
@@ -17902,11 +17919,6 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
    * <info>Can only be set when type will be {@link ChannelType.GuildPrivateThread}</info>
    */
   invitable?: AllowedThreadType extends ChannelType.GuildPrivateThread ? boolean : never;
-
-  /**
-   * The rate limit per user (slowmode) for the new channel in seconds
-   */
-  rateLimitPerUser?: number;
 }
 
 /**
