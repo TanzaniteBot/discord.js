@@ -1395,7 +1395,7 @@ export interface EmbedData {
   type?: EmbedType;
   description?: string;
   url?: string;
-  timestamp?: string;
+  timestamp?: string | number | Date;
   color?: number;
   footer?: EmbedFooterData;
   image?: EmbedImageData;
@@ -1441,40 +1441,14 @@ export type CategoryChannelType = Exclude<
  */
 export class CategoryChannel extends GuildChannel {
   /**
-   * Channels that are a part of this category
+   * A manager of the channels belonging to this category
    */
-  public readonly children: Collection<Snowflake, Exclude<NonThreadGuildBasedChannel, CategoryChannel>>;
+  public readonly children: CategoryChannelChildManager;
 
   /**
    * The type of the channel
    */
   public type: ChannelType.GuildCategory;
-
-  /**
-   * Creates a new channel within this category.
-   * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a
-   * CategoryChannel.</info>
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   */
-  public createChannel<T extends Exclude<CategoryChannelType, ChannelType.GuildStore>>(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: T },
-  ): Promise<MappedChannelCategoryTypes[T]>;
-
-  /**
-   * Creates a new channel within this category.
-   * <info>You cannot create a channel of type `GUILD_CATEGORY` inside a CategoryChannel.</info>
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
-   */
-  public createChannel(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: ChannelType.GuildStore },
-  ): Promise<StoreChannel>;
-
-  public createChannel(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
 /**
@@ -2617,6 +2591,18 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    */
   public getRole(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['role']>;
   public getRole(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['role']> | null;
+
+  /**
+   * Gets an attachment option.
+   * @param {string} name The name of the option.
+   * @param {boolean} [required=false] Whether to throw an error if the option is not found.
+   * @returns {?MessageAttachment} The value of the option, or null if not set and not required.
+   */
+  public getAttachment(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['attachment']>;
+  public getAttachment(
+    name: string,
+    required?: boolean,
+  ): NonNullable<CommandInteractionOption<Cached>['attachment']> | null;
 
   /**
    * Gets a mentionable option.
@@ -5477,6 +5463,7 @@ export class Invite extends Base {
 
   /**
    * The stage instance data if there is a public {@link StageInstance} in the stage channel this invite is for
+   * @deprecated
    */
   public stageInstance: InviteStageInstance | null;
 
@@ -5488,6 +5475,7 @@ export class Invite extends Base {
 
 /**
  * Represents the data about a public {@link StageInstance} in an {@link Invite}.
+ * @deprecated
  */
 export class InviteStageInstance extends Base {
   public constructor(client: Client, data: RawInviteStageInstance, channelId: Snowflake, guildId: Snowflake);
@@ -9644,26 +9632,6 @@ export class Formatters extends null {
 
 export type ComponentData = ActionRowComponentData | ButtonComponentData | SelectMenuComponentData;
 
-export class Components extends null {
-  private constructor();
-
-  /**
-   * Transforms json data into api-compatible json data.
-   * @param data The data to transform.
-   */
-  public static transformJSON(data: ComponentData | APIMessageComponent): APIMessageComponent;
-}
-
-export class Embeds extends null {
-  private constructor();
-
-  /**
-   * Transforms json data into api-compatible json data.
-   * @param data The data to transform.
-   */
-  public static transformJSON(data: EmbedData | APIEmbed): APIEmbed;
-}
-
 /**
  * Represents a guild voice channel on Discord.
  */
@@ -11066,6 +11034,50 @@ export class BaseGuildEmojiManager extends CachedManager<Snowflake, GuildEmoji, 
    * @param emoji The emoji resolvable to resolve
    */
   public resolveIdentifier(emoji: EmojiIdentifierResolvable): string | null;
+}
+
+/**
+ * Manages API methods for CategoryChannels' children.
+ */
+export class CategoryChannelChildManager extends DataManager<
+  Snowflake,
+  NonCategoryGuildBasedChannel,
+  GuildChannelResolvable
+> {
+  private constructor(channel: CategoryChannel);
+
+  /**
+   * The category channel this manager belongs to
+   */
+  public channel: CategoryChannel;
+
+  /**
+   * The guild this manager belongs to
+   */
+  public readonly guild: Guild;
+
+  /**
+   * Creates a new channel within this category.
+   * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a CategoryChannel.</info>
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   */
+  public create<T extends Exclude<CategoryChannelType, ChannelType.GuildStore>>(
+    name: string,
+    options: CategoryCreateChannelOptions & { type: T },
+  ): Promise<MappedChannelCategoryTypes[T]>;
+  /**
+   * Creates a new channel within this category.
+   * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a CategoryChannel.</info>
+   * @param name The name of the new channel
+   * @param options Options for creating the new channel
+   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
+   */
+  public create(
+    name: string,
+    options: CategoryCreateChannelOptions & { type: ChannelType.GuildStore },
+  ): Promise<StoreChannel>;
+  public create(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
 /**
@@ -13011,7 +13023,7 @@ export type AllowedThreadTypeForTextChannel = ChannelType.GuildPublicThread | Ch
  */
 export interface BaseApplicationCommandData {
   /**
-   * The name of the command
+   * The name of the command, must be in all lowercase if type is {@link ApplicationCommandType.ChatInput}
    */
   name: string;
 
@@ -14384,6 +14396,7 @@ export interface ClientOptions {
    * Options for the REST manager
    */
   rest?: Partial<RESTOptions>;
+  jsonTransformer?: (obj: unknown) => unknown;
 }
 
 /**
@@ -14569,7 +14582,7 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   /**
    * The resolved attachment
    */
-  attachment?: Collection<Snowflake, MessageAttachment>;
+  attachment?: MessageAttachment;
 
   /**
    * The resolved message
@@ -17860,6 +17873,8 @@ export type TextBasedChannelTypes = TextBasedChannel['type'];
 export type VoiceBasedChannel = Extract<AnyChannel, { bitrate: number }>;
 
 export type GuildBasedChannel = Extract<AnyChannel, { guild: Guild }>;
+
+export type NonCategoryGuildBasedChannel = Exclude<GuildBasedChannel, CategoryChannel>;
 
 export type NonThreadGuildBasedChannel = Exclude<GuildBasedChannel, ThreadChannel>;
 
