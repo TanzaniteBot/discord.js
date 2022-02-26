@@ -60,6 +60,7 @@ import {
   GuildNSFWLevel,
   GuildPremiumTier,
   GuildVerificationLevel,
+  Locale,
   InteractionType,
   InviteTargetType,
   MessageType,
@@ -287,7 +288,11 @@ export interface ActionRowData extends BaseComponentData {
 }
 
 export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extends BuilderActionRow<T> {
-  constructor(data?: ActionRowData | APIActionRowComponent<APIMessageComponent>);
+  constructor(
+    data?:
+      | ActionRowData
+      | (Omit<APIActionRowComponent<APIMessageComponent>, 'type'> & { type?: ComponentType.ActionRow }),
+  );
 }
 
 /**
@@ -1387,11 +1392,13 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
 }
 
 export class ButtonComponent extends BuilderButtonComponent {
-  public constructor(data?: ButtonComponentData | APIButtonComponent);
+  public constructor(data?: ButtonComponentData | (Omit<APIButtonComponent, 'type'> & { type?: ComponentType.Button }));
 }
 
 export class SelectMenuComponent extends BuilderSelectMenuComponent {
-  public constructor(data?: SelectMenuComponentData | APISelectMenuComponent);
+  public constructor(
+    data?: SelectMenuComponentData | (Omit<APISelectMenuComponent, 'type'> & { type?: ComponentType.SelectMenu }),
+  );
 }
 
 export interface EmbedData {
@@ -3010,9 +3017,8 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The preferred locale of the guild, defaults to `en-US`
-   * @see {@link [Locales](https://discord.com/developers/docs/reference#locales)}
    */
-  public preferredLocale: string;
+  public preferredLocale: Locale;
 
   /**
    * Whether this guild has its premium (boost) progress bar enabled
@@ -3407,7 +3413,7 @@ export class Guild extends AnonymousGuild {
    *  .then(updated => console.log(`Updated guild preferred locale to ${guild.preferredLocale}`))
    *  .catch(console.error);
    */
-  public setPreferredLocale(preferredLocale: string, reason?: string): Promise<Guild>;
+  public setPreferredLocale(preferredLocale: Locale, reason?: string): Promise<Guild>;
 
   /**
    * Edits the community updates channel of the guild.
@@ -4985,14 +4991,13 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
 
   /**
    * The locale of the user who invoked this interaction
-   * @see {@link [Locales](https://discord.com/developers/docs/reference#locales)}
    */
-  public locale: string;
+  public locale: Locale;
 
   /**
    * The preferred locale from the guild this interaction was sent in
    */
-  public guildLocale: CacheTypeReducer<Cached, string, string, string>;
+  public guildLocale: CacheTypeReducer<Cached, Locale>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -16034,7 +16039,7 @@ export interface GuildEditData {
   /**
    * The preferred locale of the guild
    */
-  preferredLocale?: string;
+  preferredLocale?: Locale;
 
   /**
    * Whether the guild's premium progress bar is enabled
@@ -17011,7 +17016,7 @@ export interface SelectMenuComponentData extends BaseComponentData {
   /**
    * A unique string to be sent in the interaction when clicked
    */
-  customId?: string;
+  customId: string;
 
   /**
    * Disables the select menu to prevent interactions
@@ -18153,6 +18158,7 @@ export {
   InteractionType,
   InteractionResponseType,
   InviteTargetType,
+  Locale,
   MessageType,
   MessageFlags,
   OAuth2Scopes,
