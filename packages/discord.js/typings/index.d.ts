@@ -46,7 +46,6 @@ import {
   APIPartialEmoji,
   APIPartialGuild,
   APIRole,
-  APIAttachment,
   APISelectMenuComponent,
   APITemplateSerializedSourceGuild,
   APIUser,
@@ -185,7 +184,7 @@ export class Activity {
   /**
    * The time the activity was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * Creation date of the activity
@@ -268,6 +267,11 @@ export class Activity {
    * @param activity The activity to compare with
    */
   public equals(activity: Activity): boolean;
+
+  /**
+   * When concatenated with a string, this automatically returns the activities' name instead of the Activity object.
+   */
+  public toString(): string;
 }
 
 export type ActivityFlagsString = keyof typeof ActivityFlags;
@@ -365,12 +369,12 @@ export abstract class Application extends Base {
   /**
    * The time the application was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the application was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The application's description
@@ -433,12 +437,12 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   /**
    * The time the command was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the command was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * Whether the command is enabled by default when the app is added to a guild
@@ -464,7 +468,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   /**
    * The manager that this command belongs to
    */
-  public readonly manager: ApplicationCommandManager;
+  public get manager(): ApplicationCommandManager;
 
   /**
    * The command's id
@@ -785,7 +789,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
   /**
    * The invoked application command, if it was fetched before
    */
-  public readonly command: ApplicationCommand | ApplicationCommand<{ guild: GuildResolvable }> | null;
+  public get command(): ApplicationCommand | ApplicationCommand<{ guild: GuildResolvable }> | null;
 
   /**
    * The options passed to the command.
@@ -966,12 +970,12 @@ export abstract class BaseGuild extends Base {
   /**
    * The time this guild was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp this guild was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * An array of features available to this guild
@@ -996,17 +1000,17 @@ export abstract class BaseGuild extends Base {
   /**
    * The acronym that shows up in place of a guild icon
    */
-  public readonly nameAcronym: string;
+  public get nameAcronym(): string;
 
   /**
    * Whether this guild is partnered
    */
-  public readonly partnered: boolean;
+  public get partnered(): boolean;
 
   /**
    * Whether this guild is verified
    */
-  public readonly verified: boolean;
+  public get verified(): boolean;
 
   /**
    * Fetches this guild.
@@ -1039,12 +1043,12 @@ export class BaseGuildEmoji extends Emoji {
   /**
    * The time the emoji was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the emoji was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The guild this emoji is a part of
@@ -1194,17 +1198,17 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   /**
    * The members in this voice-based channel
    */
-  public readonly members: Collection<Snowflake, GuildMember>;
+  public get members(): Collection<Snowflake, GuildMember>;
 
   /**
    * Checks if the voice-based channel is full
    */
-  public readonly full: boolean;
+  public get full(): boolean;
 
   /**
    * Whether the channel is joinable by the client user
    */
-  public readonly joinable: boolean;
+  public get joinable(): boolean;
 
   /**
    * The RTC region for this voice-based channel. This region is automatically selected if `null`.
@@ -1353,7 +1357,7 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   /**
    * The component which was interacted with
    */
-  public readonly component: CacheTypeReducer<
+  public get component(): CacheTypeReducer<
     Cached,
     ButtonComponent,
     APIButtonComponent,
@@ -1443,7 +1447,7 @@ export class CategoryChannel extends GuildChannel {
   /**
    * A manager of the channels belonging to this category
    */
-  public readonly children: CategoryChannelChildManager;
+  public get children(): CategoryChannelChildManager;
 
   /**
    * The type of the channel
@@ -1467,12 +1471,12 @@ export abstract class Channel extends Base {
   /**
    * The time the channel was created at
    */
-  public readonly createdAt: Date | null;
+  public get createdAt(): Date | null;
 
   /**
    * The timestamp the channel was created at
    */
-  public readonly createdTimestamp: number | null;
+  public get createdTimestamp(): number | null;
 
   /**
    * The channel's id
@@ -1483,7 +1487,7 @@ export abstract class Channel extends Base {
    * Whether this Channel is a partial
    * <info>This is always false outside of DM channels.</info>
    */
-  public readonly partial: false;
+  public get partial(): false;
 
   /**
    * The type of the channel
@@ -1493,7 +1497,7 @@ export abstract class Channel extends Base {
   /**
    * The URL to the channel
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * Deletes this channel.
@@ -1564,7 +1568,7 @@ export abstract class Channel extends Base {
   /**
    * Indicates whether this channel is DM-based (either a {@link DMChannel} or a {@link GroupDMChannel}).
    */
-  public isDMBased(): this is PartialGroupDMChannel | DMChannel;
+  public isDMBased(): this is PartialGroupDMChannel | DMChannel | PartialDMChannel;
 
   /**
    * Indicates whether this channel is {@link BaseGuildVoiceChannel voice-based}.
@@ -1630,7 +1634,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   /**
    * All custom emojis that the client has access to, mapped by their ids
    */
-  public readonly emojis: BaseGuildEmojiManager;
+  public get emojis(): BaseGuildEmojiManager;
 
   /**
    * All of the guilds the client is currently handling, mapped by their ids -
@@ -1647,7 +1651,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Time at which the client was last regarded as being in the `READY` state
    * (each time the client disconnects and successfully reconnects, this will be overwritten)
    */
-  public readonly readyAt: If<Ready, Date>;
+  public get readyAt(): If<Ready, Date>;
 
   /**
    * Timestamp of the time the client was last `READY` at
@@ -1674,7 +1678,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   /**
    * How long it has been since the client last entered the `READY` state in milliseconds
    */
-  public uptime: If<Ready, number>;
+  public get uptime(): If<Ready, number>;
 
   /**
    * User that the client is logged in as
@@ -1878,7 +1882,7 @@ export class ClientApplication extends Application {
   /**
    * Whether this application is partial
    */
-  public readonly partial: boolean;
+  public get partial(): boolean;
 
   /**
    * The application's RPC origins, if enabled
@@ -1926,7 +1930,7 @@ export class ClientUser extends User {
   /**
    * Represents the client user's presence
    */
-  public readonly presence: ClientPresence;
+  public get presence(): ClientPresence;
 
   /**
    * Whether or not this account has been verified
@@ -2131,7 +2135,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
    */
-  public abstract readonly endReason: string | null;
+  public abstract get endReason(): string | null;
 
   /**
    * The filter applied to this collector
@@ -2142,7 +2146,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * Returns a promise that resolves with the next collected element;
    * rejects with collected elements if the collector finishes without receiving a next element
    */
-  public readonly next: Promise<V>;
+  public get next(): Promise<V>;
 
   /**
    * The options of this collector
@@ -2224,119 +2228,6 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
   ): this;
 }
 
-export interface ApplicationCommandInteractionOptionResolver<Cached extends CacheType = CacheType>
-  extends CommandInteractionOptionResolver<Cached> {
-  /**
-   * Gets the selected subcommand.
-   * @param {} [required=false] Whether to throw an error if there is no subcommand.
-   * @returns The name of the selected subcommand, or null if not set and not required.
-   */
-  getSubcommand(required?: true): string;
-  getSubcommand(required: boolean): string | null;
-
-  /**
-   * Gets the selected subcommand group.
-   * @param {} [required=false] Whether to throw an error if there is no subcommand group.
-   * @returns The name of the selected subcommand group, or null if not set and not required.
-   */
-  getSubcommandGroup(required: true): string;
-  getSubcommandGroup(required?: boolean): string | null;
-
-  /**
-   * Gets a boolean option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getBoolean(name: string, required: true): boolean;
-  getBoolean(name: string, required?: boolean): boolean | null;
-
-  /**
-   * Gets a channel option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getChannel(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['channel']>;
-  getChannel(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['channel']> | null;
-
-  /**
-   * Gets a string option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getString(name: string, required: true): string;
-  getString(name: string, required?: boolean): string | null;
-
-  /**
-   * Gets an integer option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getInteger(name: string, required: true): number;
-  getInteger(name: string, required?: boolean): number | null;
-
-  /**
-   * Gets a number option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getNumber(name: string, required: true): number;
-  getNumber(name: string, required?: boolean): number | null;
-
-  /**
-   * Gets a user option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getUser(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['user']>;
-  getUser(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['user']> | null;
-
-  /**
-   * Gets a member option.
-   * @param name The name of the option.
-   * @returns The value of the option, or null if the user is not present in the guild or the option is not set.
-   */
-  getMember(name: string): NonNullable<CommandInteractionOption<Cached>['member']> | null;
-
-  /**
-   * Gets a role option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getRole(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['role']>;
-  getRole(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['role']> | null;
-
-  /**
-   * Gets an attachment option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getAttachment(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['attachment']>;
-  getAttachment(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['attachment']> | null;
-
-  /**
-   * Gets a mentionable option.
-   * @param name The name of the option.
-   * @param {} [required=false] Whether to throw an error if the option is not found.
-   * @returns The value of the option, or null if not set and not required.
-   */
-  getMentionable(
-    name: string,
-    required: true,
-  ): NonNullable<CommandInteractionOption<Cached>['member' | 'role' | 'user']>;
-  getMentionable(
-    name: string,
-    required?: boolean,
-  ): NonNullable<CommandInteractionOption<Cached>['member' | 'role' | 'user']> | null;
-}
-
 /**
  * Represents a command interaction.
  */
@@ -2375,7 +2266,7 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
   /**
    * The invoked application command, if it was fetched before
    */
-  public readonly command: ApplicationCommand | ApplicationCommand<{ guild: GuildResolvable }> | null;
+  public get command(): ApplicationCommand | ApplicationCommand<{ guild: GuildResolvable }> | null;
 
   /**
    * The id of the channel this interaction was sent in
@@ -2924,12 +2815,12 @@ export class Emoji extends Base {
   /**
    * The time the emoji was created at, or null if unicode
    */
-  public readonly createdAt: Date | null;
+  public get createdAt(): Date | null;
 
   /**
    * The timestamp the emoji was created at, or null if unicode
    */
-  public readonly createdTimestamp: number | null;
+  public get createdTimestamp(): number | null;
 
   /**
    * The emoji's id
@@ -2944,12 +2835,12 @@ export class Emoji extends Base {
   /**
    * The identifier of this emoji, used for message reactions
    */
-  public readonly identifier: string;
+  public get identifier(): string;
 
   /**
    * The URL to the emoji file if it's a custom emoji
    */
-  public readonly url: string | null;
+  public get url(): string | null;
 
   /**
    * Transforms the emoji to a plain object.
@@ -2992,7 +2883,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The id of the voice channel where AFK members are moved
    */
-  public readonly afkChannel: VoiceChannel | null;
+  public get afkChannel(): VoiceChannel | null;
 
   /**
    * The id of the voice channel where AFK members are moved
@@ -3069,7 +2960,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The time the client user joined the guild
    */
-  public readonly joinedAt: Date;
+  public get joinedAt(): Date;
 
   /**
    * The timestamp the client user joined the guild at
@@ -3095,7 +2986,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The client user as a GuildMember of this guild
    */
-  public readonly me: GuildMember | null;
+  public get me(): GuildMember | null;
 
   /**
    * The full amount of members in this guild
@@ -3141,7 +3032,7 @@ export class Guild extends AnonymousGuild {
   /**
    * Public updates channel for this guild
    */
-  public readonly publicUpdatesChannel: TextChannel | null;
+  public get publicUpdatesChannel(): TextChannel | null;
 
   /**
    * The community updates channel's id for the guild
@@ -3156,7 +3047,7 @@ export class Guild extends AnonymousGuild {
   /**
    * Rules channel for this guild
    */
-  public readonly rulesChannel: TextChannel | null;
+  public get rulesChannel(): TextChannel | null;
 
   /**
    * The rules channel's id for the guild
@@ -3171,7 +3062,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The Shard this Guild belongs to.
    */
-  public readonly shard: WebSocketShard;
+  public get shard(): WebSocketShard;
 
   /**
    * The id of the shard this Guild belongs to.
@@ -3191,7 +3082,7 @@ export class Guild extends AnonymousGuild {
   /**
    * System channel for this guild
    */
-  public readonly systemChannel: TextChannel | null;
+  public get systemChannel(): TextChannel | null;
 
   /**
    * The value set for the guild's system channel flags
@@ -3213,17 +3104,17 @@ export class Guild extends AnonymousGuild {
    * The voice state adapter for this guild that can be used with @discordjs/voice to play audio in voice
    * and stage channels.
    */
-  public readonly voiceAdapterCreator: InternalDiscordGatewayAdapterCreator;
+  public get voiceAdapterCreator(): InternalDiscordGatewayAdapterCreator;
 
   /**
    * A manager of the voice states of this guild
    */
-  public readonly voiceStates: VoiceStateManager;
+  public voiceStates: VoiceStateManager;
 
   /**
    * Widget channel for this guild
    */
-  public readonly widgetChannel: TextChannel | null;
+  public get widgetChannel(): TextChannel | null;
 
   /**
    * The widget channel's id, if enabled
@@ -3238,7 +3129,7 @@ export class Guild extends AnonymousGuild {
   /**
    * The maximum bitrate available for this guild
    */
-  public readonly maximumBitrate: number;
+  public get maximumBitrate(): number;
 
   /**
    * Creates a template for the guild.
@@ -3688,12 +3579,12 @@ export class GuildAuditLogsEntry<
   /**
    * The time this entry was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp this entry was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The user that executed this entry
@@ -3757,7 +3648,7 @@ export class GuildBan extends Base {
   /**
    * Whether this GuildBan is partial. If the reason is not provided the value is null
    */
-  public readonly partial: boolean;
+  public get partial(): boolean;
 
   /**
    * The reason for the ban
@@ -3806,19 +3697,17 @@ export abstract class GuildChannel extends Channel {
   /**
    * The time the channel was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the channel was created at
    */
-  public readonly createdTimestamp: number;
-
-  public readonly calculatedPosition: number;
+  public get createdTimestamp(): number;
 
   /**
    * Whether the channel is deletable by the client user
    */
-  public readonly deletable: boolean;
+  public get deletable(): boolean;
 
   /**
    * The guild the channel is in
@@ -3833,14 +3722,14 @@ export abstract class GuildChannel extends Channel {
   /**
    * Whether the channel is manageable by the client user
    */
-  public readonly manageable: boolean;
+  public get manageable(): boolean;
 
   /**
    * A collection of cached members of this channel, mapped by their ids.
    * Members that can view this channel, if the channel is text-based.
    * Members in the channel, if the channel is voice-based.
    */
-  public readonly members: Collection<Snowflake, GuildMember>;
+  public get members(): Collection<Snowflake, GuildMember>;
 
   /**
    * The name of the guild channel
@@ -3850,7 +3739,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * The category parent of this channel
    */
-  public readonly parent: CategoryChannel | null;
+  public get parent(): CategoryChannel | null;
 
   /**
    * The id of the category parent of this channel
@@ -3865,12 +3754,12 @@ export abstract class GuildChannel extends Channel {
   /**
    * If the permissionOverwrites match the parent channel, null if no parent
    */
-  public readonly permissionsLocked: boolean | null;
+  public get permissionsLocked(): boolean | null;
 
   /**
    * The position of the channel
    */
-  public readonly position: number;
+  public get position(): number;
 
   /**
    * The raw position of the channel from Discord
@@ -3885,7 +3774,7 @@ export abstract class GuildChannel extends Channel {
   /**
    * Whether the channel is viewable by the client user
    */
-  public readonly viewable: boolean;
+  public get viewable(): boolean;
 
   /**
    * Clones this channel.
@@ -4000,7 +3889,7 @@ export class GuildEmoji extends BaseGuildEmoji {
   /**
    * Whether the emoji is deletable by the client user
    */
-  public readonly deletable: boolean;
+  public get deletable(): boolean;
 
   /**
    * The guild this emoji is a part of
@@ -4015,12 +3904,12 @@ export class GuildEmoji extends BaseGuildEmoji {
   /**
    * A manager for roles this emoji is active for.
    */
-  public readonly roles: GuildEmojiRoleManager;
+  public get roles(): GuildEmojiRoleManager;
 
   /**
    * The URL to the emoji file
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * Deletes the emoji.
@@ -4078,22 +3967,22 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * Whether this member is bannable by the client user
    */
-  public readonly bannable: boolean;
+  public get bannable(): boolean;
 
   /**
    * The displayed color of this member in base 10
    */
-  public readonly displayColor: number;
+  public get displayColor(): number;
 
   /**
    * The displayed color of this member in hexadecimal
    */
-  public readonly displayHexColor: HexColorString;
+  public get displayHexColor(): HexColorString;
 
   /**
    * The nickname of this member, or their username if they don't have one
    */
-  public readonly displayName: string;
+  public get displayName(): string;
 
   /**
    * The guild that this member is part of
@@ -4103,7 +3992,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The member's id
    */
-  public readonly id: Snowflake;
+  public get id(): Snowflake;
 
   /**
    * Whether this member has yet to pass the guild's membership gate
@@ -4113,7 +4002,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The time this member's timeout will be removed
    */
-  public readonly communicationDisabledUntil: Date | null;
+  public get communicationDisabledUntil(): Date | null;
 
   /**
    * The timestamp this member's timeout will be removed
@@ -4123,7 +4012,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The time this member joined the guild
    */
-  public readonly joinedAt: Date | null;
+  public get joinedAt(): Date | null;
 
   /**
    * The timestamp the member joined the guild at
@@ -4133,18 +4022,18 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * Whether this member is kickable by the client user
    */
-  public readonly kickable: boolean;
+  public get kickable(): boolean;
 
   /**
    * Whether the client user is above this user in the hierarchy, according to role position and guild ownership.
    * This is a prerequisite for many moderative actions.
    */
-  public readonly manageable: boolean;
+  public get manageable(): boolean;
 
   /**
    * Whether this member is moderatable by the client user
    */
-  public readonly moderatable: boolean;
+  public get moderatable(): boolean;
 
   /**
    * The nickname of this member, if they have one
@@ -4154,17 +4043,17 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * Whether this GuildMember is a partial
    */
-  public readonly partial: false;
+  public get partial(): false;
 
   /**
    * The overall set of permissions for this member, taking only roles and owner status into account
    */
-  public readonly permissions: Readonly<PermissionsBitField>;
+  public get permissions(): Readonly<PermissionsBitField>;
 
   /**
    * The last time this member started boosting the guild
    */
-  public readonly premiumSince: Date | null;
+  public get premiumSince(): Date | null;
 
   /**
    * The last timestamp this member started boosting the guild
@@ -4174,12 +4063,12 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The presence of this guild member
    */
-  public readonly presence: Presence | null;
+  public get presence(): Presence | null;
 
   /**
    * A manager for the roles belonging to this member
    */
-  public readonly roles: GuildMemberRoleManager;
+  public get roles(): GuildMemberRoleManager;
 
   /**
    * The user that this guild member instance represents
@@ -4189,7 +4078,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   /**
    * The voice state of this member
    */
-  public readonly voice: VoiceState;
+  public get voice(): VoiceState;
 
   /**
    * A link to the member's guild avatar.
@@ -4331,12 +4220,12 @@ export class GuildPreview extends Base {
   /**
    * The time this guild was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp this guild was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The description for this guild
@@ -4507,43 +4396,43 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
   /**
    * The timestamp the guild scheduled event was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The time the guild scheduled event was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The time the guild scheduled event will start at
    */
-  public readonly scheduledStartAt: Date;
+  public get scheduledStartAt(): Date;
 
   /**
    * The time the guild scheduled event will end at,
    * or `null` if the event does not have a scheduled time to end
    */
-  public readonly scheduledEndAt: Date | null;
+  public get scheduledEndAt(): Date | null;
 
   /**
    * The channel associated with this scheduled event
    */
-  public readonly channel: VoiceChannel | StageChannel | null;
+  public get channel(): VoiceChannel | StageChannel | null;
 
   /**
    * The guild this scheduled event belongs to
    */
-  public readonly guild: Guild | null;
+  public get guild(): Guild | null;
 
   /**
    * The URL to the guild scheduled event
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * The cover image hash for this scheduled event
    */
-  public readonly image: string | null;
+  public image: string | null;
 
   /**
    * The URL of this scheduled event's cover image
@@ -4717,7 +4606,7 @@ export class GuildTemplate extends Base {
   /**
    * The URL of this template
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * The unique code of this template
@@ -4752,17 +4641,17 @@ export class GuildTemplate extends Base {
   /**
    * The time when this template was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The time when this template was last synced to the guild
    */
-  public readonly updatedAt: Date;
+  public get updatedAt(): Date;
 
   /**
    * The guild that this template belongs to
    */
-  public guild: Guild | null;
+  public get guild(): Guild | null;
 
   /**
    * The id of the guild that this template belongs to
@@ -4885,12 +4774,12 @@ export class Integration extends Base {
   /**
    * All roles that are managed by this integration
    */
-  public readonly roles: Collection<Snowflake, Role>;
+  public get roles(): Collection<Snowflake, Role>;
 
   /**
    * The date at which this integration was last synced at
    */
-  public readonly syncedAt: Date | null;
+  public get syncedAt(): Date | null;
 
   /**
    * The timestamp at which this integration was last synced at
@@ -5026,7 +4915,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * The channel this interaction was sent in
    */
-  public readonly channel: CacheTypeReducer<
+  public get channel(): CacheTypeReducer<
     Cached,
     GuildTextBasedChannel | null,
     GuildTextBasedChannel | null,
@@ -5042,17 +4931,17 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
   /**
    * The time the interaction was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the interaction was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The guild this interaction was sent in
    */
-  public readonly guild: CacheTypeReducer<Cached, Guild, null>;
+  public get guild(): CacheTypeReducer<Cached, Guild, null>;
 
   /**
    * The id of the guild this interaction was sent in
@@ -5218,7 +5107,7 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
    */
-  public readonly endReason: string | null;
+  public get endReason(): string | null;
 
   /**
    * The guild from which to collect interactions, if provided
@@ -5330,7 +5219,12 @@ export class Invite extends Base {
   /**
    * The channel this invite is for
    */
-  public channel: NonThreadGuildBasedChannel | PartialGroupDMChannel;
+  public channel: NonThreadGuildBasedChannel | PartialGroupDMChannel | null;
+
+  /**
+   * The id of the channel this invite is for
+   */
+  public channelId: Snowflake | null;
 
   /**
    * The code for this invite
@@ -5340,12 +5234,12 @@ export class Invite extends Base {
   /**
    * Whether the invite is deletable by the client user
    */
-  public readonly deletable: boolean;
+  public get deletable(): boolean;
 
   /**
    * The time the invite was created at
    */
-  public readonly createdAt: Date | null;
+  public get createdAt(): Date | null;
 
   /**
    * The timestamp this invite was created at
@@ -5355,12 +5249,12 @@ export class Invite extends Base {
   /**
    * The time the invite will expire at
    */
-  public readonly expiresAt: Date | null;
+  public get expiresAt(): Date | null;
 
   /**
    * The timestamp the invite will expire at
    */
-  public readonly expiresTimestamp: number | null;
+  public get expiresTimestamp(): number | null;
 
   /**
    * The guild the invite is for including welcome screen data if present
@@ -5370,7 +5264,7 @@ export class Invite extends Base {
   /**
    * The user who created this invite
    */
-  public readonly inviter: User | null;
+  public get inviter(): User | null;
 
   /**
    * The user's id who created this invite
@@ -5428,7 +5322,7 @@ export class Invite extends Base {
   /**
    * The URL to the invite
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * How many times this invite has been used
@@ -5513,12 +5407,12 @@ export class InviteStageInstance extends Base {
   /**
    * The stage channel this invite is for
    */
-  public readonly channel: StageChannel | null;
+  public get channel(): StageChannel | null;
 
   /**
    * The guild of the stage channel this invite is for
    */
-  public readonly guild: Guild | null;
+  public get guild(): Guild | null;
 }
 
 /**
@@ -5622,7 +5516,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The channel that the message was sent in
    */
-  public readonly channel: If<Cached, GuildTextBasedChannel, TextBasedChannel>;
+  public get channel(): If<Cached, GuildTextBasedChannel, TextBasedChannel>;
 
   /**
    * The id of the channel the message was sent in
@@ -5633,7 +5527,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * The message contents with all mentions replaced by the equivalent text.
    * If mentions cannot be resolved to a name, the relevant mention in the message content will not be converted.
    */
-  public readonly cleanContent: string;
+  public get cleanContent(): string;
 
   /**
    * A list of MessageActionRows in the message
@@ -5648,7 +5542,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The time the message was sent at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the message was sent at
@@ -5658,22 +5552,22 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Whether the message is crosspostable by the client user
    */
-  public readonly crosspostable: boolean;
+  public get crosspostable(): boolean;
 
   /**
    * Whether the message is deletable by the client user
    */
-  public readonly deletable: boolean;
+  public get deletable(): boolean;
 
   /**
    * Whether the message is editable by the client user
    */
-  public readonly editable: boolean;
+  public get editable(): boolean;
 
   /**
    * The time the message was last edited at (if applicable)
    */
-  public readonly editedAt: Date | null;
+  public get editedAt(): Date | null;
 
   /**
    * The timestamp the message was last edited at (if applicable)
@@ -5698,12 +5592,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The guild the message was sent in (if in a guild channel)
    */
-  public readonly guild: If<Cached, Guild>;
+  public get guild(): If<Cached, Guild>;
 
   /**
    * Whether this message has a thread associated with it
    */
-  public readonly hasThread: boolean;
+  public get hasThread(): boolean;
 
   /**
    * The message's id
@@ -5719,7 +5613,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Represents the author of the message as a guild member.
    * Only available if the message comes from a guild where the author is still a member
    */
-  public readonly member: GuildMember | null;
+  public get member(): GuildMember | null;
 
   /**
    * All valid mentions that the message contains
@@ -5736,12 +5630,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Whether or not this message is a partial
    */
-  public readonly partial: false;
+  public get partial(): false;
 
   /**
    * Whether the message is pinnable by the client user
    */
-  public readonly pinnable: boolean;
+  public get pinnable(): boolean;
 
   /**
    * Whether or not this message is pinned
@@ -5768,7 +5662,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * <info>This property is not suitable for checking whether a message has a thread,
    * use {@link Message.hasThread} instead.</info>
    */
-  public readonly thread: ThreadChannel | null;
+  public get thread(): ThreadChannel | null;
 
   /**
    * Whether or not the message was Text-To-Speech
@@ -5783,7 +5677,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The URL to jump to this message
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * The id of the webhook that sent the message, if applicable
@@ -5914,13 +5808,14 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * Pins this message to the channel's pinned messages.
+   * @param reason Reason for pinning
    * @example
    * // Pin a message
    * message.pin()
    *   .then(console.log)
    *   .catch(console.error)
    */
-  public pin(): Promise<Message>;
+  public pin(reason?: string): Promise<Message>;
 
   /**
    * Adds a reaction to the message.
@@ -5988,13 +5883,14 @@ export class Message<Cached extends boolean = boolean> extends Base {
 
   /**
    * Unpins this message from the channel's pinned messages.
+   * @param reason Reason for unpinning
    * @example
    * // Unpin a message
    * message.unpin()
    *   .then(console.log)
    *   .catch(console.error)
    */
-  public unpin(): Promise<Message>;
+  public unpin(reason?: string): Promise<Message>;
 
   /**
    * Whether this message is from a guild.
@@ -6061,7 +5957,7 @@ export class MessageAttachment {
   /**
    * Whether or not this attachment has been marked as a spoiler
    */
-  public readonly spoiler: boolean;
+  public get spoiler(): boolean;
 
   /**
    * The URL to this attachment
@@ -6142,7 +6038,7 @@ export class MessageCollector extends Collector<Snowflake, Message> {
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
    */
-  public readonly endReason: string | null;
+  public get endReason(): string | null;
 
   /**
    * The options of this collector
@@ -6176,7 +6072,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   /**
    * The component which was interacted with
    */
-  public readonly component: CacheTypeReducer<
+  public get component(): CacheTypeReducer<
     Cached,
     ActionRowComponent,
     Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
@@ -6353,7 +6249,7 @@ export class MessageContextMenuCommandInteraction<
   /**
    * The message this interaction was sent from
    */
-  public readonly targetMessage: NonNullable<CommandInteractionOption<Cached>['message']>;
+  public get targetMessage(): NonNullable<CommandInteractionOption<Cached>['message']>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -6420,7 +6316,7 @@ export class MessageMentions {
    * Any channels that were mentioned
    * <info>Order as they appear first in the message content</info>
    */
-  public readonly channels: Collection<Snowflake, AnyChannel>;
+  public get channels(): Collection<Snowflake, AnyChannel>;
 
   /**
    * The client the message is from
@@ -6450,7 +6346,7 @@ export class MessageMentions {
    * Any members that were mentioned (only in {@link Guild}s)
    * <info>Order as received from the API, not as they appear in the message content</info>
    */
-  public readonly members: Collection<Snowflake, GuildMember> | null;
+  public get members(): Collection<Snowflake, GuildMember> | null;
 
   /**
    * The author of the message that this message is a reply to
@@ -6519,27 +6415,27 @@ export class MessagePayload {
   /**
    * Whether or not the target is a {@link User}
    */
-  public readonly isUser: boolean;
+  public get isUser(): boolean;
 
   /**
    * Whether or not the target is a {@link Webhook} or a {@link WebhookClient}
    */
-  public readonly isWebhook: boolean;
+  public get isWebhook(): boolean;
 
   /**
    * Whether or not the target is a {@link Message}
    */
-  public readonly isMessage: boolean;
+  public get isMessage(): boolean;
 
   /**
    * Whether or not the target is a {@link MessageManager}
    */
-  public readonly isMessageManager: boolean;
+  public get isMessageManager(): boolean;
 
   /**
    * Whether or not the target is an {@link Interaction} or an {@link InteractionWebhook}
    */
-  public readonly isInteraction: boolean;
+  public get isInteraction(): boolean;
 
   /**
    * Files sendable to the API
@@ -6621,7 +6517,7 @@ export class MessageReaction {
    * object which has fewer properties. Whatever the prototype of the emoji, it will still have
    * `name`, `id`, `identifier` and `toString()`
    */
-  public readonly emoji: GuildEmoji | ReactionEmoji;
+  public get emoji(): GuildEmoji | ReactionEmoji;
 
   /**
    * Whether the client has given this reaction
@@ -6636,7 +6532,7 @@ export class MessageReaction {
   /**
    * Whether or not this reaction is a partial
    */
-  public readonly partial: false;
+  public get partial(): false;
 
   /**
    * A manager of the users that have given this reaction
@@ -6907,7 +6803,7 @@ export class Presence extends Base {
   /**
    * The member of this presence
    */
-  public readonly member: GuildMember | null;
+  public get member(): GuildMember | null;
 
   /**
    * The status of this presence
@@ -6917,7 +6813,7 @@ export class Presence extends Base {
   /**
    * The user of this presence
    */
-  public readonly user: User | null;
+  public get user(): User | null;
 
   /**
    * The presence's user id
@@ -6967,7 +6863,7 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
    */
-  public readonly endReason: string | null;
+  public get endReason(): string | null;
 
   /**
    * The message upon which to collect reactions
@@ -7135,17 +7031,17 @@ export class Role extends Base {
   /**
    * The time the role was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the role was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * Whether the role is editable by the client user
    */
-  public readonly editable: boolean;
+  public get editable(): boolean;
 
   /**
    * The guild that the role belongs to
@@ -7155,7 +7051,7 @@ export class Role extends Base {
   /**
    * The hexadecimal version of the role color, with a leading hashtag
    */
-  public readonly hexColor: HexColorString;
+  public get hexColor(): HexColorString;
 
   /**
    * If true, users that are part of this role will appear in a separate category in the users list
@@ -7175,7 +7071,7 @@ export class Role extends Base {
   /**
    * The cached guild members that have this role
    */
-  public readonly members: Collection<Snowflake, GuildMember>;
+  public get members(): Collection<Snowflake, GuildMember>;
 
   /**
    * Whether or not the role can be mentioned by anyone
@@ -7195,7 +7091,7 @@ export class Role extends Base {
   /**
    * The position of the role in the role manager
    */
-  public readonly position: number;
+  public get position(): number;
 
   /**
    * The raw position of the role from the API
@@ -7394,7 +7290,7 @@ export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends
   /**
    * The component which was interacted with
    */
-  public readonly component: CacheTypeReducer<
+  public get component(): CacheTypeReducer<
     Cached,
     SelectMenuComponent,
     APISelectMenuComponent,
@@ -7659,12 +7555,12 @@ export class ShardClientUtil {
   /**
    * Total number of shards
    */
-  public readonly count: number;
+  public get count(): number;
 
   /**
    * Array of shard ids of this client
    */
-  public readonly ids: number[];
+  public get ids(): number[];
 
   /**
    * Mode the shard was spawned with
@@ -7907,7 +7803,7 @@ export class StageChannel extends BaseGuildVoiceChannel {
   /**
    * The stage instance of this stage channel, if it exists
    */
-  public readonly stageInstance: StageInstance | null;
+  public get stageInstance(): StageInstance | null;
 
   /**
    * Creates a stage instance associated with this stage channel.
@@ -7968,12 +7864,12 @@ export class StageInstance extends Base {
   /**
    * The stage channel associated with this stage instance
    */
-  public readonly channel: StageChannel | null;
+  public get channel(): StageChannel | null;
 
   /**
    * The guild this stage instance belongs to
    */
-  public readonly guild: Guild | null;
+  public get guild(): Guild | null;
 
   /**
    * Edits this stage instance.
@@ -8010,12 +7906,12 @@ export class StageInstance extends Base {
   /**
    * The timestamp this stage instances was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The time this stage instance was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 }
 
 /**
@@ -8075,12 +7971,12 @@ export class Sticker extends Base {
   /**
    * The timestamp the sticker was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The time the sticker was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * Whether or not the guild sticker is available
@@ -8100,7 +7996,7 @@ export class Sticker extends Base {
   /**
    * The guild that owns this sticker
    */
-  public readonly guild: Guild | null;
+  public get guild(): Guild | null;
 
   /**
    * The id of the guild that owns this sticker
@@ -8125,7 +8021,7 @@ export class Sticker extends Base {
   /**
    * Whether this sticker is partial
    */
-  public readonly partial: boolean;
+  public get partial(): boolean;
 
   /**
    * The standard sticker's sort order within its pack
@@ -8152,7 +8048,7 @@ export class Sticker extends Base {
    * <info>If the sticker's format is {@link StickerFormatType.Lottie}, it returns
    * the URL of the Lottie JSON file.</info>
    */
-  public readonly url: string;
+  public get url(): string;
 
   /**
    * Fetches this sticker.
@@ -8212,12 +8108,12 @@ export class StickerPack extends Base {
   /**
    * The timestamp the sticker was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * The time the sticker was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The id of the sticker pack's banner image
@@ -8227,7 +8123,7 @@ export class StickerPack extends Base {
   /**
    * The sticker which is shown as the pack's icon
    */
-  public readonly coverSticker: Sticker | null;
+  public get coverSticker(): Sticker | null;
 
   /**
    * The id of a sticker in the pack which is shown as the pack's icon
@@ -8567,17 +8463,17 @@ export class Team extends Base {
   /**
    * The owner of this team
    */
-  public readonly owner: TeamMember | null;
+  public get owner(): TeamMember | null;
 
   /**
    * The time the team was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the team was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * A link to the team's icon.
@@ -8614,7 +8510,7 @@ export class TeamMember extends Base {
   /**
    * The Team Member's id
    */
-  public readonly id: Snowflake;
+  public get id(): Snowflake;
 
   /**
    * The permissions this Team Member has with regard to the team
@@ -8689,7 +8585,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * The time at which this thread's archive status was last changed
    * <info>If the thread was never archived or unarchived, this is the time at which the thread was created</info>
    */
-  public readonly archivedAt: Date | null;
+  public get archivedAt(): Date | null;
 
   /**
    * The timestamp when the thread's archive status was last changed
@@ -8701,7 +8597,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * The time the thread was created at
    */
-  public readonly createdAt: Date | null;
+  public get createdAt(): Date | null;
 
   private _createdTimestamp: number | null;
 
@@ -8709,7 +8605,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * The timestamp when this thread was created. This isn't available for threads
    * created before 2022-01-09
    */
-  public readonly createdTimestamp: number | null;
+  public get createdTimestamp(): number | null;
 
   /**
    * The amount of time (in minutes) after which the thread will automatically archive in case of no recent activity
@@ -8719,7 +8615,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Whether the thread is editable by the client user (name, archived, autoArchiveDuration)
    */
-  public readonly editable: boolean;
+  public get editable(): boolean;
 
   /**
    * The guild the thread is in
@@ -8734,7 +8630,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * A collection of associated guild member objects of this thread's members
    */
-  public readonly guildMembers: Collection<Snowflake, GuildMember>;
+  public get guildMembers(): Collection<Snowflake, GuildMember>;
 
   /**
    * Whether members without `PermissionFlagsBits.ManageThreads` can invite other members without `PermissionFlagsBits.ManageThreads`
@@ -8745,12 +8641,12 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Whether the thread is joinable by the client user
    */
-  public readonly joinable: boolean;
+  public get joinable(): boolean;
 
   /**
    * Whether the client user is a member of the thread.
    */
-  public readonly joined: boolean;
+  public get joined(): boolean;
 
   /**
    * Whether the thread is locked
@@ -8760,17 +8656,17 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Whether the thread is manageable by the client user, for deleting or editing rateLimitPerUser or locked.
    */
-  public readonly manageable: boolean;
+  public get manageable(): boolean;
 
   /**
    * Whether the thread is viewable by the client user
    */
-  public readonly viewable: boolean;
+  public get viewable(): boolean;
 
   /**
    * Whether the client user can send messages in this thread
    */
-  public readonly sendable: boolean;
+  public get sendable(): boolean;
 
   /**
    * The approximate count of users in this thread
@@ -8809,7 +8705,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * The parent channel of this thread
    */
-  public readonly parent: TextChannel | NewsChannel | null;
+  public get parent(): TextChannel | NewsChannel | null;
 
   /**
    * The id of the parent channel of this thread
@@ -8829,15 +8725,14 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
   /**
    * Whether the thread is unarchivable by the client user
    */
-  public readonly unarchivable: boolean;
+  public get unarchivable(): boolean;
 
   /**
    * Whether this thread is a private thread
-   * @returns {boolean}
    */
   public isPrivate(): this is this & {
-    readonly createdTimestamp: number;
-    readonly createdAt: Date;
+    get createdTimestamp(): number;
+    get createdAt(): Date;
     type: ChannelType.GuildPrivateThread;
   };
 
@@ -8990,7 +8885,7 @@ export class ThreadMember extends Base {
   /**
    * The guild member associated with this thread member
    */
-  public readonly guildMember: GuildMember | null;
+  public get guildMember(): GuildMember | null;
 
   /**
    * The id of the thread member
@@ -9000,7 +8895,7 @@ export class ThreadMember extends Base {
   /**
    * The last time this member joined the thread
    */
-  public readonly joinedAt: Date | null;
+  public get joinedAt(): Date | null;
 
   /**
    * The timestamp the member last joined the thread at
@@ -9010,7 +8905,7 @@ export class ThreadMember extends Base {
   /**
    * Whether the client user can manage this thread member
    */
-  public readonly manageable: boolean;
+  public get manageable(): boolean;
 
   /**
    * The thread that this member is a part of
@@ -9020,7 +8915,7 @@ export class ThreadMember extends Base {
   /**
    * The user associated with this thread member
    */
-  public readonly user: User | null;
+  public get user(): User | null;
 
   /**
    * Removes this member from the thread.
@@ -9076,24 +8971,24 @@ export class Typing extends Base {
   /**
    * The time the user started typing at
    */
-  public readonly startedAt: Date;
+  public get startedAt(): Date;
 
   /**
    * The guild the status is from
    */
-  public readonly guild: Guild | null;
+  public get guild(): Guild | null;
 
   /**
    * The member who is typing
    */
-  public readonly member: GuildMember | null;
+  public get member(): GuildMember | null;
 
   /**
    * Indicates whether the status is received from a guild.
    */
   public inGuild(): this is this & {
     channel: TextChannel | NewsChannel | ThreadChannel;
-    readonly guild: Guild;
+    get guild(): Guild;
   };
 }
 
@@ -9138,12 +9033,12 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * The time the user was created at
    */
-  public readonly createdAt: Date;
+  public get createdAt(): Date;
 
   /**
    * The timestamp the user was created at
    */
-  public readonly createdTimestamp: number;
+  public get createdTimestamp(): number;
 
   /**
    * A discriminator based on username for the user
@@ -9153,12 +9048,12 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * A link to the user's default avatar
    */
-  public readonly defaultAvatarURL: string;
+  public get defaultAvatarURL(): string;
 
   /**
    * The DM between the client's user and this user
    */
-  public readonly dmChannel: DMChannel | null;
+  public get dmChannel(): DMChannel | null;
 
   /**
    * The flags for this user
@@ -9169,7 +9064,7 @@ export class User extends PartialTextBasedChannel(Base) {
    * The hexadecimal version of the user accent color, with a leading hash
    * <info>The user must be force fetched for this property to be present</info>
    */
-  public readonly hexAccentColor: HexColorString | null | undefined;
+  public get hexAccentColor(): HexColorString | null | undefined;
 
   /**
    * The user's id
@@ -9179,7 +9074,7 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * Whether this User is a partial
    */
-  public readonly partial: false;
+  public get partial(): false;
 
   /**
    * Whether the user is an Official Discord System user (part of the urgent message system)
@@ -9189,7 +9084,7 @@ export class User extends PartialTextBasedChannel(Base) {
   /**
    * The Discord "tag" (e.g. `hydrabolt#0001`) for this user
    */
-  public readonly tag: string;
+  public get tag(): string;
 
   /**
    * The username of the user
@@ -9264,12 +9159,12 @@ export class UserContextMenuCommandInteraction<
   /**
    * The user this interaction was sent from
    */
-  public readonly targetUser: User;
+  public get targetUser(): User;
 
   /**
    * The member this interaction was sent from
    */
-  public readonly targetMember: CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember>;
+  public get targetMember(): CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -9639,7 +9534,7 @@ export class VoiceChannel extends BaseGuildVoiceChannel {
   /**
    * Checks if the client has permission to send audio to the voice channel
    */
-  public readonly speakable: boolean;
+  public get speakable(): boolean;
 
   /**
    * The type of the channel
@@ -9721,7 +9616,7 @@ export class VoiceState extends Base {
   /**
    * The channel that the member is connected to
    */
-  public readonly channel: VoiceBasedChannel | null;
+  public get channel(): VoiceBasedChannel | null;
 
   /**
    * The {@link VoiceChannel} or {@link StageChannel} id the member is in
@@ -9731,7 +9626,7 @@ export class VoiceState extends Base {
   /**
    * Whether this member is either self-deafened or server-deafened
    */
-  public readonly deaf: boolean | null;
+  public get deaf(): boolean | null;
 
   /**
    * The guild of this voice state
@@ -9746,12 +9641,12 @@ export class VoiceState extends Base {
   /**
    * The member that this voice state belongs to
    */
-  public readonly member: GuildMember | null;
+  public get member(): GuildMember | null;
 
   /**
    * Whether this member is either self-muted or server-muted
    */
-  public readonly mute: boolean | null;
+  public get mute(): boolean | null;
 
   /**
    * Whether this member is deafened server-wide
@@ -9880,7 +9775,7 @@ export class Webhook extends WebhookMixin() {
   /**
    * The client that instantiated the webhook
    */
-  public client: Client;
+  public readonly client: Client;
 
   /**
    * The guild the webhook belongs to
@@ -9974,7 +9869,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
   /**
    * This
    */
-  public client: this;
+  public readonly client: this;
 
   /**
    * The options the client was instantiated with
@@ -10078,7 +9973,7 @@ export class WebSocketManager extends EventEmitter {
   /**
    * An array of queued events before this WebSocketManager became ready
    */
-  private packetQueue: unknown[];
+  private readonly packetQueue: unknown[];
 
   /**
    * If this manager was destroyed. It will prevent shards from reconnecting
@@ -10113,7 +10008,7 @@ export class WebSocketManager extends EventEmitter {
   /**
    * The average ping of all WebSocketShards
    */
-  public readonly ping: number;
+  public get ping(): number;
 
   public on(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
 
@@ -10233,7 +10128,13 @@ export class WebSocketShard extends EventEmitter {
   /**
    * Contains the rate limit queue and metadata
    */
-  private ratelimit: { queue: unknown[]; total: number; remaining: number; time: 60e3; timer: NodeJS.Timeout | null };
+  private readonly ratelimit: {
+    queue: unknown[];
+    total: number;
+    remaining: number;
+    time: 60e3;
+    timer: NodeJS.Timeout | null;
+  };
 
   /**
    * The WebSocket connection for the current shard
@@ -10569,24 +10470,24 @@ export class WelcomeChannel extends Base {
   /**
    * The channel of this welcome channel
    */
-  public readonly channel: TextChannel | NewsChannel | StoreChannel | null;
+  public get channel(): TextChannel | NewsChannel | StoreChannel | null;
 
   /**
    * The emoji of this welcome channel
    */
-  public readonly emoji: GuildEmoji | Emoji;
+  public get emoji(): GuildEmoji | Emoji;
 }
 
 /**
  * Represents a welcome screen.
  */
 export class WelcomeScreen extends Base {
-  constructor(guild: Guild, data: RawWelcomeScreenData);
+  public constructor(guild: Guild, data: RawWelcomeScreenData);
 
   /**
    * Whether the welcome screen is enabled on the guild or not
    */
-  public readonly enabled: boolean;
+  public get enabled(): boolean;
 
   /**
    * The guild for this welcome screen
@@ -10688,7 +10589,7 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
   /**
    * The cache of items for this manager.
    */
-  public readonly cache: Collection<K, Holds>;
+  public get cache(): Collection<K, Holds>;
 
   /**
    * Resolves a data entry to a data Object.
@@ -10882,11 +10783,6 @@ export class ApplicationCommandPermissionsManager<
   private manager: ApplicationCommandManager | GuildApplicationCommandManager | ApplicationCommand;
 
   /**
-   * The client that instantiated this Manager
-   */
-  public client: Client;
-
-  /**
    * The id of the command this manager acts on
    */
   public commandId: CommandIdType;
@@ -11054,7 +10950,7 @@ export class CategoryChannelChildManager extends DataManager<
   /**
    * The guild this manager belongs to
    */
-  public readonly guild: Guild;
+  public get guild(): Guild;
 
   /**
    * Creates a new channel within this category.
@@ -11217,7 +11113,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    * The number of channels in this managers cache excluding thread channels
    * that do not count towards a guild's maximum channels restriction.
    */
-  public readonly channelCountWithoutThreads: number;
+  public get channelCountWithoutThreads(): number;
 
   /**
    * The guild this Manager belongs to
@@ -11974,33 +11870,33 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
   /**
    * The role of the member used to hoist them in a separate category in the users list
    */
-  public readonly hoist: Role | null;
+  public get hoist(): Role | null;
 
   /**
    * The role of the member used to set their role icon
    */
-  public readonly icon: Role | null;
+  public get icon(): Role | null;
 
   /**
    * The role of the member used to set their color
    */
-  public readonly color: Role | null;
+  public get color(): Role | null;
 
   /**
    * The role of the member with the highest position
    */
-  public readonly highest: Role;
+  public get highest(): Role;
 
   /**
    * The premium subscriber role of the guild, if present on the member
    */
-  public readonly premiumSubscriberRole: Role | null;
+  public get premiumSubscriberRole(): Role | null;
 
   /**
    * The managed role this member created when joining the guild, if any
    * <info>Only ever available on bots</info>
    */
-  public readonly botRole: Role | null;
+  public get botRole(): Role | null;
 
   /**
    * The GuildMember this manager belongs to
@@ -12060,11 +11956,6 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    * The channel that the messages belong to
    */
   public channel: TextBasedChannel;
-
-  /**
-   * The cache of Messages
-   */
-  public cache: Collection<Snowflake, Message>;
 
   /**
    * Publishes a message in an announcement channel to all channels following it, even if it's not cached.
@@ -12136,14 +12027,16 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
   /**
    * Pins a message to the channel's pinned messages, even if it's not cached.
    * @param message The message to pin
+   * @param reason Reason for pinning
    */
-  public pin(message: MessageResolvable): Promise<void>;
+  public pin(message: MessageResolvable, reason?: string): Promise<void>;
 
   /**
    * Unpins a message from the channel's pinned messages, even if it's not cached.
+   * @param {string} [reason] Reason for unpinning
    * @param message The message to unpin
    */
-  public unpin(message: MessageResolvable): Promise<void>;
+  public unpin(message: MessageResolvable, reason?: string): Promise<void>;
 }
 
 /**
@@ -12291,12 +12184,12 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
   /**
    * The `@everyone` role of the guild
    */
-  public readonly everyone: Role;
+  public get everyone(): Role;
 
   /**
    * The role with the highest position in the cache
    */
-  public readonly highest: Role;
+  public get highest(): Role;
 
   /**
    * The guild belonging to this manager
@@ -12306,7 +12199,7 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
   /**
    * The premium subscriber role of the guild, if any
    */
-  public readonly premiumSubscriberRole: Role | null;
+  public get premiumSubscriberRole(): Role | null;
 
   /**
    * Gets the managed role a user created when joining the guild, if any
@@ -12704,7 +12597,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * The Message object of the last message in the channel, if one was sent
    */
-  readonly lastMessage: Message | null;
+  get lastMessage(): Message | null;
 
   /**
    * The timestamp when the last pinned message was pinned, if there was one
@@ -12714,7 +12607,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * The date when the last pinned message was pinned, if there was one
    */
-  readonly lastPinAt: Date | null;
+  get lastPinAt(): Date | null;
 
   /**
    * Collects a single component interaction that passes the filter.
@@ -12808,7 +12701,7 @@ export interface PartialWebhookFields {
   /**
    * The URL of this webhook
    */
-  readonly url: string;
+  get url(): string;
 
   /**
    * Delete a message that was sent by this webhook.
@@ -12892,12 +12785,12 @@ export interface WebhookFields extends PartialWebhookFields {
   /**
    * The time the webhook was created at
    */
-  readonly createdAt: Date;
+  get createdAt(): Date;
 
   /**
    * The timestamp the webhook was created at
    */
-  readonly createdTimestamp: number;
+  get createdTimestamp(): number;
 
   /**
    * Deletes the webhook.
@@ -17853,6 +17746,7 @@ export type AnyChannel =
   | CategoryChannel
   | DMChannel
   | PartialDMChannel
+  | PartialGroupDMChannel
   | NewsChannel
   | StageChannel
   | StoreChannel
@@ -18240,6 +18134,7 @@ export {
   ApplicationCommandType,
   ApplicationCommandOptionType,
   ApplicationCommandPermissionType,
+  AuditLogEvent,
   ButtonStyle,
   ChannelType,
   ComponentType,
