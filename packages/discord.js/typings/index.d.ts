@@ -1,6 +1,6 @@
 import {
   ActionRow as BuilderActionRow,
-  ActionRowComponent,
+  MessageActionRowComponent,
   blockQuote,
   bold,
   ButtonComponent as BuilderButtonComponent,
@@ -14,9 +14,11 @@ import {
   inlineCode,
   italic,
   memberNicknameMention,
+  Modal as BuilderModal,
   quote,
   roleMention,
   SelectMenuComponent as BuilderSelectMenuComponent,
+  TextInputComponent as BuilderTextInputComponent,
   spoiler,
   strikethrough,
   time,
@@ -24,6 +26,7 @@ import {
   TimestampStylesString,
   underscore,
   userMention,
+  ModalActionRowComponent,
 } from '@discordjs/builders';
 import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
@@ -94,6 +97,14 @@ import {
   AuditLogEvent,
   APIMessageComponentEmoji,
   EmbedType,
+  APIActionRowComponentTypes,
+  APIModalInteractionResponseCallbackData,
+  APIModalSubmitInteraction,
+  APIMessageActionRowComponent,
+  TextInputStyle,
+  APITextInputComponent,
+  APIModalActionRowComponent,
+  APIModalComponent,
 } from 'discord-api-types/v9';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -281,17 +292,23 @@ export interface BaseComponentData {
   type?: ComponentType;
 }
 
-export type ActionRowComponentData = ButtonComponentData | SelectMenuComponentData;
+export type MessageActionRowComponentData = ButtonComponentData | SelectMenuComponentData;
+export type ModalActionRowComponentData = TextInputComponentData;
 
-export interface ActionRowData extends BaseComponentData {
-  components: ActionRowComponentData[];
+export interface ActionRowData<T extends MessageActionRowComponentData | ModalActionRowComponentData>
+  extends BaseComponentData {
+  components: T[];
 }
 
-export class ActionRow<T extends ActionRowComponent = ActionRowComponent> extends BuilderActionRow<T> {
+export class ActionRow<
+  T extends MessageActionRowComponent | ModalActionRowComponent = MessageActionRowComponent,
+> extends BuilderActionRow<T> {
   constructor(
     data?:
-      | ActionRowData
-      | (Omit<APIActionRowComponent<APIMessageComponent>, 'type'> & { type?: ComponentType.ActionRow }),
+      | ActionRowData<MessageActionRowComponentData | ModalActionRowComponentData>
+      | (Omit<APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>, 'type'> & {
+          type?: ComponentType.ActionRow;
+        }),
   );
 }
 
@@ -710,6 +727,21 @@ export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
 
 export interface InteractionResponseFields<Cached extends CacheType = CacheType> {
   /**
+   * Whether the reply to this interaction has been deferred
+   */
+  deferred: boolean;
+
+  /**
+   * Whether the reply to this interaction is ephemeral
+   */
+  ephemeral: boolean | null;
+
+  /**
+   * Whether this interaction has already been replied to
+   */
+  replied: boolean;
+
+  /**
    * Creates a reply to this interaction.
    * <info>Use the `fetchReply` option to get the bot's reply message.</info>
    * @param options The options for the reply
@@ -785,6 +817,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
    * @param options The options for the reply
    */
   followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<GuildCacheMessage<Cached>>;
+  showModal(modal: Modal): Promise<void>;
 }
 
 /**
@@ -946,6 +979,12 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    */
   public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void>;
+
+  /**
+   * Shows a modal component
+   * @param modal The modal to show
+   */
+  public showModal(modal: Modal): Promise<void>;
 
   /**
    * Transforms an option received from the API.
@@ -1401,27 +1440,92 @@ export class SelectMenuComponent extends BuilderSelectMenuComponent {
   );
 }
 
+export class TextInputComponent extends BuilderTextInputComponent {
+  public constructor(data?: TextInputComponentData | APITextInputComponent);
+}
+
+export class Modal extends BuilderModal {
+  public constructor(data?: ModalData | APIModalActionRowComponent);
+}
+
 export interface EmbedData {
+  /**
+   * The title of the embed
+   */
   title?: string;
+
+  /**
+   * The type of the embed
+   */
   type?: EmbedType;
+
+  /**
+   * The description of the embed
+   */
   description?: string;
+
+  /**
+   * The URL of the embed
+   */
   url?: string;
+
+  /**
+   * The timestamp on the embed
+   */
   timestamp?: string | number | Date;
+
+  /**
+   * The color of the embed
+   */
   color?: number;
+
+  /**
+   * The footer of the embed
+   */
   footer?: EmbedFooterData;
+
+  /**
+   * The image of the embed
+   */
   image?: EmbedImageData;
+
+  /**
+   * The thumbnail of the embed
+   */
   thumbnail?: EmbedImageData;
+
+  /**
+   * The provider of the embed
+   */
   provider?: EmbedProviderData;
+
+  /**
+   * The author in the embed
+   */
   author?: EmbedAuthorData;
+
+  /**
+   * The fields in this embed
+   */
   fields?: EmbedFieldData[];
 }
 
 export interface EmbedImageData {
+  /**
+   * The URL of the image
+   */
   url?: string;
 }
 
 export interface EmbedProviderData {
+  /**
+   * The name of the provider
+   */
   name?: string;
+
+  /**
+   * The URL of the provider
+   */
   url?: string;
 }
 
@@ -2792,9 +2896,14 @@ export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
   public messages: MessageManager;
 
   /**
+   * The recipient's id
+   */
+  public recipientId: Snowflake;
+
+  /**
    * The recipient on the other end of the DM
    */
-  public recipient: User;
+  public get recipient(): User | null;
 
   /**
    * The type of the channel
@@ -5063,6 +5172,7 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
    * Indicates whether this interaction can be replied to.
    */
   public isRepliable(): this is this & InteractionResponseFields<Cached>;
+  public isModalSubmit(): this is ModalSubmitInteraction<Cached>;
 }
 
 /**
@@ -5453,17 +5563,19 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   public keepOverLimit: ((value: V, key: K, collection: this) => boolean) | null;
 }
 
-export type MessageCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
+export type MessageComponentType = Exclude<ComponentType, ComponentType.TextInput>;
+
+export type MessageCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> =
   | {
       componentType?: T;
     } & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type MessageChannelCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
+export type MessageChannelCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> =
   | {
       componentType?: T;
     } & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
 
-export type AwaitMessageCollectorOptionsParams<T extends ComponentType, Cached extends boolean = boolean> =
+export type AwaitMessageCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> =
   | { componentType?: T } & Pick<
       InteractionCollectorOptions<MappedInteractionTypes<Cached>[T]>,
       keyof AwaitMessageComponentOptions<any>
@@ -5537,7 +5649,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * A list of MessageActionRows in the message
    */
-  public components: ActionRow<ActionRowComponent>[];
+  public components: ActionRow<MessageActionRowComponent>[];
 
   /**
    * The content of the message
@@ -5710,7 +5822,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  public awaitMessageComponent<T extends ComponentType = ComponentType.ActionRow>(
+  public awaitMessageComponent<T extends MessageComponentType = ComponentType.ActionRow>(
     options?: AwaitMessageCollectorOptionsParams<T, Cached>,
   ): Promise<MappedInteractionTypes<Cached>[T]>;
 
@@ -5749,7 +5861,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  public createMessageComponentCollector<T extends ComponentType = ComponentType.ActionRow>(
+  public createMessageComponentCollector<T extends MessageComponentType = ComponentType.ActionRow>(
     options?: MessageCollectorOptionsParams<T, Cached>,
   ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
 
@@ -5858,7 +5970,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Resolves a component by a custom id.
    * @param customId The custom id to resolve against
    */
-  public resolveComponent(customId: string): ActionRowComponent | null;
+  public resolveComponent(customId: string): MessageActionRowComponent | null;
 
   /**
    * Create a new public thread from this message
@@ -6079,10 +6191,10 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    */
   public get component(): CacheTypeReducer<
     Cached,
-    ActionRowComponent,
-    Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>,
-    ActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageComponent>>
+    MessageActionRowComponent,
+    Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>,
+    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>,
+    MessageActionRowComponent | Exclude<APIMessageComponent, APIActionRowComponent<APIMessageActionRowComponent>>
   >;
 
   /**
@@ -6243,6 +6355,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    */
   public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public update(options: string | MessagePayload | InteractionUpdateOptions): Promise<void>;
+  public showModal(modal: Modal): Promise<void>;
 }
 
 /**
@@ -6558,6 +6671,89 @@ export class MessageReaction {
    * Transforms the message reaction to a plain object.
    */
   public toJSON(): unknown;
+}
+
+export interface ModalFieldData {
+  /**
+   * The value of the field
+   */
+  value: string;
+
+  /**
+   * The component type of the field
+   */
+  type: ComponentType;
+
+  /**
+   * The custom id of the field
+   */
+  customId: string;
+}
+
+export class ModalSubmitFieldsResolver {
+  constructor(components: ModalFieldData[][]);
+
+  /**
+   * The components within the modal
+   * @type The components in the modal
+   */
+  public components: ModalFieldData[][];
+
+  /**
+   * The extracted fields from the modal
+   * @type The fields in the modal
+   */
+  public fields: Collection<string, ModalFieldData>;
+
+  /**
+   * Gets a field given a custom id from a component
+   * @param customId The custom id of the component
+   */
+  public getField(customId: string): ModalFieldData;
+
+  /**
+   * Gets the value of a text input component given a custom id
+   * @param customId The custom id of the text input component
+   */
+  public getTextInputValue(customId: string): string;
+}
+
+export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = CacheType>
+  extends ModalSubmitInteraction<Cached> {
+  message: GuildCacheMessage<Cached> | null;
+  update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  update(options: string | MessagePayload | InteractionUpdateOptions): Promise<void>;
+  deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  deferUpdate(options?: InteractionDeferUpdateOptions): Promise<void>;
+  inGuild(): this is ModalMessageModalSubmitInteraction<'raw' | 'cached'>;
+  inCachedGuild(): this is ModalMessageModalSubmitInteraction<'cached'>;
+  inRawGuild(): this is ModalMessageModalSubmitInteraction<'raw'>;
+}
+
+export interface ModalSubmitActionRow {
+  type: ComponentType.ActionRow;
+  components: ModalFieldData[];
+}
+
+export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extends Interaction<Cached> {
+  private constructor(client: Client, data: APIModalSubmitInteraction);
+  public readonly customId: string;
+  // TODO: fix this type when #7517 is implemented
+  public readonly components: ModalSubmitActionRow[];
+  public readonly fields: ModalSubmitFieldsResolver;
+  public readonly webhook: InteractionWebhook;
+  public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  public reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void>;
+  public deleteReply(): Promise<void>;
+  public editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<GuildCacheMessage<Cached>>;
+  public deferReply(options: InteractionDeferReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
+  public deferReply(options?: InteractionDeferReplyOptions): Promise<void>;
+  public fetchReply(): Promise<GuildCacheMessage<Cached>>;
+  public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<GuildCacheMessage<Cached>>;
+  public inGuild(): this is ModalSubmitInteraction<'raw' | 'cached'>;
+  public inCachedGuild(): this is ModalSubmitInteraction<'cached'>;
+  public inRawGuild(): this is ModalSubmitInteraction<'raw'>;
+  public isFromMessage(): this is ModalMessageModalSubmitInteraction<Cached>;
 }
 
 /**
@@ -8966,7 +9162,7 @@ export class Typing extends Base {
   /**
    * The user who is typing
    */
-  public user: PartialUser;
+  public user: User | PartialUser;
 
   /**
    * The UNIX timestamp in milliseconds the user started typing at
@@ -9530,7 +9726,10 @@ export class Formatters extends null {
   public static userMention: typeof userMention;
 }
 
-export type ComponentData = ActionRowComponentData | ButtonComponentData | SelectMenuComponentData;
+export type ComponentData =
+  | MessageActionRowComponentData
+  | ModalActionRowComponentData
+  | ActionRowData<MessageActionRowComponentData | ModalActionRowComponentData>;
 
 /**
  * Represents a guild voice channel on Discord.
@@ -12625,7 +12824,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  awaitMessageComponent<T extends ComponentType = ComponentType.ActionRow>(
+  awaitMessageComponent<T extends MessageComponentType = ComponentType.ActionRow>(
     options?: AwaitMessageCollectorOptionsParams<T, true>,
   ): Promise<MappedInteractionTypes[T]>;
 
@@ -12669,7 +12868,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  createMessageComponentCollector<T extends ComponentType = ComponentType.ActionRow>(
+  createMessageComponentCollector<T extends MessageComponentType = ComponentType.ActionRow>(
     options?: MessageChannelCollectorOptionsParams<T, true>,
   ): InteractionCollector<MappedInteractionTypes[T]>;
 
@@ -15376,6 +15575,7 @@ interface Extendable {
   MessageContextMenuCommandInteraction: typeof MessageContextMenuCommandInteraction;
   AutocompleteInteraction: typeof AutocompleteInteraction;
   UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;
+  ModalSubmitInteraction: typeof ModalSubmitInteraction;
 }
 
 /**
@@ -16683,7 +16883,7 @@ export type ActionRowComponentOptions =
 /**
  * Data that can be resolved into components that can be placed in an action row
  */
-export type MessageActionRowComponentResolvable = ActionRowComponent | ActionRowComponentOptions;
+export type MessageActionRowComponentResolvable = MessageActionRowComponent | ActionRowComponentOptions;
 
 /**
  * Activity sent in a message.
@@ -16759,7 +16959,7 @@ export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
  * Components that can be sent in a message.
  * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
  */
-export type MessageComponent = Component | ActionRow<ActionRowComponent> | ButtonComponent | SelectMenuComponent;
+export type MessageComponent = Component | ActionRow<MessageActionRowComponent> | ButtonComponent | SelectMenuComponent;
 
 export type MessageComponentCollectorOptions<T extends MessageComponentInteraction> = Omit<
   InteractionCollectorOptions<T>,
@@ -16805,7 +17005,11 @@ export interface MessageEditOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (ActionRow<ActionRowComponent> | (Required<BaseComponentData> & ActionRowData))[];
+  components?: (
+    | ActionRow<MessageActionRowComponent>
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData>)
+    | APIActionRowComponent<APIMessageActionRowComponent>
+  )[];
 }
 
 /**
@@ -16934,7 +17138,11 @@ export interface MessageOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (ActionRow<ActionRowComponent> | (Required<BaseComponentData> & ActionRowData))[];
+  components?: (
+    | ActionRow<MessageActionRowComponent>
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData>)
+    | APIActionRowComponent<APIMessageActionRowComponent>
+  )[];
 
   /**
    * Which mentions should be parsed from the message content
@@ -17096,6 +17304,65 @@ export interface SelectMenuComponentOptionData {
    * The value to be sent for this option
    */
   value: string;
+}
+
+export interface TextInputComponentData extends BaseComponentData {
+  /**
+   * The custom id of the text input
+   */
+  customId: string;
+
+  /**
+   * The style of the text input
+   */
+  style: TextInputStyle;
+
+  /**
+   * The text that appears on top of the text input field
+   */
+  label: string;
+
+  /**
+   * The minimum number of characters that can be entered in the text input
+   */
+  minLength?: number;
+
+  /**
+   * The maximum number of characters that can be entered in the text input
+   */
+  maxLength?: number;
+
+  /**
+   * Whether or not the text input is required or not
+   */
+  required?: boolean;
+
+  /**
+   * The pre-filled text in the text input
+   */
+  value?: string;
+
+  /**
+   * Placeholder for the text input
+   */
+  placeholder?: string;
+}
+
+export interface ModalData {
+  /**
+   * The custom id of the modal
+   */
+  customId: string;
+
+  /**
+   * The title of the modal
+   */
+  title: string;
+
+  /**
+   * The components within this modal
+   */
+  components: ActionRowData<ModalActionRowComponentData>[];
 }
 
 /**
@@ -18167,6 +18434,7 @@ export {
   StageInstancePrivacyLevel,
   StickerType,
   StickerFormatType,
+  TextInputStyle,
   GuildSystemChannelFlags,
   ThreadMemberFlags,
   UserFlags,
@@ -18177,7 +18445,8 @@ export {
   UnsafeSelectMenuComponent,
   SelectMenuOption,
   UnsafeSelectMenuOption,
-  ActionRowComponent,
+  MessageActionRowComponent,
   UnsafeEmbed,
+  ModalActionRowComponent,
 } from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';
