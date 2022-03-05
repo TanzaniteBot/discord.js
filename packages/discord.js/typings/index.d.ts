@@ -763,7 +763,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
 
   /**
    * Deletes the initial reply to this interaction.
-   * @see Webhook.deleteMessage
+   * @see {@link Webhook.deleteMessage}
    * @example
    * // Delete the reply to this interaction
    * interaction.deleteReply()
@@ -774,7 +774,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
 
   /**
    * Edits the initial reply to this interaction.
-   * @see Webhook.editMessage
+   * @see {@link Webhook.editMessage}
    * @param options The new options for the message
    * @example
    * // Edit the reply to this interaction
@@ -803,7 +803,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
 
   /**
    * Fetches the initial reply to this interaction.
-   * @see Webhook.fetchMessage
+   * @see {@link Webhook.fetchMessage}
    * @example
    * // Fetch the reply to this interaction
    * interaction.fetchReply()
@@ -817,6 +817,11 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
    * @param options The options for the reply
    */
   followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Shows a modal component
+   * @param modal The modal to show
+   */
   showModal(modal: Modal): Promise<void>;
 }
 
@@ -5172,6 +5177,10 @@ export class Interaction<Cached extends CacheType = CacheType> extends Base {
    * Indicates whether this interaction can be replied to.
    */
   public isRepliable(): this is this & InteractionResponseFields<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link ModalSubmitInteraction}
+   */
   public isModalSubmit(): this is ModalSubmitInteraction<Cached>;
 }
 
@@ -6355,6 +6364,11 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    */
   public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public update(options: string | MessagePayload | InteractionUpdateOptions): Promise<void>;
+
+  /**
+   * Shows a modal component
+   * @param modal The modal to show
+   */
   public showModal(modal: Modal): Promise<void>;
 }
 
@@ -6690,6 +6704,9 @@ export interface ModalFieldData {
   customId: string;
 }
 
+/**
+ * Represents the serialized fields from a modal submit interaction
+ */
 export class ModalSubmitFieldsResolver {
   constructor(components: ModalFieldData[][]);
 
@@ -6720,13 +6737,51 @@ export class ModalSubmitFieldsResolver {
 
 export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = CacheType>
   extends ModalSubmitInteraction<Cached> {
+  /**
+   * The message associated with this interaction
+   */
   message: GuildCacheMessage<Cached> | null;
+
+  /**
+   * Updates the original message of the component on which the interaction was received on.
+   * @param options The options for the updated message
+   * @example
+   * // Remove the components from the message
+   * interaction.update({
+   *   content: "A component interaction was received",
+   *   components: []
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   update(options: string | MessagePayload | InteractionUpdateOptions): Promise<void>;
+
+  /**
+   * Defers an update to the message to which the component was attached.
+   * @param options Options for deferring the update to this interaction
+   * @example
+   * // Defer updating and reset the component's loading state
+   * interaction.deferUpdate()
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   deferUpdate(options?: InteractionDeferUpdateOptions): Promise<void>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
   inGuild(): this is ModalMessageModalSubmitInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
   inCachedGuild(): this is ModalMessageModalSubmitInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
   inRawGuild(): this is ModalMessageModalSubmitInteraction<'raw'>;
 }
 
@@ -6735,24 +6790,128 @@ export interface ModalSubmitActionRow {
   components: ModalFieldData[];
 }
 
+/**
+ * Represents a modal interaction
+ */
 export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extends Interaction<Cached> {
-  private constructor(client: Client, data: APIModalSubmitInteraction);
-  public readonly customId: string;
+  public constructor(client: Client, data: APIModalSubmitInteraction);
+
+  /**
+   * The custom id of the modal.
+   */
+  public customId: string;
+
+  /**
+   * The components within the modal
+   */
   // TODO: fix this type when #7517 is implemented
   public readonly components: ModalSubmitActionRow[];
+
+  /**
+   * The fields within the modal
+   */
   public readonly fields: ModalSubmitFieldsResolver;
+
+  /**
+   * An associated interaction webhook, can be used to further interact with this interaction
+   */
   public readonly webhook: InteractionWebhook;
+
+  /**
+   * Creates a reply to this interaction.
+   * <info>Use the `fetchReply` option to get the bot's reply message.</info>
+   * @param options The options for the reply
+   * @example
+   * // Reply to the interaction and fetch the response
+   * interaction.reply({ content: 'Pong!', fetchReply: true })
+   *   .then((message) => console.log(`Reply sent with content ${message.content}`))
+   *   .catch(console.error);
+   * @example
+   * // Create an ephemeral reply with an embed
+   * const embed = new Embed().setDescription('Pong!');
+   *
+   * interaction.reply({ embeds: [embed], ephemeral: true })
+   *   .then(() => console.log('Reply sent.'))
+   *   .catch(console.error);
+   */
   public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void>;
+
+  /**
+   * Deletes the initial reply to this interaction.
+   * @see {@link Webhook.deleteMessage}
+   * @example
+   * // Delete the reply to this interaction
+   * interaction.deleteReply()
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   public deleteReply(): Promise<void>;
+
+  /**
+   * Edits the initial reply to this interaction.
+   * @see {@link Webhook.editMessage}
+   * @param options The new options for the message
+   * @example
+   * // Edit the reply to this interaction
+   * interaction.editReply('New content')
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   public editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Defers the reply to this interaction.
+   * @param options Options for deferring the reply to this interaction
+   * @example
+   * // Defer the reply to this interaction
+   * interaction.deferReply()
+   *   .then(console.log)
+   *   .catch(console.error)
+   * @example
+   * // Defer to send an ephemeral reply later
+   * interaction.deferReply({ ephemeral: true })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   public deferReply(options: InteractionDeferReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
   public deferReply(options?: InteractionDeferReplyOptions): Promise<void>;
+
+  /**
+   * Fetches the initial reply to this interaction.
+   * @see {@link Webhook.fetchMessage}
+   * @example
+   * // Fetch the reply to this interaction
+   * interaction.fetchReply()
+   *   .then(reply => console.log(`Replied with ${reply.content}`))
+   *   .catch(console.error);
+   */
   public fetchReply(): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Send a follow-up message to this interaction.
+   * @param options The options for the reply
+   */
   public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<GuildCacheMessage<Cached>>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
   public inGuild(): this is ModalSubmitInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
   public inCachedGuild(): this is ModalSubmitInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
   public inRawGuild(): this is ModalSubmitInteraction<'raw'>;
+
+  /**
+   * Whether this is from a {@link MessageComponentInteraction}.
+   */
   public isFromMessage(): this is ModalMessageModalSubmitInteraction<Cached>;
 }
 
@@ -14493,6 +14652,10 @@ export interface ClientOptions {
    * Options for the REST manager
    */
   rest?: Partial<RESTOptions>;
+
+  /**
+   * A function used to transform outgoing json data
+   */
   jsonTransformer?: (obj: unknown) => unknown;
 }
 
