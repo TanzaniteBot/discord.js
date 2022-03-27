@@ -1,24 +1,25 @@
 import {
-  ActionRow as BuilderActionRow,
-  MessageActionRowComponent,
+  ActionRowBuilder as BuilderActionRow,
+  MessageActionRowComponentBuilder,
   blockQuote,
   bold,
-  ButtonComponent as BuilderButtonComponent,
+  ButtonBuilder as BuilderButtonComponent,
   channelMention,
   codeBlock,
-  Component,
-  Embed as BuildersEmbed,
+  EmbedBuilder as BuildersEmbed,
   formatEmoji,
   hideLinkEmbed,
   hyperlink,
   inlineCode,
   italic,
+  JSONEncodable,
+  MappedComponentTypes,
   memberNicknameMention,
-  Modal as BuilderModal,
   quote,
   roleMention,
-  SelectMenuComponent as BuilderSelectMenuComponent,
-  TextInputComponent as BuilderTextInputComponent,
+  SelectMenuBuilder as BuilderSelectMenuComponent,
+  TextInputBuilder as BuilderTextInputComponent,
+  UnsafeSelectMenuOptionBuilder as BuildersSelectMenuOption,
   spoiler,
   strikethrough,
   time,
@@ -26,7 +27,7 @@ import {
   TimestampStylesString,
   underscore,
   userMention,
-  ModalActionRowComponent,
+  ModalActionRowComponentBuilder,
 } from '@discordjs/builders';
 import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
@@ -105,7 +106,12 @@ import {
   APITextInputComponent,
   APIModalActionRowComponent,
   APIModalComponent,
-} from 'discord-api-types/v9';
+  APISelectMenuOption,
+  APIEmbedField,
+  APIEmbedAuthor,
+  APIEmbedFooter,
+  APIEmbedImage,
+} from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Stream } from 'node:stream';
@@ -293,23 +299,44 @@ export interface BaseComponentData {
 }
 
 export type MessageActionRowComponentData = ButtonComponentData | SelectMenuComponentData;
+
 export type ModalActionRowComponentData = TextInputComponentData;
 
-export interface ActionRowData<T extends MessageActionRowComponentData | ModalActionRowComponentData>
-  extends BaseComponentData {
+export type ActionRowComponentData = MessageActionRowComponentData | ModalActionRowComponentData;
+
+export type ActionRowComponent = MessageActionRowComponent | ModalActionRowComponent;
+
+export interface ActionRowData<T extends ActionRowComponent | ActionRowComponentData> extends BaseComponentData {
   components: T[];
 }
 
-export class ActionRow<
-  T extends MessageActionRowComponent | ModalActionRowComponent = MessageActionRowComponent,
+export class ActionRowBuilder<
+  T extends MessageActionRowComponentBuilder | ModalActionRowComponentBuilder =
+    | MessageActionRowComponentBuilder
+    | ModalActionRowComponentBuilder,
 > extends BuilderActionRow<T> {
   constructor(
     data?:
-      | ActionRowData<MessageActionRowComponentData | ModalActionRowComponentData>
+      | ActionRowData<MessageActionRowComponentData | ModalActionRowComponentData | ActionRowComponent>
       | (Omit<APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>, 'type'> & {
           type?: ComponentType.ActionRow;
         }),
   );
+}
+
+export type MessageActionRowComponent = ButtonComponent | SelectMenuComponent;
+export type ModalActionRowComponent = TextInputComponent;
+
+/**
+ * Represents an action row
+ */
+export class ActionRow<T extends MessageActionRowComponent | ModalActionRowComponent> {
+  public constructor(data: APIActionRowComponent<APIMessageActionRowComponent>);
+
+  /**
+   * The components in this action row
+   */
+  public readonly components: T[];
 }
 
 /**
@@ -742,6 +769,11 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
   replied: boolean;
 
   /**
+   * An associated interaction webhook, can be used to further interact with this interaction
+   */
+  webhook: InteractionWebhook;
+
+  /**
    * Creates a reply to this interaction.
    * <info>Use the `fetchReply` option to get the bot's reply message.</info>
    * @param options The options for the reply
@@ -822,7 +854,9 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
    * Shows a modal component
    * @param modal The modal to show
    */
-  showModal(modal: Modal): Promise<void>;
+  showModal(
+    modal: JSONEncodable<APIModalInteractionResponseCallbackData> | ModalData | APIModalInteractionResponseCallbackData,
+  ): Promise<void>;
 }
 
 /**
@@ -989,7 +1023,9 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    * Shows a modal component
    * @param modal The modal to show
    */
-  public showModal(modal: Modal): Promise<void>;
+  public showModal(
+    modal: JSONEncodable<APIModalInteractionResponseCallbackData> | ModalData | APIModalInteractionResponseCallbackData,
+  ): Promise<void>;
 
   /**
    * Transforms an option received from the API.
@@ -1196,7 +1232,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
    * @param reason Reason for changing the channel's default auto archive duration
    */
   public setDefaultAutoArchiveDuration(
-    defaultAutoArchiveDuration: ThreadAutoArchiveDuration,
+    defaultAutoArchiveDuration: ThreadAutoArchiveDuration | 'MAX',
     reason?: string,
   ): Promise<this>;
 
@@ -1435,22 +1471,172 @@ export class ButtonInteraction<Cached extends CacheType = CacheType> extends Mes
   public inRawGuild(): this is ButtonInteraction<'raw'>;
 }
 
-export class ButtonComponent extends BuilderButtonComponent {
-  public constructor(data?: ButtonComponentData | (Omit<APIButtonComponent, 'type'> & { type?: ComponentType.Button }));
+/**
+ * Represents a component
+ */
+export class Component<T extends APIMessageComponent | APIModalComponent = APIMessageComponent | APIModalComponent> {
+  /**
+   * The API data associated with this component
+   */
+  public readonly data: Readonly<T>;
+
+  /**
+   * The type of the component
+   */
+  public get type(): T['type'];
+
+  /**
+   * Returns the API-compatible JSON for this component
+   */
+  public toJSON(): T;
+
+  /**
+   * Whether or not the given components are equal
+   * @param other The component to compare against
+   */
+  public equals(other: this | T): boolean;
 }
 
-export class SelectMenuComponent extends BuilderSelectMenuComponent {
+export class ButtonComponent extends Component<APIButtonComponent> {
+  /**
+   * Creates a new component from API data
+   * @param data The API component data
+   */
+  public constructor(data: APIButtonComponent);
+
+  /**
+   * The style of this button
+   */
+  public get style(): ButtonStyle;
+
+  /**
+   * The label of this button
+   */
+  public get label(): string | null;
+
+  /**
+   * The emoji used in this button
+   */
+  public get emoji(): APIMessageComponentEmoji | null;
+
+  /**
+   * Whether this button is disabled
+   */
+  public get disabled(): boolean | null;
+
+  /**
+   * The custom id of this button (only defined on non-link buttons)
+   */
+  public get customId(): string | null;
+
+  /**
+   * The URL of this button (only defined on link buttons)
+   */
+  public get url(): string | null;
+}
+
+export type ComponentEmojiResolvable = APIMessageComponentEmoji | string;
+
+export class ButtonBuilder extends BuilderButtonComponent {
+  public constructor(data?: ButtonComponentData | (Omit<APIButtonComponent, 'type'> & { type?: ComponentType.Button }));
+
+  /**
+   * Creates a new button builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APIButtonComponent> | APIButtonComponent): ButtonBuilder;
+
+  /**
+   * Sets the emoji to display on this button
+   * @param emoji The emoji to display on this button
+   */
+  public override setEmoji(emoji: ComponentEmojiResolvable): this;
+}
+
+export class SelectMenuBuilder extends BuilderSelectMenuComponent {
   public constructor(
     data?: SelectMenuComponentData | (Omit<APISelectMenuComponent, 'type'> & { type?: ComponentType.SelectMenu }),
   );
+
+  /**
+   * Creates a new select menu builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): SelectMenuBuilder;
 }
 
-export class TextInputComponent extends BuilderTextInputComponent {
+/**
+ * Represents a select menu option
+ */
+export class SelectMenuOptionBuilder extends BuildersSelectMenuOption {
+  /**
+   * Sets the emoji to display on this option
+   * @param emoji The emoji to display on this option
+   */
+  public setEmoji(emoji: ComponentEmojiResolvable): this;
+}
+
+export class TextInputBuilder extends BuilderTextInputComponent {
   public constructor(data?: TextInputComponentData | APITextInputComponent);
+
+  /**
+   * Creates a new text input builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APITextInputComponent> | APITextInputComponent): TextInputBuilder;
 }
 
-export class Modal extends BuilderModal {
-  public constructor(data?: ModalData | APIModalActionRowComponent);
+export class TextInputComponent extends Component<APITextInputComponent> {
+  /**
+   * The custom id of this text input
+   */
+  public get customId(): string;
+
+  /**
+   * The value for this text input
+   */
+  public get value(): string;
+}
+
+/**
+ * Represents a select menu component
+ */
+export class SelectMenuComponent extends Component<APISelectMenuComponent> {
+  /**
+   * Creates a new component from API data
+   * @param data The API component data
+   */
+  public constructor(data: APISelectMenuComponent);
+
+  /**
+   * The placeholder for this select menu
+   */
+  public get placeholder(): string | null;
+
+  /**
+   * The maximum amount of options that can be selected
+   */
+  public get maxValues(): number | null;
+
+  /**
+   * The minimum amount of options that must be selected
+   */
+  public get minValues(): number | null;
+
+  /**
+   * The custom id of this select menu
+   */
+  public get customId(): string;
+
+  /**
+   * Whether this select menu is disabled
+   */
+  public get disabled(): boolean | null;
+
+  /**
+   * The options in this select menu
+   */
+  public get options(): APISelectMenuOption[];
 }
 
 export interface EmbedData {
@@ -1515,12 +1701,21 @@ export interface EmbedData {
   fields?: EmbedFieldData[];
 }
 
-export interface EmbedImageData {
+export interface IconData {
   /**
-   * The URL of the image
+   * The URL of the icon
    */
-  url?: string;
+  iconURL?: string;
+
+  /**
+   * The proxy URL of the icon
+   */
+  proxyIconURL?: string;
 }
+
+export type EmbedAuthorData = Omit<APIEmbedAuthor, 'icon_url' | 'proxy_icon_url'> & IconData;
+
+export type EmbedFooterData = Omit<APIEmbedFooter, 'icon_url' | 'proxy_icon_url'> & IconData;
 
 export interface EmbedProviderData {
   /**
@@ -1534,8 +1729,106 @@ export interface EmbedProviderData {
   url?: string;
 }
 
-export class Embed extends BuildersEmbed {
+export interface EmbedImageData extends Omit<APIEmbedImage, 'proxy_url'> {
+  /**
+   * The proxy URL for the image
+   */
+  proxyURL?: string;
+}
+
+export class EmbedBuilder extends BuildersEmbed {
   public constructor(data?: EmbedData | APIEmbed);
+
+  /**
+   * Sets the color of this embed
+   * @param color The color of the embed
+   */
+  public override setColor(color: ColorResolvable | null): this;
+
+  /**
+   * Creates a new embed builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APIEmbed> | APIEmbed): EmbedBuilder;
+}
+
+export class Embed {
+  /**
+   * Creates a new embed object
+   * @param data API embed data
+   */
+  public constructor(data: APIEmbed);
+
+  /**
+   * The API embed data
+   */
+  public readonly data: Readonly<APIEmbed>;
+
+  /**
+   * An array of fields of this embed
+   */
+  public get fields(): APIEmbedField[] | null;
+
+  /**
+   * The embed footer data
+   */
+  public get footer(): EmbedFooterData | null;
+
+  /**
+   * The embed title
+   */
+  public get title(): string | null;
+
+  /**
+   * The embed description
+   */
+  public get description(): string | null;
+
+  /**
+   * The embed URL
+   */
+  public get url(): string | null;
+
+  /**
+   * The embed color
+   */
+  public get color(): number | null;
+
+  /**
+   * The timestamp of the embed in an ISO 8601 format
+   */
+  public get timestamp(): string | null;
+
+  /**
+   * The embed thumbnail data
+   */
+  public get thumbnail(): EmbedImageData | null;
+
+  /**
+   * The embed image data
+   */
+  public get image(): EmbedImageData | null;
+
+  /**
+   * Received data about the embed provider
+   */
+  public get provider(): EmbedProviderData | null;
+
+  /**
+   * The accumulated length for the embed title, description, fields, footer text, and author name
+   */
+  public get length(): number;
+
+  /**
+   * Whether or not the given embeds are equal
+   * @param other The embed to compare against
+   */
+  public equals(other: Embed | APIEmbed): boolean;
+
+  /**
+   * Returns the API-compatible JSON for this embed
+   */
+  public toJSON(): APIEmbed;
 }
 
 export interface MappedChannelCategoryTypes {
@@ -2137,7 +2430,7 @@ export class Options extends null {
    * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
    * `makeCache: Options.cacheWithLimits({ ...Options.defaultMakeCacheSettings, ReactionManager: 0 })`</info>
    */
-  public static defaultMakeCacheSettings: CacheWithLimitsOptions;
+  public static get DefaultMakeCacheSettings(): CacheWithLimitsOptions;
 
   /**
    * The default settings passed to {@link Options.sweepers} (for v14).
@@ -2146,7 +2439,7 @@ export class Options extends null {
    * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
    * `sweepers: { ...Options.defaultSweeperSettings, messages: { interval: 300, lifetime: 600 } })`</info>
    */
-  public static defaultSweeperSettings: SweeperOptions;
+  public static get DefaultSweeperSettings(): SweeperOptions;
 
   /**
    * The default client options.
@@ -3454,7 +3747,7 @@ export class Guild extends AnonymousGuild {
    * @param reason Reason for changing the setting of the default message notifications
    */
   public setDefaultMessageNotifications(
-    defaultMessageNotifications: GuildDefaultMessageNotifications,
+    defaultMessageNotifications: GuildDefaultMessageNotifications | null,
     reason?: string,
   ): Promise<Guild>;
 
@@ -3478,7 +3771,10 @@ export class Guild extends AnonymousGuild {
    * @param explicitContentFilter The new level of the explicit content filter
    * @param reason Reason for changing the level of the guild's explicit content filter
    */
-  public setExplicitContentFilter(explicitContentFilter: GuildExplicitContentFilter, reason?: string): Promise<Guild>;
+  public setExplicitContentFilter(
+    explicitContentFilter: GuildExplicitContentFilter | null,
+    reason?: string,
+  ): Promise<Guild>;
 
   /**
    * Sets a new guild icon.
@@ -3527,7 +3823,7 @@ export class Guild extends AnonymousGuild {
    *  .then(updated => console.log(`Updated guild preferred locale to ${guild.preferredLocale}`))
    *  .catch(console.error);
    */
-  public setPreferredLocale(preferredLocale: Locale, reason?: string): Promise<Guild>;
+  public setPreferredLocale(preferredLocale: Locale | null, reason?: string): Promise<Guild>;
 
   /**
    * Edits the community updates channel of the guild.
@@ -3594,7 +3890,7 @@ export class Guild extends AnonymousGuild {
    *  .then(updated => console.log(`Updated guild verification level to ${guild.verificationLevel}`))
    *  .catch(console.error);
    */
-  public setVerificationLevel(verificationLevel: GuildVerificationLevel, reason?: string): Promise<Guild>;
+  public setVerificationLevel(verificationLevel: GuildVerificationLevel | null, reason?: string): Promise<Guild>;
 
   /**
    * Edits the enabled state of the guild's premium progress bar
@@ -3635,31 +3931,9 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = null> {
   public entries: Collection<Snowflake, GuildAuditLogsEntry<T>>;
 
   /**
-   * Key mirror of all available audit log targets.
-   */
-  public static Targets: GuildAuditLogsTargets;
-
-  /**
    * Audit logs entry.
    */
   public static Entry: typeof GuildAuditLogsEntry;
-
-  /**
-   * Finds the action type from the entry action.
-   * @param action The action target
-   */
-  public static actionType(action: number): GuildAuditLogsActionType;
-
-  /**
-   * Handles possible promises for entry targets.
-   */
-  public static build(...args: unknown[]): Promise<GuildAuditLogs>;
-
-  /**
-   * Finds the target type from the entry action.
-   * @param target The action target
-   */
-  public static targetType(target: number): GuildAuditLogsTarget;
 
   /**
    * Transforms the audit logs to a plain object.
@@ -3680,6 +3954,11 @@ export class GuildAuditLogsEntry<
     : 'Unknown',
 > {
   public constructor(logs: GuildAuditLogs, guild: Guild, data: RawGuildAuditLogEntryData);
+
+  /**
+   * Key mirror of all available audit log targets.
+   */
+  public static Targets: GuildAuditLogsTargets;
 
   /**
    * Specific action type of this entry in its string presentation
@@ -3737,6 +4016,18 @@ export class GuildAuditLogsEntry<
    * The target type of this entry
    */
   public targetType: TTargetType;
+
+  /**
+   * Finds the action type from the guild audit log entry action.
+   * @param action The action target.
+   */
+  public static actionType(action: number): GuildAuditLogsActionType;
+
+  /**
+   * Finds the target type of a guild audit log entry.
+   * @param target The action target.
+   */
+  public static targetType(target: number): GuildAuditLogsTarget;
 
   /**
    * Transforms the audit log entry to a plain object.
@@ -4815,7 +5106,7 @@ export class GuildTemplate extends Base {
   /**
    * Regular expression that globally matches guild template links
    */
-  public static GUILD_TEMPLATES_PATTERN: RegExp;
+  public static GuildTemplatesPattern: RegExp;
 }
 
 /**
@@ -5477,7 +5768,7 @@ export class Invite extends Base {
   /**
    * Regular expression that globally matches Discord invite links
    */
-  public static INVITES_PATTERN: RegExp;
+  public static InvitesPattern: RegExp;
 
   /**
    * The stage instance data if there is a public {@link StageInstance} in the stage channel this invite is for
@@ -6369,7 +6660,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    * Shows a modal component
    * @param modal The modal to show
    */
-  public showModal(modal: Modal): Promise<void>;
+  public showModal(
+    modal: JSONEncodable<APIModalInteractionResponseCallbackData> | ModalData | APIModalInteractionResponseCallbackData,
+  ): Promise<void>;
 }
 
 /**
@@ -6511,22 +6804,22 @@ export class MessageMentions {
   /**
    * Regular expression that globally matches channel mentions like `<#222079895583457280>`
    */
-  public static CHANNELS_PATTERN: RegExp;
+  public static ChannelsPattern: RegExp;
 
   /**
    * Regular expression that globally matches `@everyone` and `@here`
    */
-  public static EVERYONE_PATTERN: RegExp;
+  public static EveryonePattern: RegExp;
 
   /**
    * Regular expression that globally matches role mentions like `<@&297577916114403338>`
    */
-  public static ROLES_PATTERN: RegExp;
+  public static RolesPattern: RegExp;
 
   /**
    * Regular expression that globally matches user mentions like `<@81440962496172032>`
    */
-  public static USERS_PATTERN: RegExp;
+  public static UsersPattern: RegExp;
 }
 
 /**
@@ -6687,46 +6980,29 @@ export class MessageReaction {
   public toJSON(): unknown;
 }
 
-export interface ModalFieldData {
-  /**
-   * The value of the field
-   */
-  value: string;
-
-  /**
-   * The component type of the field
-   */
-  type: ComponentType;
-
-  /**
-   * The custom id of the field
-   */
-  customId: string;
-}
-
 /**
  * Represents the serialized fields from a modal submit interaction
  */
 export class ModalSubmitFieldsResolver {
-  constructor(components: ModalFieldData[][]);
+  constructor(components: ModalActionRowComponent[][]);
 
   /**
    * The components within the modal
    * @type The components in the modal
    */
-  public components: ModalFieldData[][];
+  public components: ActionRow<ModalActionRowComponent>;
 
   /**
    * The extracted fields from the modal
    * @type The fields in the modal
    */
-  public fields: Collection<string, ModalFieldData>;
+  public fields: Collection<string, ModalActionRowComponent>;
 
   /**
    * Gets a field given a custom id from a component
    * @param customId The custom id of the component
    */
-  public getField(customId: string): ModalFieldData;
+  public getField(customId: string): ModalActionRowComponent;
 
   /**
    * Gets the value of a text input component given a custom id
@@ -6787,7 +7063,7 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
 
 export interface ModalSubmitActionRow {
   type: ComponentType.ActionRow;
-  components: ModalFieldData[];
+  components: ActionRow<TextInputComponent>[];
 }
 
 /**
@@ -6811,6 +7087,21 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    * The fields within the modal
    */
   public readonly fields: ModalSubmitFieldsResolver;
+
+  /**
+   * Whether the reply to this interaction has been deferred
+   */
+  public deferred: boolean;
+
+  /**
+   * Whether the reply to this interaction is ephemeral
+   */
+  public ephemeral: boolean | null;
+
+  /**
+   * Whether this interaction has already been replied to
+   */
+  public replied: boolean;
 
   /**
    * An associated interaction webhook, can be used to further interact with this interaction
@@ -8222,6 +8513,11 @@ export class StageInstance extends Base {
   public discoverableDisabled: boolean | null;
 
   /**
+   * The associated guild scheduled event id of this stage instance
+   */
+  public guildScheduledEventId: Snowflake | null;
+
+  /**
    * The stage channel associated with this stage instance
    */
   public get channel(): StageChannel | null;
@@ -8230,6 +8526,11 @@ export class StageInstance extends Base {
    * The guild this stage instance belongs to
    */
   public get guild(): Guild | null;
+
+  /**
+   * The associated guild scheduled event of this stage instance
+   */
+  public get guildScheduledEvent(): GuildScheduledEvent | null;
 
   /**
    * Edits this stage instance.
@@ -9182,7 +9483,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    *   .catch(console.error);
    */
   public setAutoArchiveDuration(
-    autoArchiveDuration: ThreadAutoArchiveDuration,
+    autoArchiveDuration: ThreadAutoArchiveDuration | 'MAX',
     reason?: string,
   ): Promise<ThreadChannel>;
 
@@ -9276,6 +9577,11 @@ export class ThreadMember extends Base {
    * The user associated with this thread member
    */
   public get user(): User | null;
+
+  /**
+   * Whether this thread member is a partial
+   */
+  public get partial(): false;
 
   /**
    * Removes this member from the thread.
@@ -9754,6 +10060,18 @@ export class Util extends null {
   public static splitMessage(text: string, options?: SplitOptions): string[];
 }
 
+export class Components extends null {
+  /**
+   * Transforms API data into a component
+   * @param data The data to create the component from
+   */
+  public static createComponent<T extends keyof MappedComponentTypes>(
+    data: APIMessageComponent & { type: T },
+  ): MappedComponentTypes[T];
+  public static createComponent<C extends Component>(data: C): C;
+  public static createComponent(data: APIMessageComponent | Component): Component;
+}
+
 /**
  * Contains various Discord-specific functions for formatting messages.
  */
@@ -10095,7 +10413,7 @@ export class VoiceState extends Base {
    * // Making the client cancel a request to speak
    * guild.me.voice.setRequestToSpeak(false);
    */
-  public setRequestToSpeak(request?: boolean): Promise<void>;
+  public setRequestToSpeak(request?: boolean): Promise<this>;
 
   /**
    * Suppress/unsuppress the user. Only applicable for stage channels.
@@ -10113,7 +10431,13 @@ export class VoiceState extends Base {
    * // Moving another user to the audience, or cancelling their invite to speak
    * voiceState.setSuppressed(true);
    */
-  public setSuppressed(suppressed?: boolean): Promise<void>;
+  public setSuppressed(suppressed?: boolean): Promise<this>;
+
+  /**
+   * Edits this voice state. Currently only available when in a stage channel
+   * @param data The data to edit the voice state with
+   */
+  public edit(data: VoiceStateEditData): Promise<this>;
 }
 
 export class Webhook extends WebhookMixin() {
@@ -10872,6 +11196,12 @@ export class WelcomeScreen extends Base {
 
 //#region Constants
 
+export type NonSystemMessageType =
+  | MessageType.Default
+  | MessageType.Reply
+  | MessageType.ChatInputCommand
+  | MessageType.ContextMenuCommand;
+
 export const Constants: {
   Package: {
     name: string;
@@ -10909,15 +11239,13 @@ export const Constants: {
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
 
   /**
-   * The type of a message, e.g. `MessageType.Default`.
-   * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-object-message-types)}
+   * The types of messages that are not `System`. The available types are:
+   * * {@link MessageType.Default}
+   * * {@link MessageType.Reply}
+   * * {@link MessageType.ChatInputCommand}
+   * * {@link MessageType.ContextMenuCommand}
    */
-  MessageTypes: MessageType[];
-
-  /**
-   * The types of messages that are `System`.
-   */
-  SystemMessageTypes: SystemMessageType[];
+  NonSystemMessageTypes: NonSystemMessageType[];
 };
 
 export const version: string;
@@ -11949,7 +12277,7 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
    *   .then(user => console.log(`Unbanned ${user.username} from ${guild.name}`))
    *   .catch(console.error);
    */
-  public unban(user: UserResolvable, reason?: string): Promise<User>;
+  public unban(user: UserResolvable, reason?: string): Promise<User | null>;
 }
 
 /**
@@ -13268,7 +13596,7 @@ export interface AddGuildMemberOptions {
   fetchWhenExisting?: boolean;
 }
 
-export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction;
+export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction | ThreadMember;
 
 export type AllowedThreadTypeForNewsChannel = ChannelType.GuildNewsThread;
 
@@ -14032,7 +14360,7 @@ export interface ChannelData {
   /**
    * The default auto archive duration for all new threads in this channel
    */
-  defaultAutoArchiveDuration?: ThreadAutoArchiveDuration;
+  defaultAutoArchiveDuration?: ThreadAutoArchiveDuration | 'MAX';
 
   /**
    * The RTC region of the channel
@@ -14410,12 +14738,14 @@ export interface ClientEvents {
 
   /**
    * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
+   * @param thread The thread where members got updated
    * @param oldMembers The members before the update
    * @param newMembers The members after the update
    */
   threadMembersUpdate: [
-    oldMembers: Collection<Snowflake, ThreadMember>,
-    newMembers: Collection<Snowflake, ThreadMember>,
+    thread: ThreadChannel,
+    addedMembers: Collection<Snowflake, ThreadMember>,
+    removedMembers: Collection<Snowflake, ThreadMember | PartialThreadMember>,
   ];
 
   /**
@@ -14750,38 +15080,9 @@ export interface CollectorResetTimerOptions {
  * Can be a number, hex string, an RGB array
  */
 export type ColorResolvable =
-  | 'Default'
-  | 'White'
-  | 'Aqua'
-  | 'Green'
-  | 'Blue'
-  | 'Yellow'
-  | 'Purple'
-  | 'LuminousVividPink'
-  | 'Fuchsia'
-  | 'Gold'
-  | 'Orange'
-  | 'Red'
-  | 'Grey'
-  | 'Navy'
-  | 'DarkAqua'
-  | 'DarkGreen'
-  | 'DarkBlue'
-  | 'DarkPurple'
-  | 'DarkVividPink'
-  | 'DarkGold'
-  | 'DarkOrange'
-  | 'DarkRed'
-  | 'DarkGrey'
-  | 'DarkerGrey'
-  | 'LightGrey'
-  | 'DarkNavy'
-  | 'Blurple'
-  | 'Greyple'
-  | 'DarkButNotBlack'
-  | 'NotQuiteBlack'
+  | keyof typeof Colors
   | 'Random'
-  | readonly [number, number, number]
+  | readonly [red: number, green: number, blue: number]
   | number
   | HexColorString;
 
@@ -15367,26 +15668,6 @@ export interface EditGuildTemplateOptions {
 }
 
 /**
- * The options to provide for setting an author for a {@link MessageEmbed}.
- */
-export interface EmbedAuthorData {
-  /**
-   * The name of this author.
-   */
-  name: string;
-
-  /**
-   * The URL of this author.
-   */
-  url?: string;
-
-  /**
-   * The icon URL of this author.
-   */
-  iconURL?: string;
-}
-
-/**
  * Represents a field of a MessageEmbed
  */
 export interface EmbedField {
@@ -15421,21 +15702,6 @@ export interface EmbedFieldData {
    * If this field will be displayed inline
    */
   inline?: boolean;
-}
-
-/**
- * The options to provide for setting a footer for a {@link MessageEmbed}.
- */
-export interface EmbedFooterData {
-  /**
-   * The text of the footer.
-   */
-  text: string;
-
-  /**
-   * The icon URL of the footer.
-   */
-  iconURL?: string;
 }
 
 /**
@@ -16332,27 +16598,27 @@ export interface GuildEditData {
   /**
    * The verification level of the guild
    */
-  verificationLevel?: GuildVerificationLevel;
+  verificationLevel?: GuildVerificationLevel | null;
 
   /**
    * The level of the explicit content filter
    */
-  explicitContentFilter?: GuildExplicitContentFilter;
+  explicitContentFilter?: GuildExplicitContentFilter | null;
 
   /**
    * The default message notification level of the guild
    */
-  defaultMessageNotifications?: GuildDefaultMessageNotifications;
+  defaultMessageNotifications?: GuildDefaultMessageNotifications | null;
 
   /**
    * The AFK channel of the guild
    */
-  afkChannel?: VoiceChannelResolvable;
+  afkChannel?: VoiceChannelResolvable | null;
 
   /**
    * The system channel of the guild
    */
-  systemChannel?: TextChannelResolvable;
+  systemChannel?: TextChannelResolvable | null;
 
   /**
    * The system channel flags of the guild
@@ -16392,17 +16658,17 @@ export interface GuildEditData {
   /**
    * The rules channel of the guild
    */
-  rulesChannel?: TextChannelResolvable;
+  rulesChannel?: TextChannelResolvable | null;
 
   /**
    * The community updates channel of the guild
    */
-  publicUpdatesChannel?: TextChannelResolvable;
+  publicUpdatesChannel?: TextChannelResolvable | null;
 
   /**
    * The preferred locale of the guild
    */
-  preferredLocale?: Locale;
+  preferredLocale?: Locale | null;
 
   /**
    * Whether the guild's premium progress bar is enabled
@@ -17122,7 +17388,11 @@ export interface MessageCollectorOptions extends CollectorOptions<[Message]> {
  * Components that can be sent in a message.
  * @see {@link [Component Types](https://discord.com/developers/docs/interactions/message-components#component-object-component-types)}
  */
-export type MessageComponent = Component | ActionRow<MessageActionRowComponent> | ButtonComponent | SelectMenuComponent;
+export type MessageComponent =
+  | Component
+  | ActionRowBuilder<MessageActionRowComponentBuilder | ModalActionRowComponentBuilder>
+  | ButtonComponent
+  | SelectMenuComponent;
 
 export type MessageComponentCollectorOptions<T extends MessageComponentInteraction> = Omit<
   InteractionCollectorOptions<T>,
@@ -17169,8 +17439,9 @@ export interface MessageEditOptions {
    * Action rows containing interactive components for the message (buttons, select menus)
    */
   components?: (
+    | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
     | ActionRow<MessageActionRowComponent>
-    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData>)
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponent>)
     | APIActionRowComponent<APIMessageActionRowComponent>
   )[];
 }
@@ -17296,14 +17567,15 @@ export interface MessageOptions {
    * The embeds for the message
    * (see [here](https://discord.com/developers/docs/resources/channel#embed-object) for more details)
    */
-  embeds?: (Embed | APIEmbed)[];
+  embeds?: (JSONEncodable<APIEmbed> | APIEmbed)[];
 
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
   components?: (
+    | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
     | ActionRow<MessageActionRowComponent>
-    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData>)
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponent>)
     | APIActionRowComponent<APIMessageActionRowComponent>
   )[];
 
@@ -17710,6 +17982,8 @@ export interface PartialMessage
 
 export interface PartialMessageReaction extends Partialize<MessageReaction, 'count'> {}
 
+export interface PartialThreadMember extends Partialize<ThreadMember, 'flags' | 'joinedAt' | 'joinedTimestamp'> {}
+
 export interface PartialOverwriteData {
   id: Snowflake | number;
   type?: OverwriteType;
@@ -17733,6 +18007,7 @@ export enum Partials {
   Message,
   Reaction,
   GuildScheduledEvent,
+  ThreadMember,
 }
 
 export interface PartialUser extends Partialize<User, 'username' | 'tag' | 'discriminator'> {}
@@ -18064,14 +18339,6 @@ export type StickerResolvable = Sticker | Snowflake;
 export type SystemChannelFlagsResolvable = BitFieldResolvable<SystemChannelFlagsString, number>;
 
 /**
- * The types of messages that are `System`.
- */
-export type SystemMessageType = Exclude<
-  MessageType,
-  MessageType.Default | MessageType.Reply | MessageType.ChatInputCommand | MessageType.ContextMenuCommand
->;
-
-/**
  * Data that can be resolved to a Stage Channel object.
  */
 export type StageChannelResolvable = StageChannel | Snowflake;
@@ -18223,9 +18490,8 @@ export type TextBasedChannelResolvable = Snowflake | TextBasedChannel;
  * * `1440` (1 day)
  * * `4320` (3 days) <warn>This is only available when the guild has the `THREE_DAY_THREAD_ARCHIVE` feature.</warn>
  * * `10080` (7 days) <warn>This is only available when the guild has the `SEVEN_DAY_THREAD_ARCHIVE` feature.</warn>
- * * `'MAX'` Based on the guild's features
  */
-export type ThreadAutoArchiveDuration = 60 | 1440 | 4320 | 10080 | 'MAX';
+export type ThreadAutoArchiveDuration = 60 | 1440 | 4320 | 10080;
 
 /**
  * Data that can be resolved to a Thread Channel object.
@@ -18337,6 +18603,22 @@ export type VoiceBasedChannelTypes = VoiceBasedChannel['type'];
  * Data that can be resolved to a Voice Channel object.
  */
 export type VoiceChannelResolvable = Snowflake | VoiceChannel;
+
+/**
+ * Data to edit the logged in user's own voice state with, when in a stage channel
+ */
+export interface VoiceStateEditData {
+  /**
+   * Whether or not the client is requesting to become a speaker.
+   * <info>Only available to the logged in user's own voice state.</info>
+   */
+  requestToSpeak?: boolean;
+
+  /**
+   * Whether or not the user should be suppressed.
+   */
+  suppressed?: boolean;
+}
 
 /**
  * The data for the webhook client containing either an id and token or just a URL
@@ -18569,6 +18851,9 @@ export {
   ApplicationCommandType,
   ApplicationCommandOptionType,
   ApplicationCommandPermissionType,
+  APIEmbedField,
+  APISelectMenuOption,
+  APIMessageComponentEmoji,
   AuditLogEvent,
   ButtonStyle,
   ChannelType,
@@ -18602,14 +18887,14 @@ export {
   ThreadMemberFlags,
   UserFlags,
   WebhookType,
-} from 'discord-api-types/v9';
+} from 'discord-api-types/v10';
 export {
-  UnsafeButtonComponent,
-  UnsafeSelectMenuComponent,
-  SelectMenuOption,
-  UnsafeSelectMenuOption,
-  MessageActionRowComponent,
-  UnsafeEmbed,
-  ModalActionRowComponent,
+  UnsafeButtonBuilder,
+  UnsafeSelectMenuBuilder,
+  UnsafeSelectMenuOptionBuilder,
+  MessageActionRowComponentBuilder,
+  ModalActionRowComponentBuilder,
+  UnsafeEmbedBuilder,
+  ModalBuilder,
 } from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';

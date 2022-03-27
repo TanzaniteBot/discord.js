@@ -1,6 +1,6 @@
 'use strict';
 
-const { InteractionType, ComponentType, ApplicationCommandType } = require('discord-api-types/v9');
+const { InteractionType, ComponentType, ApplicationCommandType } = require('discord-api-types/v10');
 const Action = require('./Action');
 const Events = require('../../util/Events');
 const Structures = require('../../util/Structures');

@@ -1,7 +1,7 @@
 'use strict';
 
 const { Collection } = require('@discordjs/collection');
-const { Routes } = require('discord-api-types/v9');
+const { Routes } = require('discord-api-types/v10');
 const CachedManager = require('./CachedManager');
 const { TypeError } = require('../errors');
 const MessagePayload = require('../structures/MessagePayload');
@@ -174,7 +174,7 @@ class GuildStickerManager extends CachedManager {
   async fetchUser(sticker) {
     sticker = this.resolve(sticker);
     if (!sticker) throw new TypeError('INVALID_TYPE', 'sticker', 'StickerResolvable');
-    const data = await this.client.rest.get(Routes.guildSticker(this.guildId, sticker.id));
+    const data = await this.client.rest.get(Routes.guildSticker(this.guild.id, sticker.id));
     sticker._patch(data);
     return sticker.user;
   }

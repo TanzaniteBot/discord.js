@@ -1,5 +1,5 @@
 import is from '@sindresorhus/is';
-import type { APIApplicationCommandOptionChoice } from 'discord-api-types/v9';
+import type { APIApplicationCommandOptionChoice } from 'discord-api-types/v10';
 import { z } from 'zod';
 import type { ApplicationCommandOptionBase } from './mixins/ApplicationCommandOptionBase';
 import type { ToAPIApplicationCommandOptions } from './SlashCommandBuilder';
@@ -52,8 +52,10 @@ export function validateRequired(required: unknown): asserts required is boolean
 	booleanPredicate.parse(required);
 }
 
-export function validateMaxChoicesLength(choices: APIApplicationCommandOptionChoice[]) {
-	maxArrayLengthPredicate.parse(choices);
+const choicesLengthPredicate = z.number().lte(25);
+
+export function validateChoicesLength(amountAdding: number, choices?: APIApplicationCommandOptionChoice[]): void {
+	choicesLengthPredicate.parse((choices?.length ?? 0) + amountAdding);
 }
 
 export function assertReturnOfBuilder<

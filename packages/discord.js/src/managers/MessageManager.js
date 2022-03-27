@@ -1,7 +1,7 @@
 'use strict';
 
 const { Collection } = require('@discordjs/collection');
-const { Routes } = require('discord-api-types/v9');
+const { Routes } = require('discord-api-types/v10');
 const CachedManager = require('./CachedManager');
 const { TypeError } = require('../errors');
 const { Message } = require('../structures/Message');
@@ -164,7 +164,7 @@ class MessageManager extends CachedManager {
     message = this.resolveId(message);
     if (!message) throw new TypeError('INVALID_TYPE', 'message', 'MessageResolvable');
 
-    await this.client.rest.put(Routes.channelPins(this.channel.id, message), { reason });
+    await this.client.rest.put(Routes.channelPin(this.channel.id, message), { reason });
   }
 
   /**

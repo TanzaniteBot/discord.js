@@ -19,7 +19,10 @@ import {
   PermissionFlagsBits,
   AuditLogEvent,
   ButtonStyle,
-} from 'discord-api-types/v9';
+  TextInputStyle,
+  APITextInputComponent,
+  APIEmbed,
+} from 'discord-api-types/v10';
 import {
   ApplicationCommand,
   ApplicationCommandData,
@@ -58,6 +61,7 @@ import {
   MessageCollector,
   MessageComponentInteraction,
   MessageReaction,
+  ModalBuilder,
   NewsChannel,
   Options,
   PartialTextBasedChannelFields,
@@ -93,10 +97,10 @@ import {
   GuildAuditLogs,
   StageInstance,
   PartialDMChannel,
-  ActionRow,
+  ActionRowBuilder,
   ButtonComponent,
   SelectMenuComponent,
-  MessageActionRowComponent,
+  MessageActionRowComponentBuilder,
   InteractionResponseFields,
   ThreadChannelType,
   Events,
@@ -105,9 +109,17 @@ import {
   CategoryChannelChildManager,
   ActionRowData,
   MessageActionRowComponentData,
+  PartialThreadMember,
+  ThreadMemberFlagsBitField,
+  ButtonBuilder,
+  EmbedBuilder,
+  MessageActionRowComponent,
+  SelectMenuBuilder,
+  TextInputBuilder,
+  TextInputComponent,
+  Embed,
 } from '.';
 import { expectAssignable, expectDeprecated, expectNotAssignable, expectNotType, expectType } from 'tsd';
-import { Embed } from '@discordjs/builders';
 
 // Test type transformation:
 declare const serialize: <T>(value: T) => Serialized<T>;
@@ -570,7 +582,7 @@ client.on('messageCreate', async message => {
   assertIsMessage(channel.send({ embeds: [] }));
 
   const attachment = new MessageAttachment('file.png');
-  const embed = new Embed();
+  const embed = new EmbedBuilder();
   assertIsMessage(channel.send({ files: [attachment] }));
   assertIsMessage(channel.send({ embeds: [embed] }));
   assertIsMessage(channel.send({ embeds: [embed], files: [attachment] }));
@@ -717,6 +729,22 @@ client.on('messageCreate', async message => {
   });
 });
 
+client.on('threadMembersUpdate', (thread, addedMembers, removedMembers) => {
+  expectType<ThreadChannel>(thread);
+  expectType<Collection<Snowflake, ThreadMember>>(addedMembers);
+  expectType<Collection<Snowflake, ThreadMember | PartialThreadMember>>(removedMembers);
+  const left = removedMembers.first();
+  if (!left) return;
+
+  if (left.partial) {
+    expectType<PartialThreadMember>(left);
+    expectType<null>(left.flags);
+  } else {
+    expectType<ThreadMember>(left);
+    expectType<ThreadMemberFlagsBitField>(left.flags);
+  }
+});
+
 client.on('interactionCreate', async interaction => {
   expectType<Snowflake | null>(interaction.guildId);
   expectType<Snowflake | null>(interaction.channelId);
@@ -724,14 +752,16 @@ client.on('interactionCreate', async interaction => {
 
   if (!interaction.isCommand()) return;
 
-  void new ActionRow<MessageActionRowComponent>();
+  void new ActionRowBuilder<MessageActionRowComponentBuilder>();
 
-  const button = new ButtonComponent();
+  const button = new ButtonBuilder();
 
-  const actionRow = new ActionRow<MessageActionRowComponent>({
+  const actionRow = new ActionRowBuilder<MessageActionRowComponentBuilder>({
     type: ComponentType.ActionRow,
     components: [button.toJSON()],
   });
+
+  actionRow.toJSON();
 
   await interaction.reply({ content: 'Hi!', components: [actionRow] });
 
@@ -739,8 +769,7 @@ client.on('interactionCreate', async interaction => {
   interaction.reply({ content: 'Hi!', components: [[button]] });
 
   // @ts-expect-error
-  void new ActionRow({});
-
+  void new ActionRowBuilder({});
   // @ts-expect-error
   await interaction.reply({ content: 'Hi!', components: [button] });
 
@@ -1316,29 +1345,43 @@ expectType<CategoryChannel | NewsChannel | StageChannel | StoreChannel | TextCha
 );
 expectType<NewsChannel | TextChannel | ThreadChannel>(GuildTextBasedChannel);
 
-const button = new ButtonComponent({
+const button = new ButtonBuilder({
   label: 'test',
   style: ButtonStyle.Primary,
   customId: 'test',
 });
 
-const selectMenu = new SelectMenuComponent({
+const selectMenu = new SelectMenuBuilder({
   maxValues: 10,
   minValues: 2,
   customId: 'test',
 });
 
-new ActionRow({
+new ActionRowBuilder({
   components: [selectMenu.toJSON(), button.toJSON()],
 });
 
-new SelectMenuComponent({
+new SelectMenuBuilder({
   customId: 'foo',
 });
 
-new ButtonComponent({
+new ButtonBuilder({
   style: ButtonStyle.Danger,
-});
+})
+  .setEmoji('<a:foo:123>')
+  .setEmoji('<:foo:123>')
+  .setEmoji('foobar:123')
+  .setEmoji('😏')
+  .setEmoji({
+    name: 'test',
+    id: '123',
+    animated: false,
+  });
+
+// @ts-expect-error
+new EmbedBuilder().setColor('abc');
+
+new EmbedBuilder().setColor('#ffffff');
 
 expectNotAssignable<ActionRowData<MessageActionRowComponentData>>({
   type: ComponentType.ActionRow,
@@ -1353,3 +1396,49 @@ declare const chatInputInteraction: ChatInputCommandInteraction;
 
 expectType<MessageAttachment>(chatInputInteraction.options.getAttachment('attachment', true));
 expectType<MessageAttachment | null>(chatInputInteraction.options.getAttachment('attachment'));
+
+declare const modal: ModalBuilder;
+
+chatInputInteraction.showModal(modal);
+
+chatInputInteraction.showModal({
+  title: 'abc',
+  custom_id: 'abc',
+  components: [
+    {
+      components: [
+        {
+          custom_id: 'aa',
+          label: 'label',
+          style: TextInputStyle.Short,
+          type: ComponentType.TextInput,
+        },
+      ],
+      type: ComponentType.ActionRow,
+    },
+  ],
+});
+
+declare const selectMenuData: APISelectMenuComponent;
+SelectMenuBuilder.from(selectMenuData);
+
+declare const selectMenuComp: SelectMenuComponent;
+SelectMenuBuilder.from(selectMenuComp);
+
+declare const buttonData: APIButtonComponent;
+ButtonBuilder.from(buttonData);
+
+declare const buttonComp: ButtonComponent;
+ButtonBuilder.from(buttonComp);
+
+declare const textInputData: APITextInputComponent;
+TextInputBuilder.from(textInputData);
+
+declare const textInputComp: TextInputComponent;
+TextInputBuilder.from(textInputComp);
+
+declare const embedData: APIEmbed;
+EmbedBuilder.from(embedData);
+
+declare const embedComp: Embed;
+EmbedBuilder.from(embedComp);
