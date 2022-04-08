@@ -90,7 +90,7 @@ class DMChannel extends Channel {
    * @returns {Promise<DMChannel>}
    */
   fetch(force = true) {
-    return this.client.users.createDM(this.recipientId, force);
+    return this.client.users.createDM(this.recipientId, { force });
   }
 
   /**

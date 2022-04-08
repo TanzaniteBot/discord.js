@@ -111,6 +111,7 @@ import {
   APIEmbedAuthor,
   APIEmbedFooter,
   APIEmbedImage,
+  VideoQualityMode,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -306,7 +307,9 @@ export type ActionRowComponentData = MessageActionRowComponentData | ModalAction
 
 export type ActionRowComponent = MessageActionRowComponent | ModalActionRowComponent;
 
-export interface ActionRowData<T extends ActionRowComponent | ActionRowComponentData> extends BaseComponentData {
+export type ActionRowComponentBuilder = MessageActionRowComponentBuilder | ModalActionRowComponentBuilder;
+
+export interface ActionRowData<T extends ActionRowComponentBuilder | ActionRowComponentData> extends BaseComponentData {
   components: T[];
 }
 
@@ -317,7 +320,7 @@ export class ActionRowBuilder<
 > extends BuilderActionRow<T> {
   constructor(
     data?:
-      | ActionRowData<MessageActionRowComponentData | ModalActionRowComponentData | ActionRowComponent>
+      | ActionRowData<ActionRowComponentData | ActionRowComponentBuilder>
       | (Omit<APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>, 'type'> & {
           type?: ComponentType.ActionRow;
         }),
@@ -1323,15 +1326,16 @@ export class BaseGuildVoiceChannel extends GuildChannel {
 
   /**
    * Sets the RTC region of the channel.
-   * @param region The new region of the channel. Set to `null` to remove a specific region for the channel
+   * @param rtcRegion The new region of the channel. Set to `null` to remove a specific region for the channel
+   * @param reason The reason for modifying this region.
    * @example
-   * // Set the RTC region to europe
-   * channel.setRTCRegion('europe');
+   * // Set the RTC region to sydney
+   * channel.setRTCRegion('sydney');
    * @example
    * // Remove a fixed region for this channel - let Discord decide automatically
-   * channel.setRTCRegion(null);
+   * channel.setRTCRegion(null, 'We want to let Discord decide.');
    */
-  public setRTCRegion(region: string | null): Promise<this>;
+  public setRTCRegion(rtcRegion: string | null, reason?: string): Promise<this>;
 
   /**
    * Fetches a collection of invites to this guild channel.
@@ -2284,6 +2288,21 @@ export class ClientApplication extends Application {
   public flags: Readonly<ApplicationFlagsBitField>;
 
   /**
+   * The tags this application has (max of 5)
+   */
+  public tags: string[];
+
+  /**
+   * Settings for this application's default in-app authorization
+   */
+  public installParams: ClientApplicationInstallParams | null;
+
+  /**
+   * This application's custom installation URL
+   */
+  public customInstallURL: string | null;
+
+  /**
    * The owner of this OAuth application
    */
   public owner: User | Team | null;
@@ -3176,6 +3195,12 @@ export class EnumResolvers extends null {
    * @param key The key to lookup
    */
   public static resolveAuditLogEvent(key: AuditLogEventEnumResolvable | AuditLogEvent): AuditLogEvent;
+
+  /**
+   * Resolves enum key to {@link VideoQualityMode} enum value
+   * @param key The key to lookup
+   */
+  public static resolveVideoQualityMode(key: VideoQualityModeEnumResolvable | VideoQualityMode): VideoQualityMode;
 }
 
 /**
@@ -5254,11 +5279,6 @@ export class IntegrationApplication extends Application {
    * The Array of RPC origin URLs
    */
   public rpcOrigins: string[];
-
-  /**
-   * The application's summary
-   */
-  public summary: string | null;
 
   /**
    * Whether the application can be default hooked by the client
@@ -10213,6 +10233,11 @@ export type ComponentData =
  */
 export class VoiceChannel extends BaseGuildVoiceChannel {
   /**
+   * The camera video quality mode of the channel
+   */
+  public videoQualityMode: VideoQualityMode;
+
+  /**
    * Checks if the client has permission to send audio to the voice channel
    */
   public get speakable(): boolean;
@@ -10245,6 +10270,13 @@ export class VoiceChannel extends BaseGuildVoiceChannel {
    *   .catch(console.error);
    */
   public setUserLimit(userLimit: number, reason?: string): Promise<VoiceChannel>;
+
+  /**
+   * Sets the camera video quality mode of the channel.
+   * @param videoQualityMode The new camera video quality mode.
+   * @param reason Reason for changing the camera video quality mode.
+   */
+  public setVideoQualityMode(videoQualityMode: VideoQualityMode, reason?: string): Promise<VoiceChannel>;
 }
 
 /**
@@ -14366,6 +14398,11 @@ export interface ChannelData {
    * The RTC region of the channel
    */
   rtcRegion?: string | null;
+
+  /**
+   * The camera video quality mode of the channel
+   */
+  videoQualityMode?: VideoQualityMode | null;
 }
 
 /**
@@ -15905,6 +15942,13 @@ export type AuditLogEventEnumResolvable =
   | 'THREAD_DELETE';
 
 /**
+ * A string that can be resolved to a {@link VideoQualityMode} enum value. Here are the available types:
+ * * AUTO (automatic)
+ * * FULL (720p)
+ */
+export type VideoQualityModeEnumResolvable = 'AUTO' | 'FULL';
+
+/**
  * @external ErrorEvent
  * @see {@link [ErrorEvent](https://developer.mozilla.org/en-US/docs/Web/API/ErrorEvent)}
  */
@@ -17418,7 +17462,7 @@ export interface MessageEditOptions {
   /**
    * Embeds to be added/edited
    */
-  embeds?: (Embed | APIEmbed)[] | null;
+  embeds?: (JSONEncodable<APIEmbed> | APIEmbed)[] | null;
 
   /**
    * Files to add to the message
@@ -17440,8 +17484,7 @@ export interface MessageEditOptions {
    */
   components?: (
     | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
-    | ActionRow<MessageActionRowComponent>
-    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponent>)
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>)
     | APIActionRowComponent<APIMessageActionRowComponent>
   )[];
 }
@@ -17574,8 +17617,7 @@ export interface MessageOptions {
    */
   components?: (
     | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
-    | ActionRow<MessageActionRowComponent>
-    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponent>)
+    | (Required<BaseComponentData> & ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>)
     | APIActionRowComponent<APIMessageActionRowComponent>
   )[];
 
@@ -17925,18 +17967,54 @@ export interface PartialRecipient {
   username: string;
 }
 
+/**
+ * Data resembling a raw Discord presence.
+ */
 export interface PresenceData {
+  /**
+   * Status of the user
+   */
   status?: PresenceStatusData;
+
+  /**
+   * Whether the user is AFK
+   */
   afk?: boolean;
+
+  /**
+   * Activity the user is playing
+   */
   activities?: ActivitiesOptions[];
+
+  /**
+   * Shard id(s) to have the activity set on
+   */
   shardId?: number | number[];
 }
 
+/**
+ * Data that can be resolved to a Presence object.
+ */
 export type PresenceResolvable = Presence | UserResolvable | Snowflake;
 
+/**
+ * Partial data for a Channel.
+ */
 export interface PartialChannelData {
+  /**
+   * The channel's id, used to set its parent,
+   * this is a placeholder and will be replaced by the API after consumption
+   */
   id?: Snowflake | number;
+
+  /**
+   * The parent id for this channel
+   */
   parentId?: Snowflake | number;
+
+  /**
+   * The type of the channel
+   */
   type?: Exclude<
     ChannelType,
     | ChannelType.DM
@@ -17948,13 +18026,50 @@ export interface PartialChannelData {
     | ChannelType.GuildPrivateThread
     | ChannelType.GuildStageVoice
   >;
+
+  /**
+   * The name of the channel
+   */
   name: string;
+
+  /**
+   * The topic of the text channel
+   */
   topic?: string;
+
+  /**
+   * Whether the channel is NSFW
+   */
   nsfw?: boolean;
+
+  /**
+   * The bitrate of the voice channel
+   */
   bitrate?: number;
+
+  /**
+   * The user limit of the channel
+   */
   userLimit?: number;
+
+  /**
+   * The RTC region of the channel
+   */
   rtcRegion?: string | null;
+
+  /**
+   * The camera video quality mode of the channel
+   */
+  videoQualityMode?: VideoQualityMode;
+
+  /**
+   * Overwrites of the channel
+   */
   permissionOverwrites?: PartialOverwriteData[];
+
+  /**
+   * The rate limit per user (slowmode) of the channel in seconds
+   */
   rateLimitPerUser?: number;
 }
 
@@ -17984,14 +18099,39 @@ export interface PartialMessageReaction extends Partialize<MessageReaction, 'cou
 
 export interface PartialThreadMember extends Partialize<ThreadMember, 'flags' | 'joinedAt' | 'joinedTimestamp'> {}
 
+/**
+ * Partial overwrite data.
+ */
 export interface PartialOverwriteData {
+  /**
+   * The id of the {@link Role} or {@link User} this overwrite belongs to
+   */
   id: Snowflake | number;
+
+  /**
+   * The type of this overwrite
+   */
   type?: OverwriteType;
+
+  /**
+   * The permissions to allow
+   */
   allow?: PermissionResolvable;
+
+  /**
+   * The permissions to deny
+   */
   deny?: PermissionResolvable;
 }
 
+/**
+ * Partial data for a Role.
+ */
 export interface PartialRoleData extends RoleData {
+  /**
+   * The role's id, used to set channel overrides,
+   * this is a placeholder and will be replaced by the API after consumption
+   */
   id?: Snowflake | number;
 }
 
@@ -18800,6 +18940,18 @@ export interface WelcomeScreenEditData {
    * The welcome channel data for the welcome screen
    */
   welcomeChannels?: WelcomeChannelData[];
+}
+
+export interface ClientApplicationInstallParams {
+  /**
+   * The scopes to add the application to the server with
+   */
+  scopes: OAuth2Scopes[];
+
+  /**
+   * The permissions this bot will request upon joining
+   */
+  permissions: Readonly<PermissionsBitField>;
 }
 
 export type Serialized<T> = T extends symbol | bigint | (() => any)
