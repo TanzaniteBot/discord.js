@@ -151,14 +151,6 @@ class Channel extends Base {
   }
 
   /**
-   * Indicates whether this channel is a {@link StoreChannel}.
-   * @returns {boolean}
-   */
-  isStore() {
-    return this.type === ChannelType.GuildStore;
-  }
-
-  /**
    * Indicates whether this channel is a {@link ThreadChannel}.
    * @returns {boolean}
    */
@@ -227,10 +219,6 @@ class Channel extends Base {
           }
           case ChannelType.GuildNews: {
             channel = new (Structures.get('NewsChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildStore: {
-            channel = new (Structures.get('StoreChannel'))(guild, data, client);
             break;
           }
           case ChannelType.GuildStageVoice: {

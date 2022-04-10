@@ -1839,7 +1839,6 @@ export interface MappedChannelCategoryTypes {
   [ChannelType.GuildNews]: NewsChannel;
   [ChannelType.GuildVoice]: VoiceChannel;
   [ChannelType.GuildText]: TextChannel;
-  [ChannelType.GuildStore]: StoreChannel;
   [ChannelType.GuildStageVoice]: StageChannel;
 }
 
@@ -1957,11 +1956,6 @@ export abstract class Channel extends Base {
    * Indicates whether this channel is a {@link NewsChannel}.
    */
   public isNews(): this is NewsChannel;
-
-  /**
-   * Indicates whether this channel is a {@link StoreChannel}.
-   */
-  public isStore(): this is StoreChannel;
 
   /**
    * Indicates whether this channel is a {@link ThreadChannel}.
@@ -4104,7 +4098,6 @@ export class GuildBan extends Base {
  * - {@link VoiceChannel}
  * - {@link CategoryChannel}
  * - {@link NewsChannel}
- * - {@link StoreChannel}
  * - {@link StageChannel}
  */
 export abstract class GuildChannel extends Channel {
@@ -8844,54 +8837,6 @@ export class StickerPack extends Base {
 }
 
 /**
- * Represents a guild store channel on Discord.
- * @deprecated Store channels are deprecated and will be removed from Discord in March 2022. See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
- */
-export class StoreChannel extends GuildChannel {
-  /**
-   * @param guild The guild the store channel is part of
-   * @param data The data for the store channel
-   * @param client A safety parameter for the client that instantiated this
-   */
-  public constructor(guild: Guild, data?: RawGuildChannelData, client?: Client);
-
-  /**
-   * Creates an invite to this guild channel.
-   * @param {} [options={}] The options for creating the invite
-   * @example
-   * // Create an invite to a channel
-   * channel.createInvite()
-   *   .then(invite => console.log(`Created an invite with a code of ${invite.code}`))
-   *   .catch(console.error);
-   */
-  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
-
-  /**
-   * Fetches a collection of invites to this guild channel.
-   * Resolves with a collection mapping invites by their codes.
-   * @param {} [cache=true] Whether or not to cache the fetched invites
-   */
-  public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
-
-  /**
-   * Clones this channel.
-   * @param options The options for cloning this channel
-   * @deprecated Store channels are deprecated and will be removed from Discord in March 2022. See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
-   */
-  public clone(options?: GuildChannelCloneOptions): Promise<this>;
-
-  /**
-   * If the guild considers this channel NSFW
-   */
-  public nsfw: boolean;
-
-  /**
-   * The type of the channel
-   */
-  public type: ChannelType.GuildStore;
-}
-
-/**
  * A container for all cache sweeping intervals and their associated sweep methods.
  */
 export class Sweepers {
@@ -11189,7 +11134,7 @@ export class WelcomeChannel extends Base {
   /**
    * The channel of this welcome channel
    */
-  public get channel(): TextChannel | NewsChannel | StoreChannel | null;
+  public get channel(): TextChannel | NewsChannel | null;
 
   /**
    * The emoji of this welcome channel
@@ -11681,21 +11626,10 @@ export class CategoryChannelChildManager extends DataManager<
    * @param name The name of the new channel
    * @param options Options for creating the new channel
    */
-  public create<T extends Exclude<CategoryChannelType, ChannelType.GuildStore>>(
+  public create<T extends CategoryChannelType>(
     name: string,
     options: CategoryCreateChannelOptions & { type: T },
   ): Promise<MappedChannelCategoryTypes[T]>;
-  /**
-   * Creates a new channel within this category.
-   * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a CategoryChannel.</info>
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
-   */
-  public create(
-    name: string,
-    options: CategoryCreateChannelOptions & { type: ChannelType.GuildStore },
-  ): Promise<StoreChannel>;
   public create(name: string, options?: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
@@ -11864,37 +11798,10 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   ],
    * })
    */
-  public create<T extends Exclude<GuildChannelTypes, ChannelType.GuildStore>>(
+  public create<T extends GuildChannelTypes>(
     name: string,
     options: GuildChannelCreateOptions & { type: T },
   ): Promise<MappedGuildChannelTypes[T]>;
-
-  /**
-   * Creates a new channel in the guild.
-   * @param name The name of the new channel
-   * @param options Options for creating the new channel
-   * @example
-   * // Create a new text channel
-   * guild.channels.create('new-general', { reason: 'Needed a cool new channel' })
-   *   .then(console.log)
-   *   .catch(console.error);
-   * @example
-   * // Create a new channel with permission overwrites
-   * guild.channels.create('new-voice', {
-   *   type: ChannelType.GuildVoice,
-   *   permissionOverwrites: [
-   *      {
-   *        id: message.author.id,
-   *        deny: [PermissionFlagsBits.ViewChannel],
-   *     },
-   *   ],
-   * })
-   * @deprecated See [Self-serve Game Selling Deprecation](https://support-dev.discord.com/hc/en-us/articles/4414590563479) for more information
-   */
-  public create(
-    name: string,
-    options: GuildChannelCreateOptions & { type: ChannelType.GuildStore },
-  ): Promise<StoreChannel>;
   public create(name: string, options?: GuildChannelCreateOptions): Promise<TextChannel>;
 
   /**
@@ -14684,8 +14591,9 @@ export interface ClientEvents {
   /**
    * Emitted whenever messages are deleted in bulk.
    * @param messages The deleted messages, mapped by their id
+   * @param channel The channel that the messages were deleted in
    */
-  messageDeleteBulk: [messages: Collection<Snowflake, Message | PartialMessage>];
+  messageDeleteBulk: [messages: Collection<Snowflake, Message | PartialMessage>, channel: TextBasedChannel];
 
   /**
    * Emitted whenever a reaction is added to a cached message.
@@ -14763,8 +14671,9 @@ export interface ClientEvents {
   /**
    * Emitted whenever the client user gains access to a text or news channel that contains threads
    * @param threads The threads that were synced
+   * @param guild The guild that the threads were synced in
    */
-  threadListSync: [threads: Collection<Snowflake, ThreadChannel>];
+  threadListSync: [threads: Collection<Snowflake, ThreadChannel>, guild: Guild];
 
   /**
    * Emitted whenever the client user's thread member is updated.
@@ -14775,14 +14684,14 @@ export interface ClientEvents {
 
   /**
    * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
-   * @param thread The thread where members got updated
    * @param oldMembers The members before the update
    * @param newMembers The members after the update
+   * @param thread The thread where members got updated
    */
   threadMembersUpdate: [
-    thread: ThreadChannel,
     addedMembers: Collection<Snowflake, ThreadMember>,
     removedMembers: Collection<Snowflake, ThreadMember | PartialThreadMember>,
+    thread: ThreadChannel,
   ];
 
   /**
@@ -16028,7 +15937,6 @@ interface Extendable {
   VoiceChannel: typeof VoiceChannel;
   CategoryChannel: typeof CategoryChannel;
   NewsChannel: typeof NewsChannel;
-  StoreChannel: typeof StoreChannel;
   StageChannel: typeof StageChannel;
   ThreadChannel: typeof ThreadChannel;
   GuildMember: typeof GuildMember;
@@ -17234,13 +17142,7 @@ export interface InviteGenerationOptions {
 /**
  * Data that can be resolved to a channel that an invite can be created on.
  */
-export type GuildInvitableChannelResolvable =
-  | TextChannel
-  | VoiceChannel
-  | NewsChannel
-  | StoreChannel
-  | StageChannel
-  | Snowflake;
+export type GuildInvitableChannelResolvable = TextChannel | VoiceChannel | NewsChannel | StageChannel | Snowflake;
 
 /**
  * Options used to create an invite to a guild channel.
@@ -18020,7 +17922,6 @@ export interface PartialChannelData {
     | ChannelType.DM
     | ChannelType.GroupDM
     | ChannelType.GuildNews
-    | ChannelType.GuildStore
     | ChannelType.GuildNewsThread
     | ChannelType.GuildPublicThread
     | ChannelType.GuildPrivateThread
@@ -18591,7 +18492,6 @@ export type AnyChannel =
   | PartialGroupDMChannel
   | NewsChannel
   | StageChannel
-  | StoreChannel
   | TextChannel
   | ThreadChannel
   | VoiceChannel;
@@ -18914,7 +18814,7 @@ export interface WelcomeChannelData {
   /**
    * The channel to link for this welcome channel
    */
-  channel: TextChannel | NewsChannel | StoreChannel | Snowflake;
+  channel: GuildTextChannelResolvable;
 
   /**
    * The emoji to display for this welcome channel
@@ -19048,5 +18948,7 @@ export {
   ModalActionRowComponentBuilder,
   UnsafeEmbedBuilder,
   ModalBuilder,
+  UnsafeModalBuilder,
+  UnsafeTextInputBuilder,
 } from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';
