@@ -28,6 +28,7 @@
  * * **`AutocompleteInteraction`**
  * * **`UserContextMenuCommandInteraction`**
  * * **`ModalSubmitInteraction`**
+ * * **`DirectoryChannel`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -123,6 +124,7 @@ const structures = {
   AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
   UserContextMenuCommandInteraction: require('../structures/UserContextMenuCommandInteraction'),
   ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
+  DirectoryChannel: require('../structures/DirectoryChannel'),
 };
 
 module.exports = Structures;

@@ -167,6 +167,14 @@ class Channel extends Base {
   }
 
   /**
+   * Indicates whether this channel is a {@link DirectoryChannel}
+   * @returns {boolean}
+   */
+  isDirectory() {
+    return this.type === ChannelType.GuildDirectory;
+  }
+
+  /**
    * Indicates whether this channel is {@link TextBasedChannels text-based}.
    * @returns {boolean}
    */
@@ -232,6 +240,9 @@ class Channel extends Base {
             if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
             break;
           }
+          case ChannelType.GuildDirectory:
+            channel = new (Structures.get('DirectoryChannel'))(client, data);
+            break;
         }
         if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
       }
