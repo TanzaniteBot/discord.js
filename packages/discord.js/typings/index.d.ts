@@ -13,7 +13,6 @@ import {
   inlineCode,
   italic,
   JSONEncodable,
-  MappedComponentTypes,
   quote,
   roleMention,
   SelectMenuBuilder as BuilderSelectMenuComponent,
@@ -29,6 +28,7 @@ import {
   ModalActionRowComponentBuilder,
   ModalBuilder as BuildersModal,
   AnyComponentBuilder,
+  ComponentBuilder,
 } from '@discordjs/builders';
 import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
@@ -116,6 +116,7 @@ import {
   VideoQualityMode,
   LocalizationMap,
   LocaleString,
+  MessageActivityType,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -656,7 +657,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * @param descriptionLocalizations The new localized descriptions for the command
    * @example
    * // Edit the description localizations of this command
-   * command.setLocalizedDescriptions({
+   * command.setDescriptionLocalizations({
    *   'en-GB': 'A test command',
    *   'pt-BR': 'Um comando de teste',
    * })
@@ -1325,11 +1326,6 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   public defaultAutoArchiveDuration?: ThreadAutoArchiveDuration;
 
   /**
-   * A manager of the messages sent to this channel
-   */
-  public messages: MessageManager;
-
-  /**
    * If the guild considers this channel NSFW
    */
   public nsfw: boolean;
@@ -1356,22 +1352,6 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   public createInvite(options?: CreateInviteOptions): Promise<Invite>;
 
   /**
-   * Creates a webhook for the channel.
-   * @param name The name of the webhook
-   * @param options Options for creating the webhook
-   * @returns Returns the created Webhook
-   * @example
-   * // Create a webhook for the current channel
-   * channel.createWebhook('Snek', {
-   *   avatar: 'https://i.imgur.com/mI8XcpG.jpg',
-   *   reason: 'Needed a cool new Webhook'
-   * })
-   *   .then(console.log)
-   *   .catch(console.error)
-   */
-  public createWebhook(name: string, options?: ChannelWebhookCreateOptions): Promise<Webhook>;
-
-  /**
    * Fetches a collection of invites to this guild channel.
    * Resolves with a collection mapping invites by their codes.
    * @param {} [cache=true] Whether or not to cache the fetched invites
@@ -1384,7 +1364,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
    * @param reason Reason for changing the channel's default auto archive duration
    */
   public setDefaultAutoArchiveDuration(
-    defaultAutoArchiveDuration: ThreadAutoArchiveDuration | 'MAX',
+    defaultAutoArchiveDuration: ThreadAutoArchiveDuration,
     reason?: string,
   ): Promise<this>;
 
@@ -1414,16 +1394,6 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
    */
   public setType(type: Pick<typeof ChannelType, 'GuildText'>, reason?: string): Promise<TextChannel>;
   public setType(type: Pick<typeof ChannelType, 'GuildNews'>, reason?: string): Promise<NewsChannel>;
-
-  /**
-   * Fetches all webhooks for the channel.
-   * @example
-   * // Fetch webhooks
-   * channel.fetchWebhooks()
-   *   .then(hooks => console.log(`This channel has ${hooks.size} hooks`))
-   *   .catch(console.error);
-   */
-  public fetchWebhooks(): Promise<Collection<Snowflake, Webhook>>;
 }
 
 /**
@@ -1655,12 +1625,15 @@ export class Component<T extends AnyComponent = AnyComponent> {
   public equals(other: this | T): boolean;
 }
 
+/**
+ * Represents a button component
+ */
 export class ButtonComponent extends Component<APIButtonComponent> {
   /**
    * Creates a new component from API data
    * @param data The API component data
    */
-  public constructor(data: APIButtonComponent);
+  protected constructor(data: APIButtonComponent);
 
   /**
    * The style of this button
@@ -1693,8 +1666,14 @@ export class ButtonComponent extends Component<APIButtonComponent> {
   public get url(): string | null;
 }
 
+/**
+ * Any emoji data that can be used within a button
+ */
 export type ComponentEmojiResolvable = APIMessageComponentEmoji | string;
 
+/**
+ * Represents a button builder.
+ */
 export class ButtonBuilder extends BuilderButtonComponent {
   public constructor(data?: Partial<ButtonComponentData> | Partial<APIButtonComponent>);
 
@@ -1711,8 +1690,27 @@ export class ButtonBuilder extends BuilderButtonComponent {
   public override setEmoji(emoji: ComponentEmojiResolvable): this;
 }
 
+/**
+ * Class used to build select menu components to be sent through the API
+ */
 export class SelectMenuBuilder extends BuilderSelectMenuComponent {
   public constructor(data?: Partial<SelectMenuComponentData | APISelectMenuComponent>);
+
+  /**
+   * Adds options to this select menu
+   * @param options The options to add to this select menu
+   */
+  public override addOptions(
+    options: (BuildersSelectMenuOption | SelectMenuComponentOptionData | APISelectMenuOption)[],
+  ): this;
+
+  /**
+   * Sets the options on this select menu
+   * @param options The options to set on this select menu
+   */
+  public override setOptions(
+    options: (BuildersSelectMenuOption | SelectMenuComponentOptionData | APISelectMenuOption)[],
+  ): this;
 
   /**
    * Creates a new select menu builder from json data
@@ -1725,6 +1723,8 @@ export class SelectMenuBuilder extends BuilderSelectMenuComponent {
  * Represents a select menu option
  */
 export class SelectMenuOptionBuilder extends BuildersSelectMenuOption {
+  public constructor(data?: SelectMenuComponentOptionData | APISelectMenuOption);
+
   /**
    * Sets the emoji to display on this option
    * @param emoji The emoji to display on this option
@@ -1778,7 +1778,7 @@ export class SelectMenuComponent extends Component<APISelectMenuComponent> {
    * Creates a new component from API data
    * @param data The API component data
    */
-  public constructor(data: APISelectMenuComponent);
+  protected constructor(data: APISelectMenuComponent);
 
   /**
    * The placeholder for this select menu
@@ -1920,6 +1920,9 @@ export interface EmbedVideoData extends Omit<APIEmbedVideo, 'proxy_url'> {
   proxyURL?: string;
 }
 
+/**
+ * Represents an embed builder.
+ */
 export class EmbedBuilder extends BuildersEmbed {
   public constructor(data?: EmbedData | APIEmbed);
 
@@ -1936,12 +1939,15 @@ export class EmbedBuilder extends BuildersEmbed {
   public static from(other: JSONEncodable<APIEmbed> | APIEmbed): EmbedBuilder;
 }
 
+/**
+ * Represents an embed.
+ */
 export class Embed {
   /**
    * Creates a new embed object
    * @param data API embed data
    */
-  public constructor(data: APIEmbed);
+  protected constructor(data: APIEmbed);
 
   /**
    * The API embed data
@@ -2190,7 +2196,7 @@ export abstract class Channel extends Base {
    * // Logs: Hello from <#123456789012345678>!
    * console.log(`Hello from ${channel}!`);
    */
-  public toString(): ChannelMention;
+  public toString(): ChannelMention | UserMention;
 }
 
 export type If<T extends boolean, A, B = null> = T extends true ? A : T extends false ? B : A | B;
@@ -2740,6 +2746,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * Timeout for cleanup due to inactivity
    */
   private _idletimeout: NodeJS.Timeout | null;
+  private _endReason: string | null;
 
   /**
    * The client that instantiated this Collector
@@ -2759,7 +2766,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
   /**
    * The reason this collector has ended with, or null if it hasn't ended yet
    */
-  public abstract get endReason(): string | null;
+  public get endReason(): string | null;
 
   /**
    * The filter applied to this collector
@@ -3245,174 +3252,14 @@ export class DataResolver extends null {
 }
 
 /**
- * Holds a bunch of methods to resolve enum values to readable strings.
- */
-export class EnumResolvers extends null {
-  private constructor();
-
-  /**
-   * Resolves enum key to {@link ChannelType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveChannelType(key: ChannelTypeEnumResolvable | ChannelType): ChannelType;
-
-  /**
-   * Resolves enum key to {@link InteractionType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveInteractionType(key: InteractionTypeEnumResolvable | InteractionType): InteractionType;
-
-  /**
-   * Resolves enum key to {@link ApplicationCommandType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveApplicationCommandType(
-    key: ApplicationCommandTypeEnumResolvable | ApplicationCommandType,
-  ): ApplicationCommandType;
-
-  /**
-   * Resolves enum key to {@link ApplicationCommandOptionType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveApplicationCommandOptionType(
-    key: ApplicationCommandOptionTypeEnumResolvable | ApplicationCommandOptionType,
-  ): ApplicationCommandOptionType;
-
-  /**
-   * Resolves enum key to {@link ApplicationCommandPermissionType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveApplicationCommandPermissionType(
-    key: ApplicationCommandPermissionTypeEnumResolvable | ApplicationCommandPermissionType,
-  ): ApplicationCommandPermissionType;
-
-  /**
-   * Resolves enum key to {@link ComponentType} enum value
-   * @param key The key to resolve
-   */
-  public static resolveComponentType(key: ComponentTypeEnumResolvable | ComponentType): ComponentType;
-
-  /**
-   * Resolves enum key to {@link ButtonStyle} enum value
-   * @param key The key to resolve
-   */
-  public static resolveButtonStyle(key: ButtonStyleEnumResolvable | ButtonStyle): ButtonStyle;
-
-  /**
-   * Resolves enum key to {@link MessageType} enum value
-   * @param key The key to lookup
-   */
-  public static resolveMessageType(key: MessageTypeEnumResolvable | MessageType): MessageType;
-
-  /**
-   * Resolves enum key to {@link GuildNSFWLevel} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildNSFWLevel(key: GuildNSFWLevelEnumResolvable | GuildNSFWLevel): GuildNSFWLevel;
-
-  /**
-   * Resolves enum key to {@link GuildVerificationLevel} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildVerificationLevel(
-    key: GuildVerificationLevelEnumResolvable | GuildVerificationLevel,
-  ): GuildVerificationLevel;
-
-  /**
-   * Resolves enum key to {@link GuildDefaultMessageNotifications} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildDefaultMessageNotifications(
-    key: GuildDefaultMessageNotificationsEnumResolvable | GuildDefaultMessageNotifications,
-  ): GuildDefaultMessageNotifications;
-
-  /**
-   * Resolves enum key to {@link GuildExplicitContentFilter} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildExplicitContentFilter(
-    key: GuildExplicitContentFilterEnumResolvable | GuildExplicitContentFilter,
-  ): GuildExplicitContentFilter;
-
-  /**
-   * Resolves enum key to {@link GuildPremiumTier} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildPremiumTier(key: GuildPremiumTierEnumResolvable | GuildPremiumTier): GuildPremiumTier;
-
-  /**
-   * Resolves enum key to {@link GuildScheduledEventStatus} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildScheduledEventStatus(
-    key: GuildScheduledEventStatusEnumResolvable | GuildScheduledEventStatus,
-  ): GuildScheduledEventStatus;
-
-  /**
-   * Resolves enum key to {@link StageInstancePrivacyLevel} enum value
-   * @param key The key to lookup
-   */
-  public static resolveStageInstancePrivacyLevel(
-    key: StageInstancePrivacyLevelEnumResolvable | StageInstancePrivacyLevel,
-  ): StageInstancePrivacyLevel;
-
-  /**
-   * Resolves enum key to {@link GuildMFALevel} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildMFALevel(key: GuildMFALevelEnumResolvable | GuildMFALevel): GuildMFALevel;
-
-  /**
-   * Resolves enum key to {@link TeamMemberMembershipState} enum value
-   * @param key The key to lookup
-   */
-  public static resolveTeamMemberMembershipState(
-    key: TeamMemberMembershipStateEnumResolvable | TeamMemberMembershipState,
-  ): TeamMemberMembershipState;
-
-  /**
-   * Resolves enum key to {@link GuildScheduledEventEntityType} enum value
-   * @param key The key to lookup
-   */
-  public static resolveGuildScheduledEventEntityType(
-    key: GuildScheduledEventEntityTypeEnumResolvable | GuildScheduledEventEntityType,
-  ): GuildScheduledEventEntityType;
-
-  /**
-   * Resolves enum key to {@link IntegrationExpireBehavior} enum value
-   * @param key The key to lookup
-   */
-  public static resolveIntegrationExpireBehavior(
-    key: IntegrationExpireBehaviorEnumResolvable | IntegrationExpireBehavior,
-  ): IntegrationExpireBehavior;
-
-  /**
-   * Resolves enum key to {@link AuditLogEvent} enum value
-   * @param key The key to lookup
-   */
-  public static resolveAuditLogEvent(key: AuditLogEventEnumResolvable | AuditLogEvent): AuditLogEvent;
-
-  /**
-   * Resolves enum key to {@link VideoQualityMode} enum value
-   * @param key The key to lookup
-   */
-  public static resolveVideoQualityMode(key: VideoQualityModeEnumResolvable | VideoQualityMode): VideoQualityMode;
-}
-
-/**
  * Represents a direct message channel between two users.
  */
-export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
+export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete', 'fetchWebhooks', 'createWebhook']) {
   /**
    * @param client The instantiating client
    * @param data The data for the DM channel
    */
   public constructor(client: Client, data?: RawDMChannelData);
-
-  /**
-   * A manager of the messages belonging to this channel
-   */
-  public messages: MessageManager;
 
   /**
    * The recipient's id
@@ -3434,6 +3281,15 @@ export class DMChannel extends TextBasedChannelMixin(Channel, ['bulkDelete']) {
    * @param {} [force=true] Whether to skip the cache check and request the API
    */
   public fetch(force?: boolean): Promise<this>;
+
+  /**
+   * When concatenated with a string, this automatically returns the recipient's mention instead of the
+   * DMChannel object.
+   * @example
+   * // Logs: Hello from <@123456789012345678>!
+   * console.log(`Hello from ${channel}!`);
+   */
+  public toString(): UserMention;
 }
 
 /**
@@ -3617,11 +3473,6 @@ export class Guild extends AnonymousGuild {
    * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
    */
   public maximumPresences: number | null;
-
-  /**
-   * The client user as a GuildMember of this guild
-   */
-  public get me(): GuildMember | null;
 
   /**
    * The full amount of members in this guild
@@ -4194,7 +4045,7 @@ export class GuildAuditLogsEntry<
   /**
    * Specific property changes
    */
-  public changes: AuditLogChange[] | null;
+  public changes: AuditLogChange[];
 
   /**
    * The time this entry was created at
@@ -4499,6 +4350,7 @@ export abstract class GuildChannel extends Channel {
    * Indicates whether this channel is {@link TextBasedChannels text-based}.
    */
   public isTextBased(): this is GuildBasedChannel & TextBasedChannel;
+  public toString(): ChannelMention;
 }
 
 /**
@@ -5012,7 +4864,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
   /**
    * Additional metadata
    */
-  public entityMetadata: GuildScheduledEventEntityMetadata;
+  public entityMetadata: GuildScheduledEventEntityMetadata | null;
 
   /**
    * The number of users who are subscribed to this guild scheduled event
@@ -5365,7 +5217,7 @@ export class Integration extends Base {
   /**
    * Whether this integration is enabled
    */
-  public enabled: boolean;
+  public enabled: boolean | null;
 
   /**
    * The behavior of expiring subscribers
@@ -5738,11 +5590,6 @@ export class InteractionCollector<T extends Interaction> extends Collector<Snowf
    * The type of component to collect
    */
   public componentType: ComponentType | null;
-
-  /**
-   * The reason this collector has ended with, or null if it hasn't ended yet
-   */
-  public get endReason(): string | null;
 
   /**
    * The guild from which to collect interactions, if provided
@@ -6673,11 +6520,6 @@ export class MessageCollector extends Collector<Snowflake, Message, [Collection<
   public channel: TextBasedChannel;
 
   /**
-   * The reason this collector has ended with, or null if it hasn't ended yet
-   */
-  public get endReason(): string | null;
-
-  /**
    * The options of this collector
    */
   public options: MessageCollectorOptions;
@@ -6799,7 +6641,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    */
   public deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse>;
+  public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Deletes the initial reply to this interaction.
@@ -6859,7 +6701,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    */
   public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  public reply(options: string | MessagePayload | InteractionReplyOptions): Promise<InteractionResponse>;
+  public reply(
+    options: string | MessagePayload | InteractionReplyOptions,
+  ): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Updates the original message of the component on which the interaction was received on.
@@ -6874,7 +6718,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    */
   public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  public update(options: string | MessagePayload | InteractionUpdateOptions): Promise<InteractionResponse>;
+  public update(
+    options: string | MessagePayload | InteractionUpdateOptions,
+  ): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Shows a modal component
@@ -6895,7 +6741,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(interaction => console.log(`${interaction.customId} was submitted!`))
    *   .catch(console.error);
    */
-  public awaitModalSubmit(options: AwaitModalSubmitOptions<ModalSubmitInteraction>): Promise<ModalSubmitInteraction>;
+  public awaitModalSubmit(
+    options: AwaitModalSubmitOptions<ModalSubmitInteraction>,
+  ): Promise<ModalSubmitInteraction<Cached>>;
 }
 
 /**
@@ -7264,7 +7112,9 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
    *   .catch(console.error);
    */
   update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  update(options: string | MessagePayload | InteractionUpdateOptions): Promise<InteractionResponse>;
+  update(
+    options: string | MessagePayload | InteractionUpdateOptions,
+  ): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Defers an update to the message to which the component was attached.
@@ -7276,7 +7126,7 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
    *   .catch(console.error);
    */
   deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse>;
+  deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -7358,7 +7208,9 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .catch(console.error);
    */
   public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  public reply(options: string | MessagePayload | InteractionReplyOptions): Promise<InteractionResponse>;
+  public reply(
+    options: string | MessagePayload | InteractionReplyOptions,
+  ): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Deletes the initial reply to this interaction.
@@ -7398,7 +7250,7 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .catch(console.error);
    */
   public deferReply(options: InteractionDeferReplyOptions & { fetchReply: true }): Promise<GuildCacheMessage<Cached>>;
-  public deferReply(options?: InteractionDeferReplyOptions): Promise<InteractionResponse>;
+  public deferReply(options?: InteractionDeferReplyOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Fetches the initial reply to this interaction.
@@ -7514,6 +7366,7 @@ export class PartialGroupDMChannel extends Channel {
    * @param {} [options={}] Options for the image URL
    */
   public iconURL(options?: ImageURLOptions): string | null;
+  public toString(): ChannelMention;
 }
 
 /**
@@ -7742,11 +7595,6 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
    * @param message The message that was deleted
    */
   private _handleMessageDeletion(message: Message): void;
-
-  /**
-   * The reason this collector has ended with, or null if it hasn't ended yet
-   */
-  public get endReason(): string | null;
 
   /**
    * The message upon which to collect reactions
@@ -9417,7 +9265,7 @@ export class TextChannel extends BaseGuildTextChannel {
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel extends TextBasedChannelMixin(Channel) {
+export class ThreadChannel extends TextBasedChannelMixin(Channel, ['fetchWebhooks', 'createWebhook']) {
   /**
    * @param guild The guild the thread channel is part of
    * @param data The data for the thread channel
@@ -9531,11 +9379,6 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * `ThreadChannel#messages.cache.size`</info>
    */
   public messageCount: number | null;
-
-  /**
-   * A manager of the messages sent to this thread
-   */
-  public messages: MessageManager;
 
   /**
    * A manager of the members that are part of this thread
@@ -9672,7 +9515,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    *   .catch(console.error);
    */
   public setAutoArchiveDuration(
-    autoArchiveDuration: ThreadAutoArchiveDuration | 'MAX',
+    autoArchiveDuration: ThreadAutoArchiveDuration,
     reason?: string,
   ): Promise<ThreadChannel>;
 
@@ -9715,6 +9558,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel) {
    * @param reason Reason for changing the thread's rate limit
    */
   public setRateLimitPerUser(rateLimitPerUser: number, reason?: string): Promise<ThreadChannel>;
+  public toString(): ChannelMention;
 }
 
 /**
@@ -10240,13 +10084,20 @@ export class Util extends null {
     route: string,
     reason?: string,
   ): Promise<{ id: Snowflake; position: number }[]>;
+}
 
-  /**
-   * Resolves the maximum time a guild's thread channels should automatcally archive in case of no recent activity.
-   * @param {Guild} guild The guild to resolve this limit from.
-   * @returns {number}
-   */
-  public static resolveAutoArchiveMaxLimit(guild: Guild): Exclude<ThreadAutoArchiveDuration, 60>;
+export interface MappedComponentBuilderTypes {
+  [ComponentType.Button]: ButtonBuilder;
+  [ComponentType.SelectMenu]: SelectMenuBuilder;
+  [ComponentType.ActionRow]: ActionRowBuilder;
+  [ComponentType.TextInput]: TextInputBuilder;
+}
+
+export interface MappedComponentTypes {
+  [ComponentType.Button]: ButtonComponent;
+  [ComponentType.SelectMenu]: SelectMenuComponent;
+  [ComponentType.ActionRow]: ActionRowComponent;
+  [ComponentType.TextInput]: TextInputComponent;
 }
 
 export class Components extends null {
@@ -10259,6 +10110,16 @@ export class Components extends null {
   ): MappedComponentTypes[T];
   public static createComponent<C extends Component>(data: C): C;
   public static createComponent(data: APIMessageComponent | Component): Component;
+
+  /**
+   * Transforms API data into a component builder
+   * @param data The data to create the component from
+   */
+  public static createComponentBuilder<T extends keyof MappedComponentBuilderTypes>(
+    data: APIMessageComponent & { type: T },
+  ): MappedComponentBuilderTypes[T];
+  public static createComponentBuilder<C extends ComponentBuilder>(data: C): C;
+  public static createComponentBuilder(data: APIMessageComponent | ComponentBuilder): ComponentBuilder;
 }
 
 /**
@@ -10394,7 +10255,7 @@ export type ComponentData =
 /**
  * Represents a guild voice channel on Discord.
  */
-export class VoiceChannel extends BaseGuildVoiceChannel {
+export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, ['lastPinTimestamp', 'lastPinAt']) {
   /**
    * The camera video quality mode of the channel
    */
@@ -12301,6 +12162,11 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
   public guild: Guild;
 
   /**
+   * The client user as a GuildMember of this guild
+   */
+  public get me(): GuildMember | null;
+
+  /**
    * Adds a user to the guild using OAuth2. Requires the `PermissionFlagsBits.CreateInstantInvite` permission.
    * @param user The user to add to the guild
    * @param options Options for adding the user to the guild
@@ -13291,6 +13157,11 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
   public thread: ThreadChannel;
 
   /**
+   * The client user as a ThreadMember of this ThreadChannel
+   */
+  public get me(): ThreadMember | null;
+
+  /**
    * Adds a member to the thread.
    * @param member The member to add
    * @param reason The reason for adding this member
@@ -13460,6 +13331,11 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   get lastPinAt(): Date | null;
 
   /**
+   * A manager of the messages sent to this channel
+   */
+  messages: MessageManager;
+
+  /**
    * Collects a single component interaction that passes the filter.
    * The Promise will reject if the time expires.
    * @param {} [options={}] Options to pass to the internal collector
@@ -13529,6 +13405,32 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
   createMessageCollector(options?: MessageCollectorOptions): MessageCollector;
+
+  /**
+   * Creates a webhook for the channel.
+   * @param name The name of the webhook
+   * @param options Options for creating the webhook
+   * @returns Returns the created Webhook
+   * @example
+   * // Create a webhook for the current channel
+   * channel.createWebhook('Snek', {
+   *   avatar: 'https://i.imgur.com/mI8XcpG.jpg',
+   *   reason: 'Needed a cool new Webhook'
+   * })
+   *   .then(console.log)
+   *   .catch(console.error)
+   */
+  createWebhook(name: string, options?: ChannelWebhookCreateOptions): Promise<Webhook>;
+
+  /**
+   * Fetches all webhooks for the channel.
+   * @example
+   * // Fetch webhooks
+   * channel.fetchWebhooks()
+   *   .then(hooks => console.log(`This channel has ${hooks.size} hooks`))
+   *   .catch(console.error);
+   */
+  fetchWebhooks(): Promise<Collection<Snowflake, Webhook>>;
 
   /**
    * Sends a typing indicator in the channel.
@@ -14129,13 +14031,6 @@ export interface ApplicationCommandOptionChoiceData {
   value: string | number;
 }
 
-export interface ApplicationCommandOptionChoice extends ApplicationCommandOptionChoiceData {
-  /**
-   * The localized name for this choice
-   */
-  nameLocalized?: string;
-}
-
 /**
  * Data for setting the permissions of an application command.
  */
@@ -14563,7 +14458,7 @@ export interface ChannelData {
   /**
    * The default auto archive duration for all new threads in this channel
    */
-  defaultAutoArchiveDuration?: ThreadAutoArchiveDuration | 'MAX';
+  defaultAutoArchiveDuration?: ThreadAutoArchiveDuration;
 
   /**
    * The RTC region of the channel
@@ -14963,7 +14858,7 @@ export interface ClientEvents {
    * Emitted whenever a channel has its webhooks changed.
    * @param channel The channel that had a webhook update
    */
-  webhookUpdate: [channel: TextChannel | NewsChannel];
+  webhookUpdate: [channel: TextChannel | NewsChannel | VoiceChannel];
 
   /**
    * Emitted when an interaction is created.
@@ -15054,7 +14949,10 @@ export interface ClientEvents {
    * @param oldGuildScheduledEvent The guild scheduled event object before the update
    * @param newGuildScheduledEvent The guild scheduled event object after the update
    */
-  guildScheduledEventUpdate: [oldGuildScheduledEvent: GuildScheduledEvent, newGuildScheduledEvent: GuildScheduledEvent];
+  guildScheduledEventUpdate: [
+    oldGuildScheduledEvent: GuildScheduledEvent | null,
+    newGuildScheduledEvent: GuildScheduledEvent,
+  ];
 
   /**
    * Emitted whenever a guild scheduled event is deleted.
@@ -15904,200 +15802,6 @@ export type EmojiIdentifierResolvable = string | EmojiResolvable;
  * Data that can be resolved into a GuildEmoji object.
  */
 export type EmojiResolvable = Snowflake | GuildEmoji | ReactionEmoji;
-
-/**
- * A string that can be resolved to a {@link ChannelType} enum value.
- */
-export type ChannelTypeEnumResolvable =
-  | 'GUILD_TEXT'
-  | 'DM'
-  | 'GUILD_VOICE'
-  | 'GROUP_DM'
-  | 'GUILD_CATEGORY'
-  | 'GUILD_NEWS'
-  | 'GUILD_NEWS_THREAD'
-  | 'GUILD_PUBLIC_THREAD'
-  | 'GUILD_PRIVATE_THREAD'
-  | 'GUILD_STAGE_VOICE';
-
-/**
- * A string that can be resolved to an {@link InteractionType} enum value.
- */
-export type InteractionTypeEnumResolvable =
-  | 'PING'
-  | 'APPLICATION_COMMAND'
-  | 'MESSAGE_COMPONENT'
-  | 'APPLICATION_COMMAND_AUTOCOMPLETE';
-
-/**
- * A string that can be resolved to an {@link ApplicationCommandType} enum value.
- */
-export type ApplicationCommandTypeEnumResolvable = 'CHAT_INPUT' | 'USER' | 'MESSAGE';
-
-/**
- * A string that can be resolved to an {@link ApplicationCommandOptionType} enum value.
- */
-export type ApplicationCommandOptionTypeEnumResolvable =
-  | 'SUB_COMMAND'
-  | 'SUB_COMMAND_GROUP'
-  | 'STRING'
-  | 'INTEGER'
-  | 'BOOLEAN'
-  | 'USER'
-  | 'CHANNEL'
-  | 'ROLE'
-  | 'NUMBER'
-  | 'MENTIONABLE';
-
-/**
- *  A string that can be resolved to an {@link ApplicationCommandPermissionType} enum value.
- */
-export type ApplicationCommandPermissionTypeEnumResolvable = 'ROLE' | 'USER';
-
-/**
- * A string that can be resolved to a {@link ComponentType} enum value.
- */
-export type ComponentTypeEnumResolvable = 'ACTION_ROW' | 'BUTTON' | 'SELECT_MENU';
-
-/**
- * A string that can be resolved to a {@link ButtonStyle} enum value.
- */
-export type ButtonStyleEnumResolvable = 'PRIMARY' | 'SECONDARY' | 'SUCCESS' | 'DANGER' | 'LINK';
-
-/**
- * A string that can be resolved to a {@link MessageType} enum value.
- */
-export type MessageTypeEnumResolvable =
-  | 'DEFAULT'
-  | 'RECIPIENT_ADD'
-  | 'RECIPIENT_REMOVE'
-  | 'CALL'
-  | 'CHANNEL_NAME_CHANGE'
-  | 'CHANNEL_ICON_CHANGE'
-  | 'CHANNEL_PINNED_MESSAGE'
-  | 'GUILD_MEMBER_JOIN'
-  | 'USER_PREMIUM_GUILD_SUBSCRIPTION'
-  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_1'
-  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2'
-  | 'USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3'
-  | 'CHANNEL_FOLLOW_ADD'
-  | 'GUILD_DISCOVERY_DISQUALIFIED'
-  | 'GUILD_DISCOVERY_REQUALIFIED'
-  | 'GUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING'
-  | 'GUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING'
-  | 'THREAD_CREATED'
-  | 'REPLY'
-  | 'CHAT_INPUT_COMMAND'
-  | 'THREAD_STARTER_MESSAGE'
-  | 'GUILD_INVITE_REMINDER'
-  | 'CONTEXT_MENU_COMMAND';
-
-/**
- * A string that can be resolved to a {@link GuildNSFWLevel} enum value.
- */
-export type GuildNSFWLevelEnumResolvable = 'DEFAULT' | 'EXPLICIT' | 'SAFE' | 'AGE_RESTRICTED';
-
-/**
- * A string that can be resolved to a {@link GuildVerificationLevel} enum value.
- */
-export type GuildVerificationLevelEnumResolvable = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
-
-/**
- * A string that can be resolved to a {@link GuildDefaultMessageNotifications} enum value.
- */
-export type GuildDefaultMessageNotificationsEnumResolvable = 'ALL_MESSAGES' | 'ONLY_MENTIONS';
-
-/**
- * A string that can be resolved to a {@link GuildExplicitContentFilter} enum value.
- */
-export type GuildExplicitContentFilterEnumResolvable = 'DISABLED' | 'MEMBERS_WITHOUT_ROLES' | 'ALL_MEMBERS';
-
-/**
- * A string that can be resolved to a {@link GuildPremiumTier} enum value.
- */
-export type GuildPremiumTierEnumResolvable = 'NONE' | 'TIER_1' | 'TIER_2' | 'TIER_3';
-
-/**
- * A string that can be resolved to a {@link GuildScheduledEventStatus} enum value.
- */
-export type GuildScheduledEventStatusEnumResolvable = 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
-
-/**
- * A string that can be resolved to a {@link StageInstancePrivacyLevel} enum value.
- */
-export type StageInstancePrivacyLevelEnumResolvable = 'PUBLIC' | 'GUILD_ONLY';
-
-/**
- * A string that can be resolved to a {@link GuildMFALevel} enum value.
- */
-export type GuildMFALevelEnumResolvable = 'NONE' | 'ELEVATED';
-
-/**
- * A string that can be resolved to a {@link TeamMemberMembershipState} enum value.
- */
-export type TeamMemberMembershipStateEnumResolvable = 'INVITED' | 'ACCEPTED';
-
-/**
- * A string that can be resolved to a {@link GuildScheduledEventEntityType} enum value.
- */
-export type GuildScheduledEventEntityTypeEnumResolvable = 'STAGE_INSTANCE' | 'VOICE' | 'EXTERNAL';
-
-/**
- * A string that can be resolved to a {@link IntegrationExpireBehavior} enum value.
- */
-export type IntegrationExpireBehaviorEnumResolvable = 'REMOVE_ROLE' | 'KICK';
-
-/**
- * A string that can be resolved to a {@link AuditLogEvent} enum value.
- */
-export type AuditLogEventEnumResolvable =
-  | 'GUILD_UPDATE'
-  | 'CHANNEL_CREATE'
-  | 'CHANNEL_UPDATE'
-  | 'CHANNEL_DELETE'
-  | 'CHANNEL_OVERWRITE_CREATE'
-  | 'CHANNEL_OVERWRITE_UPDATE'
-  | 'CHANNEL_OVERWRITE_DELETE'
-  | 'MEMBER_KICK'
-  | 'MEMBER_PRUNE'
-  | 'MEMBER_BAN_ADD'
-  | 'MEMBER_BAN_REMOVE'
-  | 'MEMBER_UPDATE'
-  | 'MEMBER_ROLE_UPDATE'
-  | 'MEMBER_MOVE'
-  | 'MEMBER_DISCONNECT'
-  | 'BOT_ADD'
-  | 'ROLE_CREATE'
-  | 'ROLE_UPDATE'
-  | 'ROLE_DELETE'
-  | 'INVITE_CREATE'
-  | 'INVITE_UPDATE'
-  | 'INVITE_DELETE'
-  | 'WEBHOOK_CREATE'
-  | 'WEBHOOK_UPDATE'
-  | 'WEBHOOK_DELETE'
-  | 'INTEGRATION_CREATE'
-  | 'INTEGRATION_UPDATE'
-  | 'INTEGRATION_DELETE'
-  | 'STAGE_INSTANCE_CREATE'
-  | 'STAGE_INSTANCE_UPDATE'
-  | 'STAGE_INSTANCE_DELETE'
-  | 'STICKER_CREATE'
-  | 'STICKER_UPDATE'
-  | 'STICKER_DELETE'
-  | 'GUILD_SCHEDULED_EVENT_CREATE'
-  | 'GUILD_SCHEDULED_EVENT_UPDATE'
-  | 'GUILD_SCHEDULED_EVENT_DELETE'
-  | 'THREAD_CREATE'
-  | 'THREAD_UPDATE'
-  | 'THREAD_DELETE';
-
-/**
- * A string that can be resolved to a {@link VideoQualityMode} enum value. Here are the available types:
- * * AUTO (automatic)
- * * FULL (720p)
- */
-export type VideoQualityModeEnumResolvable = 'AUTO' | 'FULL';
 
 /**
  * @external ErrorEvent
@@ -17374,7 +17078,7 @@ export interface InteractionCollectorOptions<T extends Interaction, Cached exten
   /**
    * The interaction response to listen to message component interactions from
    */
-  interactionResponse?: InteractionResponse;
+  interactionResponse?: InteractionResponse<BooleanCache<Cached>>;
 }
 
 /**
@@ -17579,12 +17283,12 @@ export interface MessageActivity {
   /**
    * Id of the party represented in activity
    */
-  partyId: string;
+  partyId?: string;
 
   /**
    * Type of activity sent
    */
-  type: number;
+  type: MessageActivityType;
 }
 
 export interface BaseButtonComponentData extends BaseComponentData {
@@ -18641,7 +18345,7 @@ export interface StartThreadOptions {
    * The amount of time (in minutes) after which the thread should automatically archive in case of no recent activity
    * @default this.channel.defaultAutoArchiveDuration
    */
-  autoArchiveDuration?: ThreadAutoArchiveDuration | 'MAX';
+  autoArchiveDuration?: ThreadAutoArchiveDuration;
 
   /**
    * Reason for creating the thread
@@ -18827,8 +18531,8 @@ export type TextBasedChannelResolvable = Snowflake | TextBasedChannel;
  * archived. This can be:
  * * `60` (1 hour)
  * * `1440` (1 day)
- * * `4320` (3 days) <warn>This is only available when the guild has the `THREE_DAY_THREAD_ARCHIVE` feature.</warn>
- * * `10080` (7 days) <warn>This is only available when the guild has the `SEVEN_DAY_THREAD_ARCHIVE` feature.</warn>
+ * * `4320` (3 days)
+ * * `10080` (7 days)
  */
 export type ThreadAutoArchiveDuration = 60 | 1440 | 4320 | 10080;
 
@@ -18887,7 +18591,7 @@ export interface ThreadEditData {
   /**
    * The amount of time (in minutes) after which the thread should automatically archive in case of no recent activity
    */
-  autoArchiveDuration?: ThreadAutoArchiveDuration | 'MAX';
+  autoArchiveDuration?: ThreadAutoArchiveDuration;
 
   /**
    * The rate limit per user (slowmode) for the thread in seconds
@@ -19209,6 +18913,8 @@ export {
   ButtonStyle,
   ChannelType,
   ComponentType,
+  GuildDefaultMessageNotifications,
+  GuildExplicitContentFilter,
   GuildFeature,
   GuildMFALevel,
   GuildNSFWLevel,
@@ -19220,7 +18926,9 @@ export {
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
   GuildScheduledEventStatus,
+  GuildSystemChannelFlags,
   GuildVerificationLevel,
+  IntegrationExpireBehavior,
   InteractionType,
   InteractionResponseType,
   InviteTargetType,
@@ -19235,11 +18943,13 @@ export {
   StageInstancePrivacyLevel,
   StickerType,
   StickerFormatType,
+  TeamMemberMembershipState,
   TextInputStyle,
-  GuildSystemChannelFlags,
   ThreadMemberFlags,
   UserFlags,
+  VideoQualityMode,
   WebhookType,
+  MessageActivityType,
 } from 'discord-api-types/v10';
 export * from '@discordjs/builders';
 export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';

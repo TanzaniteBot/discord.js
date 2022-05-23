@@ -2,7 +2,7 @@
 
 const { parse } = require('node:path');
 const { Collection } = require('@discordjs/collection');
-const { ChannelType, RouteBases, Routes, GuildFeature } = require('discord-api-types/v10');
+const { ChannelType, RouteBases, Routes } = require('discord-api-types/v10');
 const { fetch } = require('undici');
 const Colors = require('./Colors');
 const { Error: DiscordError, RangeError, TypeError } = require('../errors');
@@ -36,15 +36,20 @@ class Util extends null {
       const element = obj[prop];
       const elemIsObj = isObject(element);
       const valueOf = elemIsObj && typeof element.valueOf === 'function' ? element.valueOf() : null;
+      const hasToJSON = elemIsObj && typeof element.toJSON === 'function';
 
       // If it's a Collection, make the array of keys
       if (element instanceof Collection) out[newProp] = Array.from(element.keys());
       // If the valueOf is a Collection, use its array of keys
       else if (valueOf instanceof Collection) out[newProp] = Array.from(valueOf.keys());
-      // If it's an array, flatten each element
-      else if (Array.isArray(element)) out[newProp] = element.map(e => Util.flatten(e));
+      // If it's an array, call toJSON function on each element if present, otherwise flatten each element
+      else if (Array.isArray(element)) out[newProp] = element.map(e => e.toJSON?.() ?? Util.flatten(e));
       // If it's an object with a primitive `valueOf`, use that value
       else if (typeof valueOf !== 'object') out[newProp] = valueOf;
+      // If it's an object with a toJSON function, use the return value of it
+      else if (hasToJSON) out[newProp] = element.toJSON();
+      // If element is an object, use the flattened version of it
+      else if (typeof element === 'object') out[newProp] = Util.flatten(element);
       // If it's a primitive
       else if (!elemIsObj) out[newProp] = element;
     }
@@ -515,17 +520,6 @@ class Util extends null {
    */
   static cleanCodeBlockContent(text) {
     return text.replaceAll('```', '`\u200b``');
-  }
-
-  /**
-   * Resolves the maximum time a guild's thread channels should automatcally archive in case of no recent activity.
-   * @param {Guild} guild The guild to resolve this limit from.
-   * @returns {number}
-   */
-  static resolveAutoArchiveMaxLimit({ features }) {
-    if (features.includes(GuildFeature.SevenDayThreadArchive)) return 10080;
-    if (features.includes(GuildFeature.ThreeDayThreadArchive)) return 4320;
-    return 1440;
   }
 }
 
