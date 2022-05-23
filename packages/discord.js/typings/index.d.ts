@@ -862,7 +862,7 @@ export interface InteractionResponseFields<Cached extends CacheType = CacheType>
    *   .catch(console.error);
    * @example
    * // Create an ephemeral reply with an embed
-   * const embed = new Embed().setDescription('Pong!');
+   * const embed = new EmbedBuilder().setDescription('Pong!');
    *
    * interaction.reply({ embeds: [embed], ephemeral: true })
    *   .then(() => console.log('Reply sent.'))
@@ -2746,6 +2746,10 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * Timeout for cleanup due to inactivity
    */
   private _idletimeout: NodeJS.Timeout | null;
+
+  /**
+   * The reason the collector ended
+   */
   private _endReason: string | null;
 
   /**
@@ -10464,10 +10468,10 @@ export class VoiceState extends Base {
    * @param {} [request=true] Whether or not the client is requesting to become a speaker.
    * @example
    * // Making the client request to speak in a stage channel (raise its hand)
-   * guild.me.voice.setRequestToSpeak(true);
+   * guild.members.me.voice.setRequestToSpeak(true);
    * @example
    * // Making the client cancel a request to speak
-   * guild.me.voice.setRequestToSpeak(false);
+   * guild.members.me.voice.setRequestToSpeak(false);
    */
   public setRequestToSpeak(request?: boolean): Promise<this>;
 
@@ -10476,10 +10480,10 @@ export class VoiceState extends Base {
    * @param {} [suppressed=true] Whether or not the user should be suppressed.
    * @example
    * // Making the client a speaker
-   * guild.me.voice.setSuppressed(false);
+   * guild.members.me.voice.setSuppressed(false);
    * @example
    * // Making the client an audience member
-   * guild.me.voice.setSuppressed(true);
+   * guild.members.me.voice.setSuppressed(true);
    * @example
    * // Inviting another user to speak
    * voiceState.setSuppressed(false);
