@@ -306,11 +306,10 @@ class GuildMember extends Base {
   /**
    * Edits this member.
    * @param {GuildMemberEditData} data The data to edit the member with
-   * @param {string} [reason] Reason for editing this user
    * @returns {Promise<GuildMember>}
    */
-  edit(data, reason) {
-    return this.guild.members.edit(this, data, reason);
+  edit(data) {
+    return this.guild.members.edit(this, data);
   }
 
   /**
@@ -320,7 +319,7 @@ class GuildMember extends Base {
    * @returns {Promise<GuildMember>}
    */
   setNickname(nick, reason) {
-    return this.edit({ nick }, reason);
+    return this.edit({ nick, reason });
   }
 
   /**
@@ -376,7 +375,7 @@ class GuildMember extends Base {
    *   .catch(console.error);
    */
   disableCommunicationUntil(communicationDisabledUntil, reason) {
-    return this.edit({ communicationDisabledUntil }, reason);
+    return this.edit({ communicationDisabledUntil, reason });
   }
 
   /**

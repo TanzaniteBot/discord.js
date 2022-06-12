@@ -103,75 +103,11 @@ class Channel extends Base {
   }
 
   /**
-   * Indicates whether this channel is a {@link TextChannel}.
-   * @returns {boolean}
-   */
-  isText() {
-    return this.type === ChannelType.GuildText;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link DMChannel}.
-   * @returns {boolean}
-   */
-  isDM() {
-    return this.type === ChannelType.DM;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link VoiceChannel}.
-   * @returns {boolean}
-   */
-  isVoice() {
-    return this.type === ChannelType.GuildVoice;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link PartialGroupDMChannel}.
-   * @returns {boolean}
-   */
-  isGroupDM() {
-    return this.type === ChannelType.GroupDM;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link CategoryChannel}.
-   * @returns {boolean}
-   */
-  isCategory() {
-    return this.type === ChannelType.GuildCategory;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link NewsChannel}.
-   * @returns {boolean}
-   */
-  isNews() {
-    return this.type === ChannelType.GuildNews;
-  }
-
-  /**
    * Indicates whether this channel is a {@link ThreadChannel}.
    * @returns {boolean}
    */
   isThread() {
     return ThreadChannelTypes.includes(this.type);
-  }
-
-  /**
-   * Indicates whether this channel is a {@link StageChannel}.
-   * @returns {boolean}
-   */
-  isStage() {
-    return this.type === ChannelType.GuildStageVoice;
-  }
-
-  /**
-   * Indicates whether this channel is a {@link DirectoryChannel}
-   * @returns {boolean}
-   */
-  isDirectory() {
-    return this.type === ChannelType.GuildDirectory;
   }
 
   /**
@@ -241,7 +177,7 @@ class Channel extends Base {
             break;
           }
           case ChannelType.GuildDirectory:
-            channel = new (Structures.get('DirectoryChannel'))(client, data);
+            channel = new (Structures.get('DirectoryChannel'))(guild, data, client);
             break;
         }
         if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
