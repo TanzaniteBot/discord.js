@@ -212,8 +212,7 @@ class Role extends Base {
 
   /**
    * Edits the role.
-   * @param {RoleData} data The new data for the role
-   * @param {string} [reason] Reason for editing this role
+   * @param {EditRoleOptions} data The new data for the role
    * @returns {Promise<Role>}
    * @example
    * // Edit a role
@@ -221,8 +220,8 @@ class Role extends Base {
    *   .then(updated => console.log(`Edited role name to ${updated.name}`))
    *   .catch(console.error);
    */
-  edit(data, reason) {
-    return this.guild.roles.edit(this, data, reason);
+  edit(data) {
+    return this.guild.roles.edit(this, data);
   }
 
   /**
@@ -250,7 +249,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setName(name, reason) {
-    return this.edit({ name }, reason);
+    return this.edit({ name, reason });
   }
 
   /**
@@ -265,7 +264,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setColor(color, reason) {
-    return this.edit({ color }, reason);
+    return this.edit({ color, reason });
   }
 
   /**
@@ -280,7 +279,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setHoist(hoist = true, reason) {
-    return this.edit({ hoist }, reason);
+    return this.edit({ hoist, reason });
   }
 
   /**
@@ -300,7 +299,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setPermissions(permissions, reason) {
-    return this.edit({ permissions }, reason);
+    return this.edit({ permissions, reason });
   }
 
   /**
@@ -315,7 +314,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setMentionable(mentionable = true, reason) {
-    return this.edit({ mentionable }, reason);
+    return this.edit({ mentionable, reason });
   }
 
   /**
@@ -327,7 +326,7 @@ class Role extends Base {
    * @returns {Promise<Role>}
    */
   setIcon(icon, reason) {
-    return this.edit({ icon }, reason);
+    return this.edit({ icon, reason });
   }
 
   /**
@@ -342,7 +341,7 @@ class Role extends Base {
    *   .catch(console.error);
    */
   setUnicodeEmoji(unicodeEmoji, reason) {
-    return this.edit({ unicodeEmoji }, reason);
+    return this.edit({ unicodeEmoji, reason });
   }
 
   /**

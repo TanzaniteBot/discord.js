@@ -1,6 +1,7 @@
 'use strict';
 
 const { Collection } = require('@discordjs/collection');
+const ApplicationCommand = require('./ApplicationCommand');
 const GuildAuditLogsEntry = require('./GuildAuditLogsEntry');
 const Integration = require('./Integration');
 const Webhook = require('./Webhook');
@@ -21,6 +22,7 @@ const Util = require('../util/Util');
  * * Sticker
  * * Thread
  * * GuildScheduledEvent
+ * * ApplicationCommandPermission
  * @typedef {string} AuditLogTargetType
  */
 
@@ -52,6 +54,29 @@ class GuildAuditLogs {
     if (data.integrations) {
       for (const integration of data.integrations) {
         this.integrations.set(integration.id, new Integration(guild.client, integration, guild));
+      }
+    }
+
+    /**
+     * Cached {@link GuildScheduledEvent}s.
+     * @type {Collection<Snowflake, GuildScheduledEvent>}
+     * @private
+     */
+    this.guildScheduledEvents = data.guild_scheduled_events.reduce(
+      (guildScheduledEvents, guildScheduledEvent) =>
+        guildScheduledEvents.set(guildScheduledEvent.id, guild.scheduledEvents._add(guildScheduledEvent)),
+      new Collection(),
+    );
+
+    /**
+     * Cached application commands, includes application commands from other applications
+     * @type {Collection<Snowflake, ApplicationCommand>}
+     * @private
+     */
+    this.applicationCommands = new Collection();
+    if (data.application_commands) {
+      for (const command of data.application_commands) {
+        this.applicationCommands.set(command.id, new ApplicationCommand(guild.client, command, guild));
       }
     }
 
