@@ -29,6 +29,7 @@
  * * **`UserContextMenuCommandInteraction`**
  * * **`ModalSubmitInteraction`**
  * * **`DirectoryChannel`**
+ * * **`PartialGroupDMChannel`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -125,6 +126,7 @@ const structures = {
   UserContextMenuCommandInteraction: require('../structures/UserContextMenuCommandInteraction'),
   ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
   DirectoryChannel: require('../structures/DirectoryChannel'),
+  PartialGroupDMChannel: require('../structures/PartialGroupDMChannel'),
 };
 
 module.exports = Structures;

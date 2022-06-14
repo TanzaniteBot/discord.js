@@ -33,7 +33,7 @@ class GuildStickerManager extends CachedManager {
   }
 
   /**
-   * Options for creating a guild sticker.
+   * Options used to create a guild sticker.
    * @typedef {Object} GuildStickerCreateOptions
    * @property {BufferResolvable|Stream|JSONEncodable<AttachmentPayload>} file The file for the sticker
    * @property {string} name The name for the sticker
@@ -44,16 +44,16 @@ class GuildStickerManager extends CachedManager {
 
   /**
    * Creates a new custom sticker in the guild.
-   * @param {GuildStickerCreateOptions} options Options
+   * @param {GuildStickerCreateOptions} options Options for creating a guild sticker
    * @returns {Promise<Sticker>} The created sticker
    * @example
    * // Create a new sticker from a URL
-   * guild.stickers.create('https://i.imgur.com/w3duR07.png', 'rip', 'headstone')
+   * guild.stickers.create({ file: 'https://i.imgur.com/w3duR07.png', name: 'rip', tags: 'headstone' })
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    * @example
    * // Create a new sticker from a file on your computer
-   * guild.stickers.create('./memes/banana.png', 'banana', 'banana')
+   * guild.stickers.create({ file: './memes/banana.png', name: 'banana', tags: 'banana' })
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    */

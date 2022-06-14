@@ -119,6 +119,7 @@ import {
   LocaleString,
   MessageActivityType,
   APIAttachment,
+  APIChannel,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -1427,12 +1428,13 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   public setTopic(topic: string | null, reason?: string): Promise<this>;
 
   /**
-   * Sets the type of this channel (only conversion between text and news is supported)
+   * Sets the type of this channel.
+   * <info>Only conversion between {@link TextChannel} and {@link NewsChannel} is supported.</info>
    * @param type The new channel type
    * @param reason Reason for changing the channel's type
    */
-  public setType(type: Pick<typeof ChannelType, 'GuildText'>, reason?: string): Promise<TextChannel>;
-  public setType(type: Pick<typeof ChannelType, 'GuildNews'>, reason?: string): Promise<NewsChannel>;
+  public setType(type: ChannelType.GuildText, reason?: string): Promise<TextChannel>;
+  public setType(type: ChannelType.GuildNews, reason?: string): Promise<NewsChannel>;
 }
 
 /**
@@ -2945,6 +2947,11 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
   public commandType: ApplicationCommandType.ChatInput;
 
   /**
+   * The id of the guild the invoked application command is registered to
+   */
+  public commandGuildId: Snowflake | null;
+
+  /**
    * Whether this interaction has already received a response
    */
   public responded: boolean;
@@ -2983,7 +2990,7 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
    *    value: 'option1',
    *  },
    * ])
-   *  .then(console.log)
+   *  .then(() => console.log('Successfully responded to the autocomplete interaction'))
    *  .catch(console.error);
    */
   public respond(options: ApplicationCommandOptionChoiceData[]): Promise<void>;
@@ -3183,8 +3190,8 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * @param {} [getFull=false] Whether to get the full option object
    * @returns The value of the option, or the whole option if getFull is true
    */
-  public getFocused(getFull: true): AutocompleteOption;
-  public getFocused(getFull?: boolean): string | number;
+  public getFocused(getFull: true): AutocompleteFocusedOption;
+  public getFocused(getFull?: boolean): string;
 }
 
 /**
@@ -10106,191 +10113,193 @@ export class UserFlagsBitField extends BitField<UserFlagsString> {
 }
 
 /**
- * Contains various general-purpose utility methods.
+ * Alternative to Node's `path.basename`, removing query string after the extension if it exists.
+ * @param path Path to get the basename of
+ * @param ext File extension to remove
+ * @returns Basename of the path
+ * @private
  */
-export class Util extends null {
-  private constructor();
+export function basename(path: string, ext?: string): string;
 
-  /**
-   * Alternative to Node's `path.basename`, removing query string after the extension if it exists.
-   * @param path Path to get the basename of
-   * @param ext File extension to remove
-   * @returns Basename of the path
-   */
-  public static basename(path: string, ext?: string): string;
+/**
+ * The content to have all mentions replaced by the equivalent text.
+ * @param str The string to be converted
+ * @param channel The channel the string was sent in
+ */
+export function cleanContent(str: string, channel: TextBasedChannel): string;
 
-  /**
-   * The content to have all mentions replaced by the equivalent text.
-   * @param str The string to be converted
-   * @param channel The channel the string was sent in
-   */
-  public static cleanContent(str: string, channel: TextBasedChannel): string;
+/**
+ * Shallow-copies an object with its class/prototype intact.
+ * @param obj Object to clone
+ * @private
+ */
+export function cloneObject(obj: unknown): unknown;
 
-  /**
-   * Shallow-copies an object with its class/prototype intact.
-   * @param obj Object to clone
-   */
-  public static cloneObject(obj: unknown): unknown;
+/**
+ * Sorts by Discord's position and id.
+ * @param collection Collection of objects to sort
+ */
+export function discordSort<K, V extends { rawPosition: number; id: Snowflake }>(
+  collection: Collection<K, V>,
+): Collection<K, V>;
 
-  /**
-   * Sorts by Discord's position and id.
-   * @param collection Collection of objects to sort
-   */
-  public static discordSort<K, V extends { rawPosition: number; id: Snowflake }>(
-    collection: Collection<K, V>,
-  ): Collection<K, V>;
+/**
+ * Escapes any Discord-flavour markdown in a string.
+ * @param text Content to escape
+ * @param {} [options={}] Options for escaping the markdown
+ */
+export function escapeMarkdown(text: string, options?: EscapeMarkdownOptions): string;
 
-  /**
-   * Escapes any Discord-flavour markdown in a string.
-   * @param text Content to escape
-   * @param {} [options={}] Options for escaping the markdown
-   */
-  public static escapeMarkdown(text: string, options?: EscapeMarkdownOptions): string;
+/**
+ * Escapes code block markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeCodeBlock(text: string): string;
 
-  /**
-   * Escapes code block markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeCodeBlock(text: string): string;
+/**
+ * Escapes inline code markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeInlineCode(text: string): string;
 
-  /**
-   * Escapes inline code markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeInlineCode(text: string): string;
+/**
+ * Escapes bold markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeBold(text: string): string;
 
-  /**
-   * Escapes bold markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeBold(text: string): string;
+/**
+ * Escapes italic markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeItalic(text: string): string;
 
-  /**
-   * Escapes italic markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeItalic(text: string): string;
+/**
+ * Escapes underline markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeUnderline(text: string): string;
 
-  /**
-   * Escapes underline markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeUnderline(text: string): string;
+/**
+ * Escapes strikethrough markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeStrikethrough(text: string): string;
 
-  /**
-   * Escapes strikethrough markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeStrikethrough(text: string): string;
+/**
+ * Escapes spoiler markdown in a string.
+ * @param text Content to escape
+ */
+export function escapeSpoiler(text: string): string;
 
-  /**
-   * Escapes spoiler markdown in a string.
-   * @param text Content to escape
-   */
-  public static escapeSpoiler(text: string): string;
+/**
+ * The content to put in a code block with all code block fences replaced by the equivalent backticks.
+ * @param text The string to be converted
+ */
+export function cleanCodeBlockContent(text: string): string;
 
-  /**
-   * The content to put in a code block with all code block fences replaced by the equivalent backticks.
-   * @param text The string to be converted
-   */
-  public static cleanCodeBlockContent(text: string): string;
+/**
+ * Gets the recommended shard count from Discord.
+ * @param token Discord auth token
+ * @param options Options for fetching the recommended shard count
+ * @returns The recommended number of shards
+ */
+export function fetchRecommendedShards(token: string, options?: FetchRecommendedShardsOptions): Promise<number>;
 
-  /**
-   * Gets the recommended shard count from Discord.
-   * @param token Discord auth token
-   * @param options Options for fetching the recommended shard count
-   * @returns The recommended number of shards
-   */
-  public static fetchRecommendedShards(token: string, options?: FetchRecommendedShardsOptions): Promise<number>;
+/**
+ * Flatten an object. Any properties that are collections will get converted to an array of keys.
+ * @param obj The object to flatten.
+ * @param props Specific properties to include/exclude.
+ */
+export function flatten(obj: unknown, ...props: Record<string, boolean | string>[]): unknown;
 
-  /**
-   * Flatten an object. Any properties that are collections will get converted to an array of keys.
-   * @param obj The object to flatten.
-   * @param props Specific properties to include/exclude.
-   */
-  public static flatten(obj: unknown, ...props: Record<string, boolean | string>[]): unknown;
+/**
+ * Makes an Error from a plain info object.
+ * @param obj Error info
+ * @private
+ */
+export function makeError(obj: MakeErrorOptions): Error;
 
-  /**
-   * Makes an Error from a plain info object.
-   * @param obj Error info
-   */
-  public static makeError(obj: MakeErrorOptions): Error;
+/**
+ * Makes a plain error info object from an Error.
+ * @param err Error to get info from
+ * @private
+ */
+export function makePlainError(err: Error): MakeErrorOptions;
 
-  /**
-   * Makes a plain error info object from an Error.
-   * @param err Error to get info from
-   */
-  public static makePlainError(err: Error): MakeErrorOptions;
+/**
+ * Sets default properties on an object that aren't already specified.
+ * @param def Default properties
+ * @param given Object to assign defaults to
+ * @private
+ */
+export function mergeDefault(def: unknown, given: unknown): unknown;
 
-  /**
-   * Sets default properties on an object that aren't already specified.
-   * @param def Default properties
-   * @param given Object to assign defaults to
-   */
-  public static mergeDefault(def: unknown, given: unknown): unknown;
+/**
+ * Moves an element in an array *in place*.
+ * @param array Array to modify
+ * @param element Element to move
+ * @param newIndex Index or offset to move the element to
+ * @param {} [offset=false] Move the element by an offset amount rather than to a set index
+ * @private
+ */
+export function moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
 
-  /**
-   * Moves an element in an array *in place*.
-   * @param array Array to modify
-   * @param element Element to move
-   * @param newIndex Index or offset to move the element to
-   * @param {} [offset=false] Move the element by an offset amount rather than to a set index
-   */
-  public static moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
+/**
+ * Parses emoji info out of a string. The string must be one of:
+ * * A UTF-8 emoji (no id)
+ * * A URL-encoded UTF-8 emoji (no id)
+ * * A Discord custom emoji (`<:name:id>` or `<a:name:id>`)
+ * @param text Emoji string to parse
+ * @returns Object with `animated`, `name`, and `id` properties
+ * @private
+ */
+export function parseEmoji(text: string): { animated: boolean; name: string; id: Snowflake | null } | null;
 
-  /**
-   * Parses emoji info out of a string. The string must be one of:
-   * * A UTF-8 emoji (no id)
-   * * A URL-encoded UTF-8 emoji (no id)
-   * * A Discord custom emoji (`<:name:id>` or `<a:name:id>`)
-   * @param text Emoji string to parse
-   * @returns Object with `animated`, `name`, and `id` properties
-   */
-  public static parseEmoji(text: string): { animated: boolean; name: string; id: Snowflake | null } | null;
+/**
+ * Resolves a ColorResolvable into a color number.
+ * @param color Color to resolve
+ * @returns A color
+ */
+export function resolveColor(color: ColorResolvable): number;
 
-  /**
-   * Resolves a ColorResolvable into a color number.
-   * @param color Color to resolve
-   * @returns A color
-   */
-  public static resolveColor(color: ColorResolvable): number;
+/**
+ * Resolves a partial emoji object from an {@link EmojiIdentifierResolvable}, without checking a Client.
+ * @param emoji Emoji identifier to resolve
+ * @private
+ */
+export function resolvePartialEmoji(emoji: EmojiIdentifierResolvable): Partial<APIPartialEmoji> | null;
 
-  /**
-   * Resolves a partial emoji object from an {@link EmojiIdentifierResolvable}, without checking a Client.
-   * @param emoji Emoji identifier to resolve
-   */
-  public static resolvePartialEmoji(emoji: EmojiIdentifierResolvable): Partial<APIPartialEmoji> | null;
+/**
+ * Verifies the provided data is a string, otherwise throws provided error.
+ * @param data The string resolvable to resolve
+ * @param error The Error constructor to instantiate. Defaults to Error
+ * @param errorMessage The error message to throw with. Defaults to "Expected string, got <data> instead."
+ * @param {} [allowEmpty=true] Whether an empty string should be allowed
+ */
+export function verifyString(data: string, error?: typeof Error, errorMessage?: string, allowEmpty?: boolean): string;
 
-  /**
-   * Verifies the provided data is a string, otherwise throws provided error.
-   * @param data The string resolvable to resolve
-   * @param error The Error constructor to instantiate. Defaults to Error
-   * @param errorMessage The error message to throw with. Defaults to "Expected string, got <data> instead."
-   * @param {} [allowEmpty=true] Whether an empty string should be allowed
-   */
-  public static verifyString(data: string, error?: typeof Error, errorMessage?: string, allowEmpty?: boolean): string;
-
-  /**
-   * Sets the position of a Channel or Role.
-   * @param item Object to set the position of
-   * @param position New position for the object
-   * @param relative Whether `position` is relative to its current position
-   * @param sorted A collection of the objects sorted properly
-   * @param client The client to use to patch the data
-   * @param route Route to call PATCH on
-   * @param reason Reason for the change
-   * @returns Updated item list, with `id` and `position` properties
-   */
-  public static setPosition<T extends AnyChannel | Role>(
-    item: T,
-    position: number,
-    relative: boolean,
-    sorted: Collection<Snowflake, T>,
-    client: Client,
-    route: string,
-    reason?: string,
-  ): Promise<{ id: Snowflake; position: number }[]>;
-}
+/**
+ * Sets the position of a Channel or Role.
+ * @param item Object to set the position of
+ * @param position New position for the object
+ * @param relative Whether `position` is relative to its current position
+ * @param sorted A collection of the objects sorted properly
+ * @param client The client to use to patch the data
+ * @param route Route to call PATCH on
+ * @param reason Reason for the change
+ * @returns Updated item list, with `id` and `position` properties
+ * @private
+ */
+export function setPosition<T extends AnyChannel | Role>(
+  item: T,
+  position: number,
+  relative: boolean,
+  sorted: Collection<Snowflake, T>,
+  client: Client,
+  route: string,
+  reason?: string,
+): Promise<{ id: Snowflake; position: number }[]>;
 
 export interface MappedComponentBuilderTypes {
   [ComponentType.Button]: ButtonBuilder;
@@ -10306,27 +10315,35 @@ export interface MappedComponentTypes {
   [ComponentType.TextInput]: TextInputComponent;
 }
 
-export class Components extends null {
-  /**
-   * Transforms API data into a component
-   * @param data The data to create the component from
-   */
-  public static createComponent<T extends keyof MappedComponentTypes>(
-    data: APIMessageComponent & { type: T },
-  ): MappedComponentTypes[T];
-  public static createComponent<C extends Component>(data: C): C;
-  public static createComponent(data: APIMessageComponent | Component): Component;
-
-  /**
-   * Transforms API data into a component builder
-   * @param data The data to create the component from
-   */
-  public static createComponentBuilder<T extends keyof MappedComponentBuilderTypes>(
-    data: APIMessageComponent & { type: T },
-  ): MappedComponentBuilderTypes[T];
-  public static createComponentBuilder<C extends ComponentBuilder>(data: C): C;
-  public static createComponentBuilder(data: APIMessageComponent | ComponentBuilder): ComponentBuilder;
+export interface CreateChannelOptions {
+  allowFromUnknownGuild?: boolean;
+  fromInteraction?: boolean;
 }
+
+/**
+ * @private
+ */
+export function createChannel(client: Client, data: APIChannel, options?: CreateChannelOptions): AnyChannel;
+
+/**
+ * Transforms API data into a component
+ * @param data The data to create the component from
+ */
+export function createComponent<T extends keyof MappedComponentTypes>(
+  data: APIMessageComponent & { type: T },
+): MappedComponentTypes[T];
+export function createComponent<C extends Component>(data: C): C;
+export function createComponent(data: APIMessageComponent | Component): Component;
+
+/**
+ * Transforms API data into a component builder
+ * @param data The data to create the component from
+ */
+export function createComponentBuilder<T extends keyof MappedComponentBuilderTypes>(
+  data: APIMessageComponent & { type: T },
+): MappedComponentBuilderTypes[T];
+export function createComponentBuilder<C extends ComponentBuilder>(data: C): C;
+export function createComponentBuilder(data: APIMessageComponent | ComponentBuilder): ComponentBuilder;
 
 /**
  * Contains various Discord-specific functions for formatting messages.
@@ -12809,16 +12826,16 @@ export class GuildStickerManager extends CachedManager<Snowflake, Sticker, Stick
 
   /**
    * Creates a new custom sticker in the guild.
-   * @param options Options
+   * @param options Options for creating a guild sticker
    * @returns The created sticker
    * @example
    * // Create a new sticker from a URL
-   * guild.stickers.create('https://i.imgur.com/w3duR07.png', 'rip', 'headstone')
+   * guild.stickers.create({ file: 'https://i.imgur.com/w3duR07.png', name: 'rip', tags: 'headstone' })
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    * @example
    * // Create a new sticker from a file on your computer
-   * guild.stickers.create('./memes/banana.png', 'banana', 'banana')
+   * guild.stickers.create({ file: './memes/banana.png', name: 'banana', tags: 'banana' })
    *   .then(sticker => console.log(`Created new sticker with name ${sticker.name}!`))
    *   .catch(console.error);
    */
@@ -13699,7 +13716,8 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
    * @returns Returns the created Webhook
    * @example
    * // Create a webhook for the current channel
-   * channel.createWebhook('Snek', {
+   * channel.createWebhook({
+   *   name: 'Snek',
    *   avatar: 'https://i.imgur.com/mI8XcpG.jpg',
    *   reason: 'Needed a cool new Webhook'
    * })
@@ -14381,7 +14399,7 @@ export interface ApplicationCommandPermissionsUpdateData {
   /**
    * The updated permissions
    */
-  permissions: ApplicationCommandPermissions;
+  permissions: ApplicationCommandPermissions[];
 }
 
 /**
@@ -14775,7 +14793,7 @@ export interface ChannelData {
   /**
    * The type of the channel (only conversion between text and news is supported)
    */
-  type?: Pick<typeof ChannelType, 'GuildText' | 'GuildNews'>;
+  type?: ChannelType.GuildText | ChannelType.GuildNews;
 
   /**
    * The position of the channel
@@ -15671,7 +15689,14 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
 /**
  * The full autocomplete option object.
  */
-export type AutocompleteOption = Pick<CommandInteractionOption, 'name' | 'type' | 'value' | 'focused'>;
+export type AutocompleteFocusedOption = Pick<CommandInteractionOption, 'name'> & {
+  focused: true;
+  type:
+    | ApplicationCommandOptionType.String
+    | ApplicationCommandOptionType.Integer
+    | ApplicationCommandOptionType.Number;
+  value: string;
+};
 
 export declare const Colors: {
   Default: 0x000000;
@@ -15707,6 +15732,13 @@ export declare const Colors: {
 };
 
 export declare const Events: {
+  /**
+   * Emitted whenever permissions for an application command in a guild were updated.
+   * <warn>This includes permission updates for other applications in addition to the logged in client,
+   * check `data.applicationId` to verify which application the update is for</warn>
+   */
+  ApplicationCommandPermissionsUpdate: 'applicationCommandPermissionsUpdate';
+
   /**
    * Emitted when the client becomes ready to start working.
    */
@@ -16320,6 +16352,7 @@ interface Extendable {
   UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;
   ModalSubmitInteraction: typeof ModalSubmitInteraction;
   DirectoryChannel: typeof DirectoryChannel;
+  PartialGroupDMChannel: typeof PartialGroupDMChannel;
 }
 
 /**
@@ -17124,7 +17157,7 @@ export interface GuildEmojiEditData {
 }
 
 /**
- * Options for creating a guild sticker.
+ * Options used to create a guild sticker.
  */
 export interface GuildStickerCreateOptions {
   /**

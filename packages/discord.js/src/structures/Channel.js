@@ -134,58 +134,6 @@ class Channel extends Base {
     return 'bitrate' in this;
   }
 
-  static create(client, data, guild, { allowUnknownGuild, fromInteraction } = {}) {
-    const Structures = require('../util/Structures');
-    let channel;
-    if (!data.guild_id && !guild) {
-      if ((data.recipients && data.type !== ChannelType.GroupDM) || data.type === ChannelType.DM) {
-        channel = new (Structures.get('DMChannel'))(client, data);
-      } else if (data.type === ChannelType.GroupDM) {
-        const PartialGroupDMChannel = require('./PartialGroupDMChannel');
-        channel = new PartialGroupDMChannel(client, data);
-      }
-    } else {
-      guild ??= client.guilds.cache.get(data.guild_id);
-
-      if (guild || allowUnknownGuild) {
-        switch (data.type) {
-          case ChannelType.GuildText: {
-            channel = new (Structures.get('TextChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildVoice: {
-            channel = new (Structures.get('VoiceChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildCategory: {
-            channel = new (Structures.get('CategoryChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildNews: {
-            channel = new (Structures.get('NewsChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildStageVoice: {
-            channel = new (Structures.get('StageChannel'))(guild, data, client);
-            break;
-          }
-          case ChannelType.GuildNewsThread:
-          case ChannelType.GuildPublicThread:
-          case ChannelType.GuildPrivateThread: {
-            channel = new (Structures.get('ThreadChannel'))(guild, data, client, fromInteraction);
-            if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
-            break;
-          }
-          case ChannelType.GuildDirectory:
-            channel = new (Structures.get('DirectoryChannel'))(guild, data, client);
-            break;
-        }
-        if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
-      }
-    }
-    return channel;
-  }
-
   toJSON(...props) {
     return super.toJSON({ createdTimestamp: true }, ...props);
   }
