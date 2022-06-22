@@ -120,6 +120,7 @@ import {
   MessageActivityType,
   APIAttachment,
   APIChannel,
+  ThreadAutoArchiveDuration,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -696,7 +697,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * Edits the DM permission of this ApplicationCommand
    * @param {} [dmPermission=true] Whether the command can be used in DMs
    */
-  public setDMPermissoin(dmPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
+  public setDMPermission(dmPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
 
   /**
    * Edits the options of this ApplicationCommand
@@ -4085,7 +4086,7 @@ export class GuildAuditLogsEntry<
   TActionType extends GuildAuditLogsActionType = TAction extends keyof GuildAuditLogsTypes
     ? GuildAuditLogsTypes[TAction][1]
     : 'All',
-  TTargetType extends GuildAuditLogsTarget = TAction extends keyof GuildAuditLogsTypes
+  TTargetType extends GuildAuditLogsTargetType = TAction extends keyof GuildAuditLogsTypes
     ? GuildAuditLogsTypes[TAction][0]
     : 'Unknown',
 > {
@@ -4157,13 +4158,13 @@ export class GuildAuditLogsEntry<
    * Finds the action type from the guild audit log entry action.
    * @param action The action target.
    */
-  public static actionType(action: number): GuildAuditLogsActionType;
+  public static actionType(action: AuditLogEvent): GuildAuditLogsActionType;
 
   /**
    * Finds the target type of a guild audit log entry.
    * @param target The action target.
    */
-  public static targetType(target: number): GuildAuditLogsTarget;
+  public static targetType(target: AuditLogEvent): GuildAuditLogsTargetType;
 
   /**
    * Transforms the audit log entry to a plain object.
@@ -5747,6 +5748,11 @@ export class InteractionWebhook extends PartialWebhookMixin() {
    * @param options The content for the reply
    */
   public send(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
+  public editMessage(
+    message: MessageResolvable,
+    options: string | MessagePayload | WebhookEditMessageOptions,
+  ): Promise<Message>;
+  public fetchMessage(message: string): Promise<Message>;
 }
 
 /**
@@ -8280,8 +8286,15 @@ export interface ShardEventTypes {
   /**
    * Emitted upon the shard's {@link ClientEvents.shardReconnecting} event.
    */
-  reconnection: [];
+  reconnecting: [];
 
+  /**
+   * Emitted when the client encounters an error.
+   * <warn>Errors thrown within this event do not have a catch handler, it is
+   * recommended to not use async functions as `error` event handlers. See the
+   * [Node.js docs](https://nodejs.org/api/events.html#capture-rejections-of-promises) for details.</warn>
+   * @param {Error} error The error encountered
+   */
   error: [error: Error];
 
   /**
@@ -9524,7 +9537,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel, ['fetchWebhook
   public get createdTimestamp(): number | null;
 
   /**
-   * The amount of time (in minutes) after which the thread will automatically archive in case of no recent activity
+   * The amount of time after which the thread should automatically archive in case of no recent activity
    */
   public autoArchiveDuration: ThreadAutoArchiveDuration | null;
 
@@ -9711,7 +9724,7 @@ export class ThreadChannel extends TextBasedChannelMixin(Channel, ['fetchWebhook
 
   /**
    * Sets the duration after which the thread will automatically archive in case of no recent activity.
-   * @param autoArchiveDuration The amount of time (in minutes) after which the thread
+   * @param autoArchiveDuration The amount of time after which the thread
    * should automatically archive in case of no recent activity
    * @param reason Reason for changing the auto archive duration
    * @example
@@ -10495,6 +10508,12 @@ export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, [
   public type: ChannelType.GuildVoice;
 
   /**
+   * If the guild considers this channel NSFW
+   * @type {boolean}
+   */
+  public nsfw: boolean;
+
+  /**
    * The rate limit per user (slowmode) for this channel in seconds
    * @type {number}
    */
@@ -10862,7 +10881,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
   public editMessage(
     message: MessageResolvable,
     options: string | MessagePayload | WebhookEditMessageOptions,
-  ): Promise<Message>;
+  ): Promise<APIMessage>;
 
   /**
    * Gets a message that was sent by this webhook.
@@ -10870,7 +10889,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    * @param {} [options={}] The options to provide to fetch the message.
    * @returns Returns the message sent by this webhook
    */
-  public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<Message>;
+  public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<APIMessage>;
 
   /**
    * Sends a message with this webhook.
@@ -10919,7 +10938,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public send(options: string | MessagePayload | WebhookMessageOptions): Promise<Message>;
+  public send(options: string | MessagePayload | WebhookMessageOptions): Promise<APIMessage>;
 }
 
 /**
@@ -11556,6 +11575,169 @@ export const Constants: {
 };
 
 export const version: string;
+
+//#endregion
+
+//#region Errors
+export enum DiscordjsErrorCodes {
+  ClientInvalidOption,
+  ClientInvalidProvidedShards,
+  ClientMissingIntents,
+  ClientNotReady,
+
+  TokenInvalid,
+  TokenMissing,
+  ApplicationCommandPermissionsTokenMissing,
+
+  WSCloseRequested,
+  WSConnectionExists,
+  WSNotOpen,
+  ManagerDestroyed,
+
+  BitFieldInvalid,
+
+  ShardingInvalid,
+  ShardingRequired,
+  InvalidIntents,
+  DisallowedIntents,
+  ShardingNoShards,
+  ShardingInProcess,
+  ShardingInvalidEvalBroadcast,
+  ShardingShardNotFound,
+  ShardingAlreadySpawned,
+  ShardingProcessExists,
+  ShardingWorkerExists,
+  ShardingReadyTimeout,
+  ShardingReadyDisconnected,
+  ShardingReadyDied,
+  ShardingNoChildExists,
+  ShardingShardMiscalculation,
+
+  ColorRange,
+  ColorConvert,
+
+  InviteOptionsMissingChannel,
+
+  ButtonLabel,
+  ButtonURL,
+  ButtonCustomId,
+
+  SelectMenuCustomId,
+  SelectMenuPlaceholder,
+  SelectOptionLabel,
+  SelectOptionValue,
+  SelectOptionDescription,
+
+  InteractionCollectorError,
+
+  FileNotFound,
+
+  UserBannerNotFetched,
+  UserNoDMChannel,
+
+  VoiceNotStageChannel,
+
+  VoiceStateNotOwn,
+  VoiceStateInvalidType,
+
+  ReqResourceType,
+
+  ImageFormat,
+  ImageSize,
+
+  MessageBulkDeleteType,
+  MessageNonceType,
+  MessageContentType,
+
+  SplitMaxLen,
+
+  BanResolveId,
+  FetchBanResolveId,
+
+  PruneDaysType,
+
+  GuildChannelResolve,
+  GuildVoiceChannelResolve,
+  GuildChannelOrphan,
+  GuildChannelUnowned,
+  GuildOwned,
+  GuildMembersTimeout,
+  GuildUncachedMe,
+  ChannelNotCached,
+  StageChannelResolve,
+  GuildScheduledEventResolve,
+  FetchOwnerId,
+
+  InvalidType,
+  InvalidElement,
+
+  MessageThreadParent,
+  MessageExistingThread,
+  ThreadInvitableType,
+
+  WebhookMessage,
+  WebhookTokenUnavailable,
+  WebhookURLInvalid,
+  WebhookApplication,
+  MessageReferenceMissing,
+
+  EmojiType,
+  EmojiManaged,
+  MissingManageEmojisAndStickersPermission,
+  NotGuildSticker,
+
+  ReactionResolveUser,
+
+  VanityURL,
+
+  InviteResolveCode,
+
+  InviteNotFound,
+
+  DeleteGroupDMChannel,
+  FetchGroupDMChannel,
+
+  MemberFetchNonceLength,
+
+  GlobalCommandPermissions,
+  GuildUncachedEntityResolve,
+
+  InteractionAlreadyReplied,
+  InteractionNotReplied,
+  InteractionEphemeralReplied,
+
+  CommandInteractionOptionNotFound,
+  CommandInteractionOptionType,
+  CommandInteractionOptionEmpty,
+  CommandInteractionOptionNoSubcommand,
+  CommandInteractionOptionNoSubcommandGroup,
+  AutocompleteInteractionOptionNoFocusedOption,
+
+  ModalSubmitInteractionFieldNotFound,
+  ModalSubmitInteractionFieldType,
+
+  InvalidMissingScopes,
+
+  NotImplemented,
+
+  SweepFilterReturn,
+}
+
+export interface DiscordjsErrorFields<Name extends string> {
+  readonly name: `${Name} [${keyof typeof DiscordjsErrorCodes}]`;
+  get code(): keyof typeof DiscordjsErrorCodes;
+}
+
+export function DiscordjsErrorMixin<T, N extends string>(
+  Base: Constructable<T>,
+  name: N,
+): Constructable<T & DiscordjsErrorFields<N>>;
+
+export class DiscordjsError extends DiscordjsErrorMixin(Error, 'Error') {}
+
+export class DiscordjsTypeError extends DiscordjsErrorMixin(TypeError, 'TypeError') {}
+
+export class DiscordjsRangeError extends DiscordjsErrorMixin(RangeError, 'RangeError') {}
 
 //#endregion
 
@@ -13789,7 +13971,7 @@ export interface PartialWebhookFields {
   editMessage(
     message: MessageResolvable | '@original',
     options: string | MessagePayload | WebhookEditMessageOptions,
-  ): Promise<Message>;
+  ): Promise<APIMessage | Message>;
 
   /**
    * Gets a message that was sent by this webhook.
@@ -13797,7 +13979,7 @@ export interface PartialWebhookFields {
    * @param {} [options={}] The options to provide to fetch the message.
    * @returns Returns the message sent by this webhook
    */
-  fetchMessage(message: Snowflake | '@original', options?: WebhookFetchMessageOptions): Promise<Message>;
+  fetchMessage(message: Snowflake | '@original', options?: WebhookFetchMessageOptions): Promise<APIMessage | Message>;
 
   /**
    * Sends a message with this webhook.
@@ -13846,7 +14028,7 @@ export interface PartialWebhookFields {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  send(options: string | MessagePayload | Omit<WebhookMessageOptions, 'flags'>): Promise<Message>;
+  send(options: string | MessagePayload | Omit<WebhookMessageOptions, 'flags'>): Promise<APIMessage | Message>;
 }
 
 export interface WebhookFields extends PartialWebhookFields {
@@ -16863,10 +17045,10 @@ export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> 
 
 export type GuildAuditLogsResolvable = AuditLogEvent | null;
 
-export type GuildAuditLogsTarget = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][0] | 'All' | 'Unknown';
+export type GuildAuditLogsTargetType = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][0] | 'All' | 'Unknown';
 
 export type GuildAuditLogsTargets = {
-  [key in GuildAuditLogsTarget]: GuildAuditLogsTarget;
+  [key in GuildAuditLogsTargetType]: GuildAuditLogsTargetType;
 };
 
 /**
@@ -17431,7 +17613,7 @@ export interface GuildScheduledEventEditOptions<
   /**
    * The status of the guild scheduled event
    */
-  status?: T | number;
+  status?: T;
 }
 
 /**
@@ -18446,16 +18628,7 @@ export interface PartialChannelData {
   /**
    * The type of the channel
    */
-  type?: Exclude<
-    ChannelType,
-    | ChannelType.DM
-    | ChannelType.GroupDM
-    | ChannelType.GuildNews
-    | ChannelType.GuildNewsThread
-    | ChannelType.GuildPublicThread
-    | ChannelType.GuildPrivateThread
-    | ChannelType.GuildStageVoice
-  >;
+  type?: ChannelType.GuildText | ChannelType.GuildVoice | ChannelType.GuildCategory;
 
   /**
    * The name of the channel
@@ -18839,7 +19012,7 @@ export interface StartThreadOptions {
   name: string;
 
   /**
-   * The amount of time (in minutes) after which the thread should automatically archive in case of no recent activity
+   * The amount of time after which the thread should automatically archive in case of no recent activity
    * @default this.channel.defaultAutoArchiveDuration
    */
   autoArchiveDuration?: ThreadAutoArchiveDuration;
@@ -19024,16 +19197,6 @@ export type TextChannelResolvable = Snowflake | TextChannel;
 export type TextBasedChannelResolvable = Snowflake | TextBasedChannel;
 
 /**
- * A number that is allowed to be the duration (in minutes) of inactivity after which a thread is automatically
- * archived. This can be:
- * * `60` (1 hour)
- * * `1440` (1 day)
- * * `4320` (3 days)
- * * `10080` (7 days)
- */
-export type ThreadAutoArchiveDuration = 60 | 1440 | 4320 | 10080;
-
-/**
  * Data that can be resolved to a Thread Channel object.
  */
 export type ThreadChannelResolvable = AnyThreadChannel | Snowflake;
@@ -19086,7 +19249,7 @@ export interface ThreadEditData {
   archived?: boolean;
 
   /**
-   * The amount of time (in minutes) after which the thread should automatically archive in case of no recent activity
+   * The amount of time after which the thread should automatically archive in case of no recent activity
    */
   autoArchiveDuration?: ThreadAutoArchiveDuration;
 
@@ -19230,12 +19393,6 @@ export type WebhookEditMessageOptions = Pick<
  */
 export interface WebhookFetchMessageOptions {
   /**
-   * Whether to cache the message.
-   * @default true
-   */
-  cache?: boolean;
-
-  /**
    * The id of the thread this message belongs to. <info>For interaction webhooks, this property is ignored</info>
    */
   threadId?: Snowflake;
@@ -19274,12 +19431,13 @@ export interface WebSocketOptions {
   large_threshold?: number;
   compress?: boolean;
   properties?: WebSocketProperties;
+  version?: number;
 }
 
 export interface WebSocketProperties {
-  $os?: string;
-  $browser?: string;
-  $device?: string;
+  os?: string;
+  browser?: string;
+  device?: string;
 }
 
 /**

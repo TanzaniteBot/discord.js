@@ -2,7 +2,7 @@
 
 const { isJSONEncodable } = require('@discordjs/builders');
 const { InteractionResponseType, MessageFlags, Routes, InteractionType } = require('discord-api-types/v10');
-const { Error } = require('../../errors');
+const { Error, ErrorCodes } = require('../../errors');
 const InteractionCollector = require('../InteractionCollector');
 const InteractionResponse = require('../InteractionResponse');
 const MessagePayload = require('../MessagePayload');
@@ -50,7 +50,7 @@ class InteractionResponses {
   /**
    * Defers the reply to this interaction.
    * @param {InteractionDeferReplyOptions} [options] Options for deferring the reply to this interaction
-   * @returns {Promise<Message|APIMessage|InteractionResponse>}
+   * @returns {Promise<Message|InteractionResponse>}
    * @example
    * // Defer the reply to this interaction
    * interaction.deferReply()
@@ -63,7 +63,7 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async deferReply(options = {}) {
-    if (this.deferred || this.replied) throw new Error('INTERACTION_ALREADY_REPLIED');
+    if (this.deferred || this.replied) throw new Error(ErrorCodes.InteractionAlreadyReplied);
     this.ephemeral = options.ephemeral ?? false;
     await this.client.rest.post(Routes.interactionCallback(this.id, this.token), {
       body: {
@@ -83,7 +83,7 @@ class InteractionResponses {
    * Creates a reply to this interaction.
    * <info>Use the `fetchReply` option to get the bot's reply message.</info>
    * @param {string|MessagePayload|InteractionReplyOptions} options The options for the reply
-   * @returns {Promise<Message|APIMessage|InteractionResponse>}
+   * @returns {Promise<Message|InteractionResponse>}
    * @example
    * // Reply to the interaction and fetch the response
    * interaction.reply({ content: 'Pong!', fetchReply: true })
@@ -98,7 +98,7 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async reply(options) {
-    if (this.deferred || this.replied) throw new Error('INTERACTION_ALREADY_REPLIED');
+    if (this.deferred || this.replied) throw new Error(ErrorCodes.InteractionAlreadyReplied);
     this.ephemeral = options.ephemeral ?? false;
 
     let messagePayload;
@@ -123,7 +123,7 @@ class InteractionResponses {
   /**
    * Fetches the initial reply to this interaction.
    * @see Webhook#fetchMessage
-   * @returns {Promise<Message|APIMessage>}
+   * @returns {Promise<Message>}
    * @example
    * // Fetch the reply to this interaction
    * interaction.fetchReply()
@@ -138,7 +138,7 @@ class InteractionResponses {
    * Edits the initial reply to this interaction.
    * @see Webhook#editMessage
    * @param {string|MessagePayload|WebhookEditMessageOptions} options The new options for the message
-   * @returns {Promise<Message|APIMessage>}
+   * @returns {Promise<Message>}
    * @example
    * // Edit the reply to this interaction
    * interaction.editReply('New content')
@@ -146,7 +146,7 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async editReply(options) {
-    if (!this.deferred && !this.replied) throw new Error('INTERACTION_NOT_REPLIED');
+    if (!this.deferred && !this.replied) throw new Error(ErrorCodes.InteractionNotReplied);
     const message = await this.webhook.editMessage('@original', options);
     this.replied = true;
     return message;
@@ -163,24 +163,24 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async deleteReply() {
-    if (this.ephemeral) throw new Error('INTERACTION_EPHEMERAL_REPLIED');
+    if (this.ephemeral) throw new Error(ErrorCodes.InteractionEphemeralReplied);
     await this.webhook.deleteMessage('@original');
   }
 
   /**
    * Send a follow-up message to this interaction.
    * @param {string|MessagePayload|InteractionReplyOptions} options The options for the reply
-   * @returns {Promise<Message|APIMessage>}
+   * @returns {Promise<Message>}
    */
   followUp(options) {
-    if (!this.deferred && !this.replied) return Promise.reject(new Error('INTERACTION_NOT_REPLIED'));
+    if (!this.deferred && !this.replied) return Promise.reject(new Error(ErrorCodes.InteractionNotReplied));
     return this.webhook.send(options);
   }
 
   /**
    * Defers an update to the message to which the component was attached.
    * @param {InteractionDeferUpdateOptions} [options] Options for deferring the update to this interaction
-   * @returns {Promise<Message|APIMessage|InteractionResponse>}
+   * @returns {Promise<Message|InteractionResponse>}
    * @example
    * // Defer updating and reset the component's loading state
    * interaction.deferUpdate()
@@ -188,7 +188,7 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async deferUpdate(options = {}) {
-    if (this.deferred || this.replied) throw new Error('INTERACTION_ALREADY_REPLIED');
+    if (this.deferred || this.replied) throw new Error(ErrorCodes.InteractionAlreadyReplied);
     await this.client.rest.post(Routes.interactionCallback(this.id, this.token), {
       body: {
         type: InteractionResponseType.DeferredMessageUpdate,
@@ -203,7 +203,7 @@ class InteractionResponses {
   /**
    * Updates the original message of the component on which the interaction was received on.
    * @param {string|MessagePayload|InteractionUpdateOptions} options The options for the updated message
-   * @returns {Promise<Message|APIMessage|void>}
+   * @returns {Promise<Message|void>}
    * @example
    * // Remove the components from the message
    * interaction.update({
@@ -214,7 +214,7 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   async update(options) {
-    if (this.deferred || this.replied) throw new Error('INTERACTION_ALREADY_REPLIED');
+    if (this.deferred || this.replied) throw new Error(ErrorCodes.InteractionAlreadyReplied);
 
     let messagePayload;
     if (options instanceof MessagePayload) messagePayload = options;
@@ -240,7 +240,7 @@ class InteractionResponses {
    * @param {APIModal|ModalData|Modal} modal The modal to show
    */
   async showModal(modal) {
-    if (this.deferred || this.replied) throw new Error('INTERACTION_ALREADY_REPLIED');
+    if (this.deferred || this.replied) throw new Error(ErrorCodes.InteractionAlreadyReplied);
     await this.client.rest.post(Routes.interactionCallback(this.id, this.token), {
       body: {
         type: InteractionResponseType.Modal,
@@ -270,14 +270,14 @@ class InteractionResponses {
    *   .catch(console.error);
    */
   awaitModalSubmit(options) {
-    if (typeof options.time !== 'number') throw new Error('INVALID_TYPE', 'time', 'number');
+    if (typeof options.time !== 'number') throw new Error(ErrorCodes.InvalidType, 'time', 'number');
     const _options = { ...options, max: 1, interactionType: InteractionType.ModalSubmit };
     return new Promise((resolve, reject) => {
       const collector = new InteractionCollector(this.client, _options);
       collector.once('end', (interactions, reason) => {
         const interaction = interactions.first();
         if (interaction) resolve(interaction);
-        else reject(new Error('INTERACTION_COLLECTOR_ERROR', reason));
+        else reject(new Error(ErrorCodes.InteractionCollectorError, reason));
       });
     });
   }

@@ -16,6 +16,7 @@ body:
         - collection
         - rest
         - proxy
+        - proxy-container
         - voice
     validations:
       required: true
@@ -127,6 +128,7 @@ body:
         - DirectMessages
         - DirectMessageReactions
         - DirectMessageTyping
+        - MessageContent
         - GuildScheduledEvents
       multiple: true
     validations:

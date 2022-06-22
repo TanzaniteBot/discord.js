@@ -2,7 +2,7 @@
 
 const { Collection } = require('@discordjs/collection');
 const { makeURLSearchParams } = require('@discordjs/rest');
-const { ChannelType, GuildPremiumTier, Routes } = require('discord-api-types/v10');
+const { ChannelType, GuildPremiumTier, Routes, GuildFeature } = require('discord-api-types/v10');
 const AnonymousGuild = require('./AnonymousGuild');
 const GuildAuditLogs = require('./GuildAuditLogs');
 const GuildAuditLogsEntry = require('./GuildAuditLogsEntry');
@@ -11,7 +11,7 @@ const GuildTemplate = require('./GuildTemplate');
 const Integration = require('./Integration');
 const Webhook = require('./Webhook');
 const WelcomeScreen = require('./WelcomeScreen');
-const { Error, TypeError } = require('../errors');
+const { Error, TypeError, ErrorCodes } = require('../errors');
 const GuildApplicationCommandManager = require('../managers/GuildApplicationCommandManager');
 const GuildBanManager = require('../managers/GuildBanManager');
 const GuildChannelManager = require('../managers/GuildChannelManager');
@@ -458,7 +458,7 @@ class Guild extends AnonymousGuild {
    */
   async fetchOwner(options) {
     if (!this.ownerId) {
-      throw new Error('FETCH_OWNER_ID');
+      throw new Error(ErrorCodes.FetchOwnerId);
     }
     const member = await this.members.fetch({ ...options, user: this.ownerId });
     return member;
@@ -515,7 +515,7 @@ class Guild extends AnonymousGuild {
    * @readonly
    */
   get maximumBitrate() {
-    if (this.features.includes('VIP_REGIONS')) {
+    if (this.features.includes(GuildFeature.VIPRegions)) {
       return 384_000;
     }
 
@@ -608,8 +608,8 @@ class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   async fetchVanityData() {
-    if (!this.features.includes('VANITY_URL')) {
-      throw new Error('VANITY_URL');
+    if (!this.features.includes(GuildFeature.VanityURL)) {
+      throw new Error(ErrorCodes.VanityURL);
     }
     const data = await this.client.rest.get(Routes.guildVanityUrl(this.id));
     this.vanityURLCode = data.code;
@@ -710,7 +710,7 @@ class Guild extends AnonymousGuild {
 
     if (options.user) {
       const id = this.client.users.resolveId(options.user);
-      if (!id) throw new TypeError('INVALID_TYPE', 'user', 'UserResolvable');
+      if (!id) throw new TypeError(ErrorCodes.InvalidType, 'user', 'UserResolvable');
       query.set('user_id', id);
     }
 
@@ -723,8 +723,8 @@ class Guild extends AnonymousGuild {
    * The data for editing a guild.
    * @typedef {Object} GuildEditData
    * @property {string} [name] The name of the guild
-   * @property {?(GuildVerificationLevel|number)} [verificationLevel] The verification level of the guild
-   * @property {?(GuildExplicitContentFilterLevel|number)} [explicitContentFilter] The level of the explicit content filter
+   * @property {?GuildVerificationLevel} [verificationLevel] The verification level of the guild
+   * @property {?GuildExplicitContentFilter} [explicitContentFilter] The level of the explicit content filter
    * @property {?VoiceChannelResolvable} [afkChannel] The AFK channel of the guild
    * @property {?TextChannelResolvable} [systemChannel] The system channel of the guild
    * @property {number} [afkTimeout] The AFK timeout of the guild
@@ -733,7 +733,7 @@ class Guild extends AnonymousGuild {
    * @property {?(BufferResolvable|Base64Resolvable)} [splash] The invite splash image of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [discoverySplash] The discovery splash image of the guild
    * @property {?(BufferResolvable|Base64Resolvable)} [banner] The banner of the guild
-   * @property {?(GuildDefaultMessageNotificationLevel|number)} [defaultMessageNotifications] The default message
+   * @property {?GuildDefaultMessageNotifications} [defaultMessageNotifications] The default message
    * notification level of the guild
    * @property {SystemChannelFlagsResolvable} [systemChannelFlags] The system channel flags of the guild
    * @property {?TextChannelResolvable} [rulesChannel] The rules channel of the guild
@@ -892,7 +892,7 @@ class Guild extends AnonymousGuild {
   /* eslint-disable max-len */
   /**
    * Edits the level of the explicit content filter.
-   * @param {?(GuildExplicitContentFilterLevel|number)} explicitContentFilter The new level of the explicit content filter
+   * @param {?GuildExplicitContentFilter} explicitContentFilter The new level of the explicit content filter
    * @param {string} [reason] Reason for changing the level of the guild's explicit content filter
    * @returns {Promise<Guild>}
    */
@@ -902,7 +902,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Edits the setting of the default message notifications of the guild.
-   * @param {?(GuildDefaultMessageNotificationLevel|number)} defaultMessageNotifications The new default message notification level of the guild
+   * @param {?GuildDefaultMessageNotifications} defaultMessageNotifications The new default message notification level of the guild
    * @param {string} [reason] Reason for changing the setting of the default message notifications
    * @returns {Promise<Guild>}
    */
@@ -1169,7 +1169,7 @@ class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   async leave() {
-    if (this.ownerId === this.client.user.id) throw new Error('GUILD_OWNED');
+    if (this.ownerId === this.client.user.id) throw new Error(ErrorCodes.GuildOwned);
     await this.client.rest.delete(Routes.userGuild(this.id));
     return this;
   }

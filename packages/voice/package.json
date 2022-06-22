@@ -4,11 +4,11 @@
 	"description": "Implementation of the Discord Voice API for node.js",
 	"scripts": {
 		"build": "tsup && node scripts/postbuild.mjs",
-		"test": "jest --pass-with-no-tests --collect-coverage",
-		"lint": "prettier --check . && eslint src __tests__ --ext mjs,js,ts",
-		"format": "prettier --write . && eslint src __tests__ --ext mjs,js,ts --fix",
+		"test": "jest --coverage",
+		"lint": "prettier --cache --check . && eslint src __tests__ --ext mjs,js,ts --cache",
+		"format": "prettier --cache --write . && eslint src __tests__ --ext mjs,js,ts --fix --cache",
 		"docs": "docgen -i src/index.ts -c docs/index.json -o docs/docs.json --typescript",
-		"prepublishOnly": "yarn build && yarn lint && yarn test",
+		"prepack": "yarn build && yarn lint && yarn test",
 		"changelog": "git cliff --prepend ./CHANGELOG.md -u -c ./cliff.toml -r ../../ --include-path 'packages/voice/*'",
 		"release": "cliff-jumper"
 	},
@@ -58,28 +58,21 @@
 		"ws": "^8.8.0"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.18.2",
+		"@babel/core": "^7.18.5",
 		"@babel/preset-env": "^7.18.2",
 		"@babel/preset-typescript": "^7.17.12",
 		"@discordjs/docgen": "workspace:^",
 		"@discordjs/scripts": "workspace:^",
 		"@favware/cliff-jumper": "^1.8.3",
-		"@types/jest": "^28.1.1",
-		"@types/node": "^16.11.39",
-		"@typescript-eslint/eslint-plugin": "^5.27.1",
-		"@typescript-eslint/parser": "^5.27.1",
-		"eslint": "^8.17.0",
-		"eslint-config-marine": "^9.4.1",
-		"eslint-config-prettier": "^8.5.0",
-		"eslint-import-resolver-typescript": "^2.7.1",
-		"eslint-plugin-import": "^2.26.0",
+		"@types/jest": "^28.1.2",
+		"eslint": "^8.18.0",
 		"jest": "^28.1.1",
 		"jest-websocket-mock": "^2.3.0",
 		"mock-socket": "^9.1.5",
-		"prettier": "^2.6.2",
-		"tsup": "^6.1.0",
+		"prettier": "^2.7.1",
+		"tsup": "^6.1.2",
 		"tweetnacl": "^1.0.3",
-		"typescript": "^4.7.3"
+		"typescript": "^4.7.4"
 	},
 	"engines": {
 		"node": ">=16.9.0"
