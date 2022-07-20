@@ -6,32 +6,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install node.js v16
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'yarn'
           cache-dependency-path: yarn.lock
 
-      - name: Turbo cache
-        id: turbo-cache
-        uses: actions/cache@v2
-        with:
-          path: .turbo
-          key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ github.job }}-${{ github.ref_name }}-
-
       - name: Install dependencies
         run: yarn --immutable
 
+      - name: Build dependencies
+        run: yarn build
+
       - name: ESLint
-        run: yarn lint --cache-dir=".turbo"
+        run: yarn lint
 
       - name: Tests
         run: yarn test
 
-      - name: Build
-        run: yarn build --cache-dir=".turbo"
+      - name: Upload Coverage
+        uses: ./packages/actions/src/uploadCoverage
+        if: github.repository_owner == 'discordjs'

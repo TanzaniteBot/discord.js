@@ -48,7 +48,7 @@ const Targets = {
  * * An application command
  * * An object with an id key if target was deleted or fake entity
  * * An object where the keys represent either the new value or the old value
- * @typedef {?(Object|Guild|Channel|User|Role|Invite|Webhook|GuildEmoji|Message|Integration|StageInstance|Sticker|
+ * @typedef {?(Object|Guild|BaseChannel|User|Role|Invite|Webhook|GuildEmoji|Message|Integration|StageInstance|Sticker|
  * GuildScheduledEvent|ApplicationCommand)} AuditLogEntryTarget
  */
 
@@ -81,59 +81,6 @@ const Targets = {
  */
 
 /**
- * The action of an entry. Here are the available actions:
- * * GuildUpdate
- * * ChannelCreate
- * * ChannelUpdate
- * * ChannelDelete
- * * ChannelOverwriteCreate
- * * ChannelOverwriteUpdate
- * * ChannelOverwriteDelete
- * * MemberKick
- * * MemberPrune
- * * MemberBanAdd
- * * MemberBanRemove
- * * MemberUpdate
- * * MemberRoleUpdate
- * * MemberMove
- * * MemberDisconnect
- * * BotAdd
- * * RoleCreate
- * * RoleUpdate
- * * RoleDelete
- * * InviteCreate
- * * InviteUpdate
- * * InviteDelete
- * * WebhookCreate
- * * WebhookUpdate
- * * WebhookDelete
- * * EmojiCreate
- * * EmojiUpdate
- * * EmojiDelete
- * * MessageDelete
- * * MessageBulkDelete
- * * MessagePin
- * * MessageUnpin
- * * IntegrationCreate
- * * IntegrationUpdate
- * * IntegrationDelete
- * * StageInstanceCreate
- * * StageInstanceUpdate
- * * StageInstanceDelete
- * * StickerCreate
- * * StickerUpdate
- * * StickerDelete
- * * GuildScheduledEventCreate
- * * GuildScheduledEventUpdate
- * * GuildScheduledEventDelete
- * * ThreadCreate
- * * ThreadUpdate
- * * ThreadDelete
- * * ApplicationCommandPermissionUpdate
- * @typedef {string} AuditLogAction
- */
-
-/**
  * Audit logs entry.
  */
 class GuildAuditLogsEntry {
@@ -160,9 +107,9 @@ class GuildAuditLogsEntry {
 
     /**
      * Specific action type of this entry in its string presentation
-     * @type {AuditLogAction}
+     * @type {AuditLogEvent}
      */
-    this.action = Object.keys(AuditLogEvent).find(k => AuditLogEvent[k] === data.action_type);
+    this.action = data.action_type;
 
     /**
      * The reason of this entry

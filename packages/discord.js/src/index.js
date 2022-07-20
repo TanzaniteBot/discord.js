@@ -43,6 +43,7 @@ exports.SystemChannelFlagsBitField = require('./util/SystemChannelFlagsBitField'
 exports.ThreadMemberFlagsBitField = require('./util/ThreadMemberFlagsBitField');
 exports.UserFlagsBitField = require('./util/UserFlagsBitField');
 __exportStar(require('./util/Util.js'), exports);
+exports.WebSocketShardEvents = require('./util/WebSocketShardEvents');
 exports.version = require('../package.json').version;
 
 // Managers
@@ -95,7 +96,7 @@ exports.ButtonBuilder = require('./structures/ButtonBuilder');
 exports.ButtonComponent = require('./structures/ButtonComponent');
 exports.ButtonInteraction = require('./structures/ButtonInteraction');
 exports.CategoryChannel = require('./structures/CategoryChannel');
-exports.Channel = require('./structures/Channel').Channel;
+exports.BaseChannel = require('./structures/BaseChannel').BaseChannel;
 exports.ChatInputCommandInteraction = require('./structures/ChatInputCommandInteraction');
 exports.ClientApplication = require('./structures/ClientApplication');
 exports.ClientPresence = require('./structures/ClientPresence');
@@ -122,7 +123,7 @@ exports.GuildScheduledEvent = require('./structures/GuildScheduledEvent').GuildS
 exports.GuildTemplate = require('./structures/GuildTemplate');
 exports.Integration = require('./structures/Integration');
 exports.IntegrationApplication = require('./structures/IntegrationApplication');
-exports.Interaction = require('./structures/Interaction');
+exports.BaseInteraction = require('./structures/BaseInteraction');
 exports.InteractionCollector = require('./structures/InteractionCollector');
 exports.InteractionResponse = require('./structures/InteractionResponse');
 exports.InteractionWebhook = require('./structures/InteractionWebhook');

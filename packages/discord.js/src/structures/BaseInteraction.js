@@ -8,8 +8,9 @@ const PermissionsBitField = require('../util/PermissionsBitField');
 /**
  * Represents an interaction.
  * @extends {Base}
+ * @abstract
  */
-class Interaction extends Base {
+class BaseInteraction extends Base {
   constructor(client, data) {
     super(client);
 
@@ -28,7 +29,7 @@ class Interaction extends Base {
     /**
      * The interaction's token
      * @type {string}
-     * @name Interaction#token
+     * @name BaseInteraction#token
      * @readonly
      */
     Object.defineProperty(this, 'token', { value: data.token });
@@ -68,6 +69,12 @@ class Interaction extends Base {
      * @type {number}
      */
     this.version = data.version;
+
+    /**
+     * Set of permissions the application or bot has within the channel the interaction was sent from
+     * @type {?Readonly<PermissionsBitField>}
+     */
+    this.appPermissions = data.app_permissions ? new PermissionsBitField(data.app_permissions).freeze() : null;
 
     /**
      * The permissions of the member, if one exists, in the channel this interaction was executed in
@@ -246,4 +253,4 @@ class Interaction extends Base {
   }
 }
 
-module.exports = Interaction;
+module.exports = BaseInteraction;

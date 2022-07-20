@@ -1,4 +1,5 @@
-import type { ChildProcess } from 'child_process';
+import type { ChildProcess } from 'node:child_process';
+import type { Worker } from 'node:worker_threads';
 import {
   APIInteractionGuildMember,
   APIPartialChannel,
@@ -22,6 +23,7 @@ import {
   APITextInputComponent,
   APIEmbed,
   ApplicationCommandType,
+  APIMessage,
 } from 'discord-api-types/v10';
 import {
   ApplicationCommand,
@@ -101,7 +103,7 @@ import {
   InteractionResponseFields,
   ThreadChannelType,
   Events,
-  ShardEvents,
+  WebSocketShardEvents,
   Status,
   CategoryChannelChildManager,
   ActionRowData,
@@ -127,9 +129,14 @@ import {
   UserContextMenuCommandInteraction,
   AnyThreadChannel,
   ThreadMemberManager,
+  CollectedMessageInteraction,
+  ShardEvents,
+  Webhook,
+  WebhookClient,
+  InteractionWebhook,
 } from '.';
 import { expectAssignable, expectNotAssignable, expectNotType, expectType } from 'tsd';
-import { UnsafeButtonBuilder, UnsafeEmbedBuilder, UnsafeSelectMenuBuilder } from '@discordjs/builders';
+import type { ContextMenuCommandBuilder, SlashCommandBuilder } from '@discordjs/builders';
 
 // Test type transformation:
 declare const serialize: <T>(value: T) => Serialized<T>;
@@ -153,6 +160,9 @@ const testUserId = '987654321098765432'; // example id
 const globalCommandId = '123456789012345678'; // example id
 const guildCommandId = '234567890123456789'; // example id
 
+declare const slashCommandBuilder: SlashCommandBuilder;
+declare const contextMenuCommandBuilder: ContextMenuCommandBuilder;
+
 client.on('ready', async () => {
   console.log(`Client is logged in as ${client.user!.tag} and ready!`);
 
@@ -168,6 +178,21 @@ client.on('ready', async () => {
   const globalCommand = await client.application?.commands.fetch(globalCommandId);
   const guildCommandFromGlobal = await client.application?.commands.fetch(guildCommandId, { guildId: testGuildId });
   const guildCommandFromGuild = await client.guilds.cache.get(testGuildId)?.commands.fetch(guildCommandId);
+
+  await client.application?.commands.create(slashCommandBuilder);
+  await client.application?.commands.create(contextMenuCommandBuilder);
+  await guild.commands.create(slashCommandBuilder);
+  await guild.commands.create(contextMenuCommandBuilder);
+
+  await client.application?.commands.edit(globalCommandId, slashCommandBuilder);
+  await client.application?.commands.edit(globalCommandId, contextMenuCommandBuilder);
+  await guild.commands.edit(guildCommandId, slashCommandBuilder);
+  await guild.commands.edit(guildCommandId, contextMenuCommandBuilder);
+
+  await client.application?.commands.edit(globalCommandId, { defaultMemberPermissions: null });
+  await globalCommand?.edit({ defaultMemberPermissions: null });
+  await globalCommand?.setDefaultMemberPermissions(null);
+  await guildCommandFromGlobal?.edit({ dmPermission: false });
 
   // @ts-expect-error
   await client.guilds.cache.get(testGuildId)?.commands.fetch(guildCommandId, { guildId: testGuildId });
@@ -749,13 +774,13 @@ client.on('messageCreate', async message => {
   const defaultCollector = message.createMessageComponentCollector();
   expectAssignable<Promise<MessageComponentInteraction>>(message.awaitMessageComponent());
   expectAssignable<Promise<MessageComponentInteraction>>(channel.awaitMessageComponent());
-  expectAssignable<InteractionCollector<MessageComponentInteraction>>(defaultCollector);
+  expectAssignable<InteractionCollector<CollectedMessageInteraction>>(defaultCollector);
 
   // Verify that additional options don't affect default collector types.
   const semiDefaultCollector = message.createMessageComponentCollector({ time: 10000 });
-  expectType<InteractionCollector<MessageComponentInteraction>>(semiDefaultCollector);
+  expectType<InteractionCollector<CollectedMessageInteraction>>(semiDefaultCollector);
   const semiDefaultCollectorChannel = message.createMessageComponentCollector({ time: 10000 });
-  expectType<InteractionCollector<MessageComponentInteraction>>(semiDefaultCollectorChannel);
+  expectType<InteractionCollector<CollectedMessageInteraction>>(semiDefaultCollectorChannel);
 
   // Verify that interaction collector options can't be used.
   message.createMessageComponentCollector({
@@ -766,7 +791,7 @@ client.on('messageCreate', async message => {
   // Make sure filter parameters are properly inferred.
   message.createMessageComponentCollector({
     filter: i => {
-      expectType<MessageComponentInteraction>(i);
+      expectType<CollectedMessageInteraction>(i);
       return true;
     },
   });
@@ -789,7 +814,7 @@ client.on('messageCreate', async message => {
 
   message.awaitMessageComponent({
     filter: i => {
-      expectType<MessageComponentInteraction>(i);
+      expectType<CollectedMessageInteraction>(i);
       return true;
     },
   });
@@ -825,7 +850,7 @@ client.on('messageCreate', async message => {
 
   channel.awaitMessageComponent({
     filter: i => {
-      expectType<MessageComponentInteraction<'cached'>>(i);
+      expectType<CollectedMessageInteraction<'cached'>>(i);
       return true;
     },
   });
@@ -852,7 +877,6 @@ client.on('messageCreate', async message => {
     type: ComponentType.ActionRow,
     components: [
       new ButtonBuilder(),
-      new UnsafeButtonBuilder(),
       { type: ComponentType.Button, label: 'test', style: ButtonStyle.Primary, customId: 'test' },
       {
         type: ComponentType.Button,
@@ -866,7 +890,6 @@ client.on('messageCreate', async message => {
     type: ComponentType.ActionRow,
     components: [
       new SelectMenuBuilder(),
-      new UnsafeSelectMenuBuilder(),
       {
         type: ComponentType.SelectMenu,
         label: 'select menu',
@@ -876,9 +899,8 @@ client.on('messageCreate', async message => {
     ],
   };
 
-  const buildersEmbed = new UnsafeEmbedBuilder();
   const embedData = { description: 'test', color: 0xff0000 };
-  channel.send({ components: [row, buttonsRow, selectsRow], embeds: [embed, buildersEmbed, embedData] });
+  channel.send({ components: [row, buttonsRow, selectsRow], embeds: [embed, embedData] });
 });
 
 client.on('threadCreate', thread => {
@@ -1073,7 +1095,8 @@ reactionCollector.on('dispose', (...args) => {
 // Make sure the properties are typed correctly, and that no backwards properties
 // (K -> V and V -> K) exist:
 expectAssignable<'messageCreate'>(Events.MessageCreate);
-expectAssignable<'close'>(ShardEvents.Close);
+expectAssignable<'close'>(WebSocketShardEvents.Close);
+expectAssignable<'death'>(ShardEvents.Death);
 expectAssignable<1>(Status.Connecting);
 
 declare const applicationCommandData: ApplicationCommandData;
@@ -1464,7 +1487,7 @@ client.on('interactionCreate', async interaction => {
 declare const shard: Shard;
 
 shard.on('death', process => {
-  expectType<ChildProcess>(process);
+  expectType<ChildProcess | Worker>(process);
 });
 
 declare const webSocketShard: WebSocketShard;
@@ -1672,3 +1695,20 @@ expectType<ChannelMention>(partialGroupDMChannel.toString());
 expectType<UserMention>(dmChannel.toString());
 expectType<UserMention>(user.toString());
 expectType<UserMention>(guildMember.toString());
+
+declare const webhook: Webhook;
+declare const webhookClient: WebhookClient;
+declare const interactionWebhook: InteractionWebhook;
+declare const snowflake: Snowflake;
+
+expectType<Promise<Message>>(webhook.send('content'));
+expectType<Promise<Message>>(webhook.editMessage(snowflake, 'content'));
+expectType<Promise<Message>>(webhook.fetchMessage(snowflake));
+
+expectType<Promise<APIMessage>>(webhookClient.send('content'));
+expectType<Promise<APIMessage>>(webhookClient.editMessage(snowflake, 'content'));
+expectType<Promise<APIMessage>>(webhookClient.fetchMessage(snowflake));
+
+expectType<Promise<Message>>(interactionWebhook.send('content'));
+expectType<Promise<Message>>(interactionWebhook.editMessage(snowflake, 'content'));
+expectType<Promise<Message>>(interactionWebhook.fetchMessage(snowflake));

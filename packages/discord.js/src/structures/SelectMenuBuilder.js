@@ -2,7 +2,7 @@
 
 const { SelectMenuBuilder: BuildersSelectMenu, isJSONEncodable, normalizeArray } = require('@discordjs/builders');
 const { toSnakeCase } = require('../util/Transformers');
-const { parseEmoji } = require('../util/Util');
+const { resolvePartialEmoji } = require('../util/Util');
 
 /**
  * Class used to build select menu components to be sent through the API
@@ -15,10 +15,28 @@ class SelectMenuBuilder extends BuildersSelectMenu {
         ...data,
         options: options?.map(({ emoji, ...option }) => ({
           ...option,
-          emoji: emoji && typeof emoji === 'string' ? parseEmoji(emoji) : emoji,
+          emoji: emoji && typeof emoji === 'string' ? resolvePartialEmoji(emoji) : emoji,
         })),
       }),
     );
+  }
+
+  /**
+   * Normalizes a select menu option emoji
+   * @param {SelectMenuOptionData|JSONEncodable<APISelectMenuOption>} selectMenuOption The option to normalize
+   * @returns {Array<SelectMenuOptionBuilder|APISelectMenuOption>}
+   * @private
+   */
+  static normalizeEmoji(selectMenuOption) {
+    if (isJSONEncodable(selectMenuOption)) {
+      return selectMenuOption;
+    }
+
+    const { emoji, ...option } = selectMenuOption;
+    return {
+      ...option,
+      emoji: typeof emoji === 'string' ? resolvePartialEmoji(emoji) : emoji,
+    };
   }
 
   /**
@@ -27,12 +45,7 @@ class SelectMenuBuilder extends BuildersSelectMenu {
    * @returns {SelectMenuBuilder}
    */
   addOptions(...options) {
-    return super.addOptions(
-      normalizeArray(options).map(({ emoji, ...option }) => ({
-        ...option,
-        emoji: emoji && typeof emoji === 'string' ? parseEmoji(emoji) : emoji,
-      })),
-    );
+    return super.addOptions(normalizeArray(options).map(option => SelectMenuBuilder.normalizeEmoji(option)));
   }
 
   /**
@@ -41,12 +54,7 @@ class SelectMenuBuilder extends BuildersSelectMenu {
    * @returns {SelectMenuBuilder}
    */
   setOptions(...options) {
-    return super.setOptions(
-      normalizeArray(options).map(({ emoji, ...option }) => ({
-        ...option,
-        emoji: emoji && typeof emoji === 'string' ? parseEmoji(emoji) : emoji,
-      })),
-    );
+    return super.setOptions(normalizeArray(options).map(option => SelectMenuBuilder.normalizeEmoji(option)));
   }
 
   /**

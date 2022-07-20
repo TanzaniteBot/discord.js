@@ -1,7 +1,7 @@
 'use strict';
 
 const { ChannelType, PermissionFlagsBits, Routes } = require('discord-api-types/v10');
-const { Channel } = require('./Channel');
+const { BaseChannel } = require('./BaseChannel');
 const TextBasedChannel = require('./interfaces/TextBasedChannel');
 const { RangeError, ErrorCodes } = require('../errors');
 const MessageManager = require('../managers/MessageManager');
@@ -9,10 +9,10 @@ const ThreadMemberManager = require('../managers/ThreadMemberManager');
 
 /**
  * Represents a thread channel on Discord.
- * @extends {Channel}
+ * @extends {BaseChannel}
  * @implements {TextBasedChannel}
  */
-class ThreadChannel extends Channel {
+class ThreadChannel extends BaseChannel {
   /**
    * @param {Guild} guild The guild the thread channel is part of
    * @param {APIChannel} data The data for the thread channel
@@ -95,7 +95,7 @@ class ThreadChannel extends Channel {
 
       /**
        * The amount of time (in minutes) after which the thread will automatically archive in case of no recent activity
-       * @type {?number}
+       * @type {?ThreadAutoArchiveDuration}
        */
       this.autoArchiveDuration = data.thread_metadata.auto_archive_duration;
 
@@ -356,7 +356,7 @@ class ThreadChannel extends Channel {
    * @returns {Promise<ThreadChannel>}
    * @example
    * // Set the thread's auto archive time to 1 hour
-   * thread.setAutoArchiveDuration(60)
+   * thread.setAutoArchiveDuration(ThreadAutoArchiveDuration.OneHour)
    *   .then(newThread => {
    *     console.log(`Thread will now archive after ${newThread.autoArchiveDuration} minutes of inactivity`);
    *    });

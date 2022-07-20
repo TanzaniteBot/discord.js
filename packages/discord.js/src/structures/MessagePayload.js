@@ -7,7 +7,9 @@ const ActionRowBuilder = require('./ActionRowBuilder');
 const { RangeError, ErrorCodes } = require('../errors');
 const DataResolver = require('../util/DataResolver');
 const MessageFlagsBitField = require('../util/MessageFlagsBitField');
-const { basename, cloneObject, verifyString } = require('../util/Util');
+const { basename, verifyString, lazy } = require('../util/Util');
+
+const getBaseInteraction = lazy(() => require('./BaseInteraction'));
 
 /**
  * Represents a message to be sent to the API.
@@ -86,14 +88,14 @@ class MessagePayload {
   }
 
   /**
-   * Whether or not the target is an {@link Interaction} or an {@link InteractionWebhook}
+   * Whether or not the target is an {@link BaseInteraction} or an {@link InteractionWebhook}
    * @type {boolean}
    * @readonly
    */
   get isInteraction() {
-    const Interaction = require('./Interaction');
+    const BaseInteraction = getBaseInteraction();
     const InteractionWebhook = require('./InteractionWebhook');
-    return this.target instanceof Interaction || this.target instanceof InteractionWebhook;
+    return this.target instanceof BaseInteraction || this.target instanceof InteractionWebhook;
   }
 
   /**
@@ -163,9 +165,8 @@ class MessagePayload {
         ? this.target.client.options.allowedMentions
         : this.options.allowedMentions;
 
-    if (allowedMentions) {
-      allowedMentions = cloneObject(allowedMentions);
-      allowedMentions.replied_user = allowedMentions.repliedUser;
+    if (typeof allowedMentions?.repliedUser !== 'undefined') {
+      allowedMentions = { ...allowedMentions, replied_user: allowedMentions.repliedUser };
       delete allowedMentions.repliedUser;
     }
 
@@ -254,8 +255,8 @@ class MessagePayload {
       name = fileLike.name ?? findName(attachment);
     }
 
-    const data = await DataResolver.resolveFile(attachment);
-    return { data, name };
+    const { data, contentType } = await DataResolver.resolveFile(attachment);
+    return { data, name, contentType };
   }
 
   /**
@@ -277,7 +278,7 @@ module.exports = MessagePayload;
 
 /**
  * A target for a message.
- * @typedef {TextBasedChannels|User|GuildMember|Webhook|WebhookClient|Interaction|InteractionWebhook|
+ * @typedef {TextBasedChannels|User|GuildMember|Webhook|WebhookClient|BaseInteraction|InteractionWebhook|
  * Message|MessageManager} MessageTarget
  */
 

@@ -9,8 +9,8 @@ const WebSocketShard = require('./WebSocketShard');
 const PacketHandlers = require('./handlers');
 const { Error, ErrorCodes } = require('../../errors');
 const Events = require('../../util/Events');
-const ShardEvents = require('../../util/ShardEvents');
 const Status = require('../../util/Status');
+const WebSocketShardEvents = require('../../util/WebSocketShardEvents');
 
 const BeforeReadyWhitelist = [
   GatewayDispatchEvents.Ready,
@@ -22,20 +22,21 @@ const BeforeReadyWhitelist = [
   GatewayDispatchEvents.GuildMemberRemove,
 ];
 
-const UNRECOVERABLE_CLOSE_CODES = [
-  GatewayCloseCodes.AuthenticationFailed,
-  GatewayCloseCodes.InvalidShard,
-  GatewayCloseCodes.ShardingRequired,
-  GatewayCloseCodes.InvalidIntents,
-  GatewayCloseCodes.DisallowedIntents,
-];
+const unrecoverableErrorCodeMap = {
+  [GatewayCloseCodes.AuthenticationFailed]: ErrorCodes.TokenInvalid,
+  [GatewayCloseCodes.InvalidShard]: ErrorCodes.ShardingInvalid,
+  [GatewayCloseCodes.ShardingRequired]: ErrorCodes.ShardingRequired,
+  [GatewayCloseCodes.InvalidIntents]: ErrorCodes.InvalidIntents,
+  [GatewayCloseCodes.DisallowedIntents]: ErrorCodes.DisallowedIntents,
+};
+
 const UNRESUMABLE_CLOSE_CODES = [1000, GatewayCloseCodes.AlreadyAuthenticated, GatewayCloseCodes.InvalidSeq];
 
 /**
  * The WebSocket manager for this client.
  * <info>This class forwards raw dispatch events,
  * read more about it here {@link https://discord.com/developers/docs/topics/gateway}</info>
- * @extends EventEmitter
+ * @extends {EventEmitter}
  */
 class WebSocketManager extends EventEmitter {
   constructor(client) {
@@ -180,7 +181,7 @@ class WebSocketManager extends EventEmitter {
     this.shardQueue.delete(shard);
 
     if (!shard.eventsAttached) {
-      shard.on(ShardEvents.AllReady, unavailableGuilds => {
+      shard.on(WebSocketShardEvents.AllReady, unavailableGuilds => {
         /**
          * Emitted when a shard turns ready.
          * @event Client#shardReady
@@ -193,8 +194,8 @@ class WebSocketManager extends EventEmitter {
         this.checkShardsReady();
       });
 
-      shard.on(ShardEvents.Close, event => {
-        if (event.code === 1_000 ? this.destroyed : UNRECOVERABLE_CLOSE_CODES.includes(event.code)) {
+      shard.on(WebSocketShardEvents.Close, event => {
+        if (event.code === 1_000 ? this.destroyed : event.code in unrecoverableErrorCodeMap) {
           /**
            * Emitted when a shard's WebSocket disconnects and will no longer reconnect.
            * @event Client#shardDisconnect
@@ -224,11 +225,11 @@ class WebSocketManager extends EventEmitter {
         this.reconnect();
       });
 
-      shard.on(ShardEvents.InvalidSession, () => {
+      shard.on(WebSocketShardEvents.InvalidSession, () => {
         this.client.emit(Events.ShardReconnecting, shard.id);
       });
 
-      shard.on(ShardEvents.Destroyed, () => {
+      shard.on(WebSocketShardEvents.Destroyed, () => {
         this.debug('Shard was destroyed but no WebSocket connection was present! Reconnecting...', shard);
 
         this.client.emit(Events.ShardReconnecting, shard.id);
@@ -245,8 +246,8 @@ class WebSocketManager extends EventEmitter {
     try {
       await shard.connect();
     } catch (error) {
-      if (error?.code && UNRECOVERABLE_CLOSE_CODES.includes(error.code)) {
-        throw new Error(GatewayCloseCodes[error.code]);
+      if (error?.code && error.code in unrecoverableErrorCodeMap) {
+        throw new Error(unrecoverableErrorCodeMap[error.code]);
         // Undefined if session is invalid, error event for regular closes
       } else if (!error || error.code) {
         this.debug('Failed to connect to the gateway, requeueing...', shard);
