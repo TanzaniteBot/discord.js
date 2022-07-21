@@ -1,8 +1,11 @@
-name: Tests
-on: [push, pull_request]
+name: npm auto deprecate
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'
 jobs:
-  lint:
-    name: Lint
+  npm-auto-deprecate:
+    name: npm auto deprecate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -18,15 +21,7 @@ jobs:
       - name: Install dependencies
         run: yarn --immutable
 
-      - name: Build dependencies
-        run: yarn build
-
-      - name: ESLint
-        run: yarn lint
-
-      - name: Tests
-        run: yarn test
-
-      - name: Upload Coverage
-        uses: ./packages/actions/src/uploadCoverage
-        if: github.repository_owner == 'discordjs'
+      - name: Deprecate versions
+        run: 'yarn npm-deprecate --name "*dev*" --package @notenoughupdates/discord.js'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
