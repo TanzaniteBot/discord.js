@@ -266,7 +266,7 @@ class Activity {
      * Creation date of the activity
      * @type {number}
      */
-    this.createdTimestamp = Date.parse(data.created_at);
+    this.createdTimestamp = data.created_at;
   }
 
   /**
