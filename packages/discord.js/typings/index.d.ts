@@ -6986,6 +6986,10 @@ export class MessageMentions {
    * Cached members for {@link MessageMentions.members}
    */
   private _members: Collection<Snowflake, GuildMember> | null;
+
+  /**
+   * Cached users for {@link MessageMentions.parsedUsers}
+   */
   private _parsedUsers: Collection<Snowflake, User> | null;
 
   /**
