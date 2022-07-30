@@ -6986,6 +6986,7 @@ export class MessageMentions {
    * Cached members for {@link MessageMentions.members}
    */
   private _members: Collection<Snowflake, GuildMember> | null;
+  private _parsedUsers: Collection<Snowflake, User> | null;
 
   /**
    * Any channels that were mentioned
@@ -7022,6 +7023,12 @@ export class MessageMentions {
    * <info>Order as received from the API, not as they appear in the message content</info>
    */
   public get members(): Collection<Snowflake, GuildMember> | null;
+
+  /**
+   * Any user mentions that were included in the message content
+   * <info>Order as they appear first in the message content</info>
+   */
+  public get parsedUsers(): Collection<Snowflake, User>;
 
   /**
    * The author of the message that this message is a reply to
@@ -19608,4 +19615,4 @@ export type InternalDiscordGatewayAdapterCreator = (
 // External
 export * from 'discord-api-types/v10';
 export * from '@discordjs/builders';
-export { DiscordAPIError, HTTPError, RateLimitError } from '@discordjs/rest';
+export * from '@discordjs/rest';
