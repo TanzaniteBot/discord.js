@@ -4,6 +4,7 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'discordjs'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

@@ -6,6 +6,7 @@ on:
 jobs:
   npm-publish:
     name: npm publish
+    if: github.repository_owner == 'discordjs'
     strategy:
       fail-fast: false
       matrix:
