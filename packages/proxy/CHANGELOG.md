@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-# [@discordjs/proxy@1.1.0](https://github.com/discordjs/discord.js/tree/@discordjs/proxy@1.1.0) - (2022-07-17)
+# [@discordjs/proxy@1.0.0](https://github.com/discordjs/discord.js/tree/@discordjs/proxy@1.1.0) - (2022-07-17)
 
 ## Bug Fixes
 

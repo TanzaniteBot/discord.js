@@ -307,7 +307,7 @@ export class Activity {
   public equals(activity: Activity): boolean;
 
   /**
-   * When concatenated with a string, this automatically returns the activities' name instead of the Activity object.
+   * When concatenated with a string, this automatically returns the activity's name instead of the Activity object.
    */
   public toString(): string;
 }
@@ -2271,13 +2271,13 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   public options: ClientOptions;
 
   /**
-   * Time at which the client was last regarded as being in the `READY` state
+   * Time at which the client was last regarded as being in the {@link Status.Ready} state
    * (each time the client disconnects and successfully reconnects, this will be overwritten)
    */
   public get readyAt(): If<Ready, Date>;
 
   /**
-   * Timestamp of the time the client was last `READY` at
+   * Timestamp of the time the client was last {@link Status.Ready} at
    */
   public readyTimestamp: If<Ready, number>;
 
@@ -2299,7 +2299,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   public token: If<Ready, string, string | null>;
 
   /**
-   * How long it has been since the client last entered the `READY` state in milliseconds
+   * How long it has been since the client last entered the {@link Status.Ready} state in milliseconds
    */
   public get uptime(): If<Ready, number>;
 
@@ -4240,14 +4240,14 @@ export abstract class GuildChannel extends BaseChannel {
   /**
    * Gets the overall set of permissions for a member in this channel, taking into account channel overwrites.
    * @param member The member to obtain the overall permissions for
-   * @param checkAdmin Whether having `PermissionFlagsBits.Administrator` will return all permissions
+   * @param checkAdmin Whether having the {@link PermissionFlagsBits.Administrator} permission will return all permissions
    */
   private memberPermissions(member: GuildMember, checkAdmin: boolean): Readonly<PermissionsBitField>;
 
   /**
    * Gets the overall set of permissions for a role in this channel, taking into account channel overwrites.
    * @param role The role to obtain the overall permissions for
-   * @param checkAdmin Whether having `PermissionFlagsBits.Administrator` will return all permissions
+   * @param checkAdmin Whether having the {@link PermissionFlagsBits.Administrator} permission will return all permissions
    */
   private rolePermissions(role: Role, checkAdmin: boolean): Readonly<PermissionsBitField>;
 
@@ -4376,7 +4376,7 @@ export abstract class GuildChannel extends BaseChannel {
   /**
    * Gets the overall set of permissions for a member or role in this channel, taking into account channel overwrites.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
+   * @param {} [checkAdmin=true] Whether having the {@link PermissionFlagsBits.Administrator} permission will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
@@ -4531,6 +4531,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * Whether this member is bannable by the client user
    */
   public get bannable(): boolean;
+
+  /**
+   * The DM between the client's user and this member
+   */
+  public get dmChannel(): DMChannel | null;
 
   /**
    * The displayed color of this member in base 10
@@ -5587,9 +5592,19 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public isButton(): this is ButtonInteraction<Cached>;
 
   /**
+   * Indicates whether this interaction is an {@link AutocompleteInteraction}
+   */
+  public isAutocomplete(): this is AutocompleteInteraction<Cached>;
+
+  /**
    * Indicates whether this interaction is a {@link ChatInputCommandInteraction}.
    */
   public isChatInputCommand(): this is ChatInputCommandInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link CommandInteraction}
+   */
+  public isCommand(): this is CommandInteraction<Cached>;
 
   /**
    * Indicates whether this interaction is a {@link ContextMenuCommandInteraction}
@@ -5597,9 +5612,19 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public isContextMenuCommand(): this is ContextMenuCommandInteraction<Cached>;
 
   /**
+   * Indicates whether this interaction is a {@link MessageComponentInteraction}
+   */
+  public isMessageComponent(): this is MessageComponentInteraction<Cached>;
+
+  /**
    * Indicates whether this interaction is a {@link MessageContextMenuCommandInteraction}
    */
   public isMessageContextMenuCommand(): this is MessageContextMenuCommandInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link ModalSubmitInteraction}
+   */
+  public isModalSubmit(): this is ModalSubmitInteraction<Cached>;
 
   /**
    * Indicates whether this interaction is a {@link UserContextMenuCommandInteraction}
@@ -6071,7 +6096,9 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public applicationId: Snowflake | null;
 
   /**
-   * A collection of attachments in the message - e.g. Pictures - mapped by their ids
+   * A collection of attachments in the message - e.g. Pictures - mapped by their ids.
+   * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged intent
+   * in a guild for messages that do not mention the client.</info>
    */
   public attachments: Collection<Snowflake, Attachment>;
 
@@ -6097,12 +6124,16 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public get cleanContent(): string;
 
   /**
-   * A list of MessageActionRows in the message
+   * An array of of action rows in the message.
+   * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged intent
+   * in a guild for messages that do not mention the client.</info>
    */
   public components: ActionRow<MessageActionRowComponent>[];
 
   /**
-   * The content of the message
+   * The content of the message.
+   * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged intent
+   * in a guild for messages that do not mention the client.</info>
    */
   public content: string;
 
@@ -6142,7 +6173,9 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public editedTimestamp: number | null;
 
   /**
-   * A list of embeds in the message - e.g. YouTube Player
+   * An array of embeds in the message - e.g. YouTube Player.
+   * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged intent
+   * in a guild for messages that do not mention the client.</info>
    */
   public embeds: Embed[];
 
@@ -8130,7 +8163,7 @@ export class Role extends Base {
    * Returns `channel.permissionsFor(role)`. Returns permissions for a role in a guild channel,
    * taking into account permission overwrites.
    * @param channel The guild channel to use as context
-   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
+   * @param {} [checkAdmin=true] Whether having the {@link PermissionFlagsBits.Administrator} permission will return all permissions
    */
   public permissionsIn(
     channel: NonThreadGuildBasedChannel | Snowflake,
@@ -9594,8 +9627,9 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWeb
   public get guildMembers(): Collection<Snowflake, GuildMember>;
 
   /**
-   * Whether members without `PermissionFlagsBits.ManageThreads` can invite other members without `PermissionFlagsBits.ManageThreads`
-   * <info>Always `null` in public threads</info>
+   * Whether members without the {@link PermissionFlagsBits.ManageThreads} permission
+   * can invite other members to this thread.
+   * <info>This property is always `null` in public threads.</info>
    */
   public invitable: boolean | null;
 
@@ -9719,7 +9753,7 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWeb
    * Gets the overall set of permissions for a member or role in this thread's parent channel, taking overwrites into
    * account.
    * @param memberOrRole The member or role to obtain the overall permissions for
-   * @param {} [checkAdmin=true] Whether having `PermissionFlagsBits.Administrator` will return all permissions
+   * @param {} [checkAdmin=true] Whether having the {@link PermissionFlagsBits.Administrator} permission will return all permissions
    */
   public permissionsFor(memberOrRole: GuildMember | Role, checkAdmin?: boolean): Readonly<PermissionsBitField>;
   public permissionsFor(
@@ -9773,16 +9807,17 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWeb
   ): Promise<AnyThreadChannel>;
 
   /**
-   * Sets whether members without the `PermissionFlagsBits.ManageThreads` permission can invite other members without the
-   * `PermissionFlagsBits.ManageThreads` permission to this thread.
+   * Sets whether members without the {@link PermissionFlagsBits.ManageThreads} permission
+   * can invite other members to this thread.
    * @param {} [invitable=true] Whether non-moderators can invite non-moderators to this thread
    * @param reason Reason for changing invite
    */
   public setInvitable(invitable?: boolean, reason?: string): Promise<AnyThreadChannel>;
 
   /**
-   * Sets whether the thread can be **unarchived** by anyone with `PermissionFlagsBits.SendMessages` permission.
-   * When a thread is locked only members with `PermissionFlagsBits.ManageThreads` can unarchive it.
+   * Sets whether the thread can be **unarchived** by anyone with the
+   * {@link PermissionFlagsBits.SendMessages} permission. When a thread is locked, only members with the
+   * {@link PermissionFlagsBits.ManageThreads} permission can unarchive it.
    * @param {} [locked=true] Whether the thread is locked
    * @param reason Reason for locking or unlocking the thread
    * @example
@@ -10396,128 +10431,41 @@ export function createComponentBuilder<T extends keyof MappedComponentBuilderTyp
 export function createComponentBuilder<C extends ComponentBuilder>(data: C): C;
 export function createComponentBuilder(data: APIMessageComponent | ComponentBuilder): ComponentBuilder;
 
-/**
- * Contains various Discord-specific functions for formatting messages.
- */
+/** @deprecated This class is redundant as all methods of the class can be imported from discord.js directly. */
 export class Formatters extends null {
-  /**
-   * Formats the content into a block quote. This needs to be at the start of the line for Discord to format it.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static blockQuote: typeof blockQuote;
-
-  /**
-   * Formats the content into bold text.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static bold: typeof bold;
-
-  /**
-   * Formats a channel id into a channel mention.
-   * @param channelId The channel id to format.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static channelMention: typeof channelMention;
-
-  /**
-   * Wraps the content inside a code block with an optional language.
-   * @param contentOrLanguage The language to use, content if a second parameter isn't provided.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static codeBlock: typeof codeBlock;
-
-  /**
-   * Formats an emoji id into a fully qualified emoji identifier
-   * @param emojiId The emoji id to format.
-   * @param animated Whether the emoji is animated or not. Defaults to `false`
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static formatEmoji: typeof formatEmoji;
-
-  /**
-   * Wraps the URL into `<>`, which stops it from embedding.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static hideLinkEmbed: typeof hideLinkEmbed;
-
-  /**
-   * Formats the content and the URL into a masked URL with an optional title.
-   * @param content The content to display.
-   * @param url The URL the content links to.
-   * @param title The title shown when hovering on the masked link.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static hyperlink: typeof hyperlink;
-
-  /**
-   * Wraps the content inside \`backticks\`, which formats it as inline code.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static inlineCode: typeof inlineCode;
-
-  /**
-   * Formats the content into italic text.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static italic: typeof italic;
-
-  /**
-   * Formats the content into a quote. This needs to be at the start of the line for Discord to format it.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static quote: typeof quote;
-
-  /**
-   * Formats a role id into a role mention.
-   * @param roleId The role id to format.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static roleMention: typeof roleMention;
-
-  /**
-   * Formats the content into spoiler text.
-   * @param content The content to spoiler.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static spoiler: typeof spoiler;
-
-  /**
-   * Formats the content into strike-through text.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static strikethrough: typeof strikethrough;
-
-  /**
-   * Formats a date into a short date-time string.
-   * @param date The date to format.
-   * @param style The style to use.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static time: typeof time;
-
-  /**
-   * The message formatting timestamp
-   * [styles](https://discord.com/developers/docs/reference#message-formatting-timestamp-styles) supported by Discord.
-   */
+  /** @deprecated Import this property directly from discord.js instead. */
   public static TimestampStyles: typeof TimestampStyles;
-
-  /**
-   * A message formatting timestamp style, as defined in
-   * [here](https://discord.com/developers/docs/reference#message-formatting-timestamp-styles).
-   * * `t` Short time format, consisting of hours and minutes, e.g. 16:20.
-   * * `T` Long time format, consisting of hours, minutes, and seconds, e.g. 16:20:30.
-   * * `d` Short date format, consisting of day, month, and year, e.g. 20/04/2021.
-   * * `D` Long date format, consisting of day, month, and year, e.g. 20 April 2021.
-   * * `f` Short date-time format, consisting of short date and short time formats, e.g. 20 April 2021 16:20.
-   * * `F` Long date-time format, consisting of long date and short time formats, e.g. Tuesday, 20 April 2021 16:20.
-   * * `R` Relative time format, consisting of a relative duration format, e.g. 2 months ago.
-   */
-  public static TimestampStylesString: TimestampStylesString;
-
-  /**
-   * Formats the content into underscored text.
-   * @param content The content to wrap.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static underscore: typeof underscore;
-
-  /**
-   * Formats a user id into a user mention.
-   * @param userId The user id to format.
-   */
+  /** @deprecated Import this method directly from discord.js instead. */
   public static userMention: typeof userMention;
 }
 
@@ -10898,7 +10846,7 @@ export class Webhook extends WebhookMixin() {
 export class WebhookClient extends WebhookMixin(BaseClient) {
   /**
    * @param data The data of the webhook
-   * @param options Options for the client
+   * @param options Options for the webhook client
    */
   public constructor(data: WebhookClientData, options?: WebhookClientOptions);
 
@@ -11216,7 +11164,7 @@ export class WebSocketShard extends EventEmitter {
 
   /**
    * Called whenever an error occurs with the WebSocket.
-   * @param event The error that occurred
+   * @param error The error that occurred
    */
   private onError(error: ErrorEvent | unknown): void;
 
@@ -12664,13 +12612,19 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
   public get me(): GuildMember | null;
 
   /**
-   * Adds a user to the guild using OAuth2. Requires the `PermissionFlagsBits.CreateInstantInvite` permission.
+   * Adds a user to the guild using OAuth2.
+   * <info>This method requires the {@link PermissionFlagsBits.CreateInstantInvite} permission.
    * @param user The user to add to the guild
    * @param options Options for adding the user to the guild
    */
   public add(
     user: UserResolvable,
-    options: AddGuildMemberOptions & { fetchWhenExisting: false },
+    options: AddGuildMemberOptions & {
+      /**
+       * Whether to fetch the user if not cached and already a member
+       */
+      fetchWhenExisting: false;
+    },
   ): Promise<GuildMember | null>;
   public add(user: UserResolvable, options: AddGuildMemberOptions): Promise<GuildMember>;
 
@@ -13624,14 +13578,18 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
   public fetch(options?: FetchThreadsOptions, cacheOptions?: { cache?: boolean }): Promise<FetchedThreads>;
 
   /**
-   * Obtains a set of archived threads from Discord, requires `PermissionFlagsBits.ReadMessageHistory` in the parent channel.
+   * Obtains a set of archived threads from Discord.
+   * <info>This method requires the {@link PermissionFlagsBits.ReadMessageHistory} permission
+   * in the parent channel.</info>
    * @param options The options to fetch archived threads
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreads>;
 
   /**
-   * Obtains the accessible active threads from Discord, requires `PermissionFlagsBits.ReadMessageHistory` in the parent channel.
+   * Obtains the accessible active threads from Discord.
+   * <info>This method requires the {@link PermissionFlagsBits.ReadMessageHistory} permission
+   * in the parent channel.</info>
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
@@ -13661,7 +13619,8 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
   public add(member: UserResolvable | '@me', reason?: string): Promise<Snowflake>;
 
   /**
-   * Fetches thread member(s) from Discord. Requires the `GUILD_MEMBERS` gateway intent.
+   * Fetches thread member(s) from Discord.
+   * <info>This method requires the {@link GatewayIntentBits.GuildMembers} privileged gateway intent.</info>
    * @param options Options for fetching thread member(s)
    */
   public fetch(options: ThreadMemberResolvable | FetchThreadMemberOptions): Promise<ThreadMember>;
@@ -14129,32 +14088,36 @@ export type ActivityPlatform = 'desktop' | 'samsung' | 'xbox';
  */
 export interface AddGuildMemberOptions {
   /**
-   * An OAuth2 access token for the user with the `guilds.join` scope granted to the bot's application
+   * An OAuth2 access token for the user with the {@link OAuth2Scopes.GuildsJoin} scope granted to the bot's application
    */
   accessToken: string;
 
   /**
-   * The nickname to give to the member (requires `PermissionFlagsBits.ManageNicknames`)
+   * The nickname to give to the member
+   * <info>This property requires the {@link PermissionFlagsBits.ManageNicknames} permission.</info>
    */
   nick?: string;
 
   /**
-   * The roles to add to the member (requires `PermissionFlagsBits.ManageRoles`)
+   * The roles to add to the member
+   * <info>This property requires the {@link PermissionFlagsBits.ManageRoles} permission.</info>
    */
   roles?: Collection<Snowflake, Role> | RoleResolvable[];
 
   /**
-   * Whether the member should be muted (requires `PermissionFlagsBits.MuteMembers`)
+   * Whether the member should be muted
+   * <info>This property requires the {@link PermissionFlagsBits.MuteMembers} permission.</info>
    */
   mute?: boolean;
 
   /**
-   * Whether the member should be deafened (requires `PermissionFlagsBits.DeafenMembers`)
+   * Whether the member should be deafened
+   * <info>This property requires the {@link PermissionFlagsBits.MuteMembers} permission.</info>
    */
   deaf?: boolean;
 
   /**
-   * Whether to skip the cache check and call the API directly
+   * Whether to skip the cache check and request the API directly
    */
   force?: boolean;
 
@@ -15248,16 +15211,16 @@ export interface ClientEvents {
 
   /**
    * Emitted when an invite is created.
-   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
-   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
+   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
+   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was created
    */
   inviteCreate: [invite: Invite];
 
   /**
    * Emitted when an invite is deleted.
-   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
-   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
+   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
+   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was deleted
    */
   inviteDelete: [invite: Invite];
@@ -15385,9 +15348,10 @@ export interface ClientEvents {
   threadMemberUpdate: [oldMember: ThreadMember, newMember: ThreadMember];
 
   /**
-   * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
-   * @param oldMembers The members before the update
-   * @param newMembers The members after the update
+   * Emitted whenever members are added or removed from a thread.
+   * <info>This event requires the {@link GatewayIntentBits.GuildMembers} privileged gateway intent.</info>
+   * @param addedMembers The members that were added
+   * @param removedMembers The members that were removed
    * @param thread The thread where members got updated
    */
   threadMembersUpdate: [
@@ -15411,7 +15375,8 @@ export interface ClientEvents {
 
   /**
    * Emitted whenever a user's details (e.g. username) are changed.
-   * Triggered by the Discord gateway events USER_UPDATE, GUILD_MEMBER_UPDATE, and PRESENCE_UPDATE.
+   * Triggered by the Discord gateway events {@link Events.UserUpdate},
+   * {@link Events.GuildMemberUpdate}, and {@link Events.PresenceUpdate}.
    * @param oldUser The user before the update
    * @param newUser The user after the update
    */
@@ -15964,15 +15929,17 @@ export enum Events {
 
   /**
    * Emitted when an invite is created.
-   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
-   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
+   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
+   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * @param invite The invite that was created
    */
   InviteCreate = 'inviteCreate',
 
   /**
    * Emitted when an invite is deleted.
-   * <info> This event only triggers if the client has `PermissionFlagsBits.ManageGuild` permissions for the guild,
-   * or `PermissionFlagsBits.ManageChannels` permissions for the channel.</info>
+   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
+   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * @param invite The invite that was deleted
    */
   InviteDelete = 'inviteDelete',
 
@@ -16093,13 +16060,15 @@ export enum Events {
   ThreadMemberUpdate = 'threadMemberUpdate',
 
   /**
-   * Emitted whenever members are added or removed from a thread. Requires `GatewayIntentBits.GuildMembers` privileged intent
+   * Emitted whenever members are added or removed from a thread.
+   * <info>This event requires the {@link GatewayIntentBits.GuildMembers} privileged gateway intent.</info>
    */
   ThreadMembersUpdate = 'threadMembersUpdate',
 
   /**
    * Emitted whenever a user's details (e.g. username) are changed.
-   * Triggered by the Discord gateway events USER_UPDATE, GUILD_MEMBER_UPDATE, and PRESENCE_UPDATE.
+   * Triggered by the Discord gateway events {@link Events.UserUpdate},
+   * {@link Events.GuildMemberUpdate}, and {@link Events.PresenceUpdate}.
    */
   UserUpdate = 'userUpdate',
 
@@ -16534,20 +16503,21 @@ export interface FetchApplicationCommandOptions extends BaseFetchOptions {
  */
 export interface FetchArchivedThreadOptions {
   /**
-   * The type of threads to fetch, either `public` or `private`
+   * The type of threads to fetch (`public` or `private`)
    * @default 'public'
    */
   type?: 'public' | 'private';
 
   /**
-   * Whether to fetch **all** archived threads when type is `private`. Requires `PermissionFlagsBits.ManageThreads` if true
+   * Whether to fetch **all** archived threads when `type` is `private`
+   * <info>This property requires the {@link PermissionFlagsBits.ManageThreads} permission if `true`.</info>
    * @default false
    */
   fetchAll?: boolean;
 
   /**
-   * Only return threads that were created before this Date
-   * or Snowflake. <warn>Must be a {@link ThreadChannelResolvable} when type is `private` and fetchAll is `false`</warn>
+   * Only return threads that were created before this Date or Snowflake.
+   * <warn>Must be a {@link ThreadChannelResolvable} when `type` is `private` and `fetchAll` is `false`.</warn>
    */
   before?: ThreadChannelResolvable | DateResolvable;
 
@@ -17147,19 +17117,19 @@ export interface GuildChannelEditOptions {
 }
 
 /**
- * Extra information about the overwrite
+ * Extra information about the overwrite.
  */
 export interface GuildChannelOverwriteOptions {
   /**
-   * Reason for creating/editing this overwrite
+   * The reason for creating/editing this overwrite
    */
   reason?: string;
 
   /**
-   * The type of overwrite, either `0` for a role or `1` for a member. Use this to bypass
-   * automatic resolution of type that results in an error for uncached structure
+   * The type of overwrite. Use this to bypass automatic resolution of `type`
+   * that results in an error for an uncached structure
    */
-  type?: number;
+  type?: OverwriteType;
 }
 
 /**
@@ -18142,7 +18112,8 @@ export interface MessageEditOptions {
   )[];
 
   /**
-   * Which flags to set for the message. Only {@link MessageFlags.SuppressEmbeds} can be edited.
+   * Which flags to set for the message
+   * <info>Only the {@link MessageFlags.SuppressEmbeds} flag can be modified.</info>
    */
   flags?: BitFieldResolvable<MessageFlagsString, number>;
 
@@ -19390,22 +19361,28 @@ export interface VoiceStateEditData {
 }
 
 /**
- * The data for the webhook client containing either an id and token or just a URL
+ * Represents the credentials used for a webhook.
  */
 export type WebhookClientData = WebhookClientDataIdWithToken | WebhookClientDataURL;
 
+/**
+ * Represents the credentials used for a webhook in the form of its id and token.
+ */
 export interface WebhookClientDataIdWithToken {
   /**
-   * The id of the webhook
+   * The webhook's id
    */
   id: Snowflake;
 
   /**
-   * The token of the webhook
+   * The webhook's token
    */
   token: string;
 }
 
+/**
+ * Represents the credentials used for a webhook in the form of a URL.
+ */
 export interface WebhookClientDataURL {
   /**
    * The full URL for the webhook client
@@ -19413,6 +19390,9 @@ export interface WebhookClientDataURL {
   url: string;
 }
 
+/**
+ * Options for a webhook client.
+ */
 export type WebhookClientOptions = Pick<ClientOptions, 'allowedMentions' | 'rest'>;
 
 /**

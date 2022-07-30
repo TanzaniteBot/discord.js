@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import { FiMenu } from 'react-icons/fi';
 import { VscPackage } from 'react-icons/vsc';
-import { generateIcon } from '~/util/icon';
+import { ListSidebar } from './ListSidebar';
 import type { getMembers } from '~/util/parse.server';
 
 export interface ItemListProps {
@@ -9,6 +8,8 @@ export interface ItemListProps {
 	data: {
 		members: ReturnType<typeof getMembers>;
 	};
+
+	selectedMember?: string | undefined;
 }
 
 function onMenuClick() {
@@ -16,27 +17,20 @@ function onMenuClick() {
 	// Todo show/hide list
 }
 
-export function ItemSidebar({ packageName, data }: ItemListProps) {
+export function ItemSidebar({ packageName, data, selectedMember }: ItemListProps) {
 	return (
-		<div className="flex flex-col max-h-full min-w-[270px] lg:border-r-solid border-b-solid border-gray border-width-0.5">
-			<div className=" border-b-solid border-gray border-width-0.5 py-2 sticky top-0">
-				<h2 className="px-2 font-mono flex items-center m-0 dark:text-white">
-					<VscPackage className="px-1" />
+		<div className="flex flex-col min-h-full max-h-full grow min-w-[270px] lg:border-r-solid border-0.5 border-gray">
+			<div className="border-b-0.5 border-gray py-2">
+				<h2 className="flex gap-2 items-center m-0 px-2 dark:text-white">
+					<VscPackage />
 					{`${packageName}`}
 				</h2>
 				<button className="lg:hidden mr-2 bg-transparent border-none cursor-pointer" onClick={onMenuClick}>
 					<FiMenu size={32} />
 				</button>
 			</div>
-			<div className="hidden lg:block lg:min-h-screen overflow-y-scroll overflow-x-clip p-7">
-				{data.members.map((member, i) => (
-					<div key={i} className="mb-1">
-						<div className="flex items-center align-center font-mono no-underline break-all text-blue-500 dark:text-blue-300">
-							{generateIcon(member.kind, 'px-1')}
-							<Link href={member.path}>{member.name}</Link>
-						</div>
-					</div>
-				))}
+			<div className="hidden lg:block lg:min-h-full overflow-y-auto overflow-x-clip py-3 px-4">
+				<ListSidebar members={data.members} title="test" selectedMember={selectedMember} />
 			</div>
 		</div>
 	);
