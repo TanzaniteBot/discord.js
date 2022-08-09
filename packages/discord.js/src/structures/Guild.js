@@ -292,6 +292,16 @@ class Guild extends AnonymousGuild {
       this.maximumPresences ??= null;
     }
 
+    if ('max_video_channel_users' in data) {
+      /**
+       * The maximum amount of users allowed in a video channel.
+       * @type {?number}
+       */
+      this.maxVideoChannelUsers = data.max_video_channel_users;
+    } else {
+      this.maxVideoChannelUsers ??= null;
+    }
+
     if ('approximate_member_count' in data) {
       /**
        * The approximate amount of members the guild has
@@ -555,7 +565,7 @@ class Guild extends AnonymousGuild {
    * @returns {Promise<Collection<string, GuildTemplate>>}
    */
   async fetchTemplates() {
-    const templates = await this.client.rest.get(Routes.guildTemplate(this.id));
+    const templates = await this.client.rest.get(Routes.guildTemplates(this.id));
     return templates.reduce((col, data) => col.set(data.code, new GuildTemplate(this.client, data)), new Collection());
   }
 

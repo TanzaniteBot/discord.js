@@ -3451,6 +3451,11 @@ export class Guild extends AnonymousGuild {
   public applicationId: Snowflake | null;
 
   /**
+   * The maximum amount of users allowed in a video channel.
+   */
+  public maxVideoChannelUsers: number | null;
+
+  /**
    * The approximate amount of members the guild has
    * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
    */
@@ -7063,15 +7068,20 @@ export class MessageMentions {
   public toJSON(): unknown;
 
   /**
+   * A global regular expression variant of {@link MessageMentions.ChannelsPattern}.
+   */
+  private static GlobalChannelsPattern: RegExp;
+
+  /**
+   * A global regular expression variant of {@link MessageMentions.UsersPattern}.
+   */
+  private static GlobalUsersPattern: RegExp;
+
+  /**
    * A regular expression that matches channel mentions like `<#222079895583457280>`.
    * The `id` group property is present on the `exec` result of this expression.
    */
   public static ChannelsPattern: typeof FormattingPatterns.Channel;
-
-  /**
-   * A global regular expression variant of {@link MessageMentions.ChannelsPattern}.
-   */
-  private static GlobalChannelsPattern: RegExp;
 
   /**
    * A regular expression that matches `@everyone` and `@here`.
@@ -11544,152 +11554,152 @@ export const version: string;
 
 //#region Errors
 export enum DiscordjsErrorCodes {
-  ClientInvalidOption,
-  ClientInvalidProvidedShards,
-  ClientMissingIntents,
-  ClientNotReady,
+  ClientInvalidOption = 'ClientInvalidOption',
+  ClientInvalidProvidedShards = 'ClientInvalidProvidedShards',
+  ClientMissingIntents = 'ClientMissingIntents',
+  ClientNotReady = 'ClientNotReady',
 
-  TokenInvalid,
-  TokenMissing,
-  ApplicationCommandPermissionsTokenMissing,
+  TokenInvalid = 'TokenInvalid',
+  TokenMissing = 'TokenMissing',
+  ApplicationCommandPermissionsTokenMissing = 'ApplicationCommandPermissionsTokenMissing',
 
-  WSCloseRequested,
-  WSConnectionExists,
-  WSNotOpen,
-  ManagerDestroyed,
+  WSCloseRequested = 'WSCloseRequested',
+  WSConnectionExists = 'WSConnectionExists',
+  WSNotOpen = 'WSNotOpen',
+  ManagerDestroyed = 'ManagerDestroyed',
 
-  BitFieldInvalid,
+  BitFieldInvalid = 'BitFieldInvalid',
 
-  ShardingInvalid,
-  ShardingRequired,
-  InvalidIntents,
-  DisallowedIntents,
-  ShardingNoShards,
-  ShardingInProcess,
-  ShardingInvalidEvalBroadcast,
-  ShardingShardNotFound,
-  ShardingAlreadySpawned,
-  ShardingProcessExists,
-  ShardingWorkerExists,
-  ShardingReadyTimeout,
-  ShardingReadyDisconnected,
-  ShardingReadyDied,
-  ShardingNoChildExists,
-  ShardingShardMiscalculation,
+  ShardingInvalid = 'ShardingInvalid',
+  ShardingRequired = 'ShardingRequired',
+  InvalidIntents = 'InvalidIntents',
+  DisallowedIntents = 'DisallowedIntents',
+  ShardingNoShards = 'ShardingNoShards',
+  ShardingInProcess = 'ShardingInProcess',
+  ShardingInvalidEvalBroadcast = 'ShardingInvalidEvalBroadcast',
+  ShardingShardNotFound = 'ShardingShardNotFound',
+  ShardingAlreadySpawned = 'ShardingAlreadySpawned',
+  ShardingProcessExists = 'ShardingProcessExists',
+  ShardingWorkerExists = 'ShardingWorkerExists',
+  ShardingReadyTimeout = 'ShardingReadyTimeout',
+  ShardingReadyDisconnected = 'ShardingReadyDisconnected',
+  ShardingReadyDied = 'ShardingReadyDied',
+  ShardingNoChildExists = 'ShardingNoChildExists',
+  ShardingShardMiscalculation = 'ShardingShardMiscalculation',
 
-  ColorRange,
-  ColorConvert,
+  ColorRange = 'ColorRange',
+  ColorConvert = 'ColorConvert',
 
-  InviteOptionsMissingChannel,
+  InviteOptionsMissingChannel = 'InviteOptionsMissingChannel',
 
-  ButtonLabel,
-  ButtonURL,
-  ButtonCustomId,
+  ButtonLabel = 'ButtonLabel',
+  ButtonURL = 'ButtonURL',
+  ButtonCustomId = 'ButtonCustomId',
 
-  SelectMenuCustomId,
-  SelectMenuPlaceholder,
-  SelectOptionLabel,
-  SelectOptionValue,
-  SelectOptionDescription,
+  SelectMenuCustomId = 'SelectMenuCustomId',
+  SelectMenuPlaceholder = 'SelectMenuPlaceholder',
+  SelectOptionLabel = 'SelectOptionLabel',
+  SelectOptionValue = 'SelectOptionValue',
+  SelectOptionDescription = 'SelectOptionDescription',
 
-  InteractionCollectorError,
+  InteractionCollectorError = 'InteractionCollectorError',
 
-  FileNotFound,
+  FileNotFound = 'FileNotFound',
 
-  UserBannerNotFetched,
-  UserNoDMChannel,
+  UserBannerNotFetched = 'UserBannerNotFetched',
+  UserNoDMChannel = 'UserNoDMChannel',
 
-  VoiceNotStageChannel,
+  VoiceNotStageChannel = 'VoiceNotStageChannel',
 
-  VoiceStateNotOwn,
-  VoiceStateInvalidType,
+  VoiceStateNotOwn = 'VoiceStateNotOwn',
+  VoiceStateInvalidType = 'VoiceStateInvalidType',
 
-  ReqResourceType,
+  ReqResourceType = 'ReqResourceType',
 
-  ImageFormat,
-  ImageSize,
+  ImageFormat = 'ImageFormat',
+  ImageSize = 'ImageSize',
 
-  MessageBulkDeleteType,
-  MessageNonceType,
-  MessageContentType,
+  MessageBulkDeleteType = 'MessageBulkDeleteType',
+  MessageNonceType = 'MessageNonceType',
+  MessageContentType = 'MessageContentType',
 
-  SplitMaxLen,
+  SplitMaxLen = 'SplitMaxLen',
 
-  BanResolveId,
-  FetchBanResolveId,
+  BanResolveId = 'BanResolveId',
+  FetchBanResolveId = 'FetchBanResolveId',
 
-  PruneDaysType,
+  PruneDaysType = 'PruneDaysType',
 
-  GuildChannelResolve,
-  GuildVoiceChannelResolve,
-  GuildChannelOrphan,
-  GuildChannelUnowned,
-  GuildOwned,
-  GuildMembersTimeout,
-  GuildUncachedMe,
-  ChannelNotCached,
-  StageChannelResolve,
-  GuildScheduledEventResolve,
-  FetchOwnerId,
+  GuildChannelResolve = 'GuildChannelResolve',
+  GuildVoiceChannelResolve = 'GuildVoiceChannelResolve',
+  GuildChannelOrphan = 'GuildChannelOrphan',
+  GuildChannelUnowned = 'GuildChannelUnowned',
+  GuildOwned = 'GuildOwned',
+  GuildMembersTimeout = 'GuildMembersTimeout',
+  GuildUncachedMe = 'GuildUncachedMe',
+  ChannelNotCached = 'ChannelNotCached',
+  StageChannelResolve = 'StageChannelResolve',
+  GuildScheduledEventResolve = 'GuildScheduledEventResolve',
+  FetchOwnerId = 'FetchOwnerId',
 
-  InvalidType,
-  InvalidElement,
+  InvalidType = 'InvalidType',
+  InvalidElement = 'InvalidElement',
 
-  MessageThreadParent,
-  MessageExistingThread,
-  ThreadInvitableType,
+  MessageThreadParent = 'MessageThreadParent',
+  MessageExistingThread = 'MessageExistingThread',
+  ThreadInvitableType = 'ThreadInvitableType',
 
-  WebhookMessage,
-  WebhookTokenUnavailable,
-  WebhookURLInvalid,
-  WebhookApplication,
-  MessageReferenceMissing,
+  WebhookMessage = 'WebhookMessage',
+  WebhookTokenUnavailable = 'WebhookTokenUnavailable',
+  WebhookURLInvalid = 'WebhookURLInvalid',
+  WebhookApplication = 'WebhookApplication',
+  MessageReferenceMissing = 'MessageReferenceMissing',
 
-  EmojiType,
-  EmojiManaged,
-  MissingManageEmojisAndStickersPermission,
-  NotGuildSticker,
+  EmojiType = 'EmojiType',
+  EmojiManaged = 'EmojiManaged',
+  MissingManageEmojisAndStickersPermission = 'MissingManageEmojisAndStickersPermission',
+  NotGuildSticker = 'NotGuildSticker',
 
-  ReactionResolveUser,
+  ReactionResolveUser = 'ReactionResolveUser',
 
-  VanityURL,
+  VanityURL = 'VanityURL',
 
-  InviteResolveCode,
+  InviteResolveCode = 'InviteResolveCode',
 
-  InviteNotFound,
+  InviteNotFound = 'InviteNotFound',
 
-  DeleteGroupDMChannel,
-  FetchGroupDMChannel,
+  DeleteGroupDMChannel = 'DeleteGroupDMChannel',
+  FetchGroupDMChannel = 'FetchGroupDMChannel',
 
-  MemberFetchNonceLength,
+  MemberFetchNonceLength = 'MemberFetchNonceLength',
 
-  GlobalCommandPermissions,
-  GuildUncachedEntityResolve,
+  GlobalCommandPermissions = 'GlobalCommandPermissions',
+  GuildUncachedEntityResolve = 'GuildUncachedEntityResolve',
 
-  InteractionAlreadyReplied,
-  InteractionNotReplied,
-  InteractionEphemeralReplied,
+  InteractionAlreadyReplied = 'InteractionAlreadyReplied',
+  InteractionNotReplied = 'InteractionNotReplied',
+  InteractionEphemeralReplied = 'InteractionEphemeralReplied',
 
-  CommandInteractionOptionNotFound,
-  CommandInteractionOptionType,
-  CommandInteractionOptionEmpty,
-  CommandInteractionOptionNoSubcommand,
-  CommandInteractionOptionNoSubcommandGroup,
-  AutocompleteInteractionOptionNoFocusedOption,
+  CommandInteractionOptionNotFound = 'CommandInteractionOptionNotFound',
+  CommandInteractionOptionType = 'CommandInteractionOptionType',
+  CommandInteractionOptionEmpty = 'CommandInteractionOptionEmpty',
+  CommandInteractionOptionNoSubcommand = 'CommandInteractionOptionNoSubcommand',
+  CommandInteractionOptionNoSubcommandGroup = 'CommandInteractionOptionNoSubcommandGroup',
+  AutocompleteInteractionOptionNoFocusedOption = 'AutocompleteInteractionOptionNoFocusedOption',
 
-  ModalSubmitInteractionFieldNotFound,
-  ModalSubmitInteractionFieldType,
+  ModalSubmitInteractionFieldNotFound = 'ModalSubmitInteractionFieldNotFound',
+  ModalSubmitInteractionFieldType = 'ModalSubmitInteractionFieldType',
 
-  InvalidMissingScopes,
+  InvalidMissingScopes = 'InvalidMissingScopes',
 
-  NotImplemented,
+  NotImplemented = 'NotImplemented',
 
-  SweepFilterReturn,
+  SweepFilterReturn = 'SweepFilterReturn',
 }
 
 export interface DiscordjsErrorFields<Name extends string> {
-  readonly name: `${Name} [${keyof typeof DiscordjsErrorCodes}]`;
-  get code(): keyof typeof DiscordjsErrorCodes;
+  readonly name: `${Name} [${DiscordjsErrorCodes}]`;
+  get code(): DiscordjsErrorCodes;
 }
 
 export function DiscordjsErrorMixin<T, N extends string>(
@@ -14171,7 +14181,14 @@ export interface BaseApplicationCommandData {
 }
 
 export interface AttachmentData {
+  /**
+   * The name of the attachment
+   */
   name?: string;
+
+  /**
+   * The description of the attachment
+   */
   description?: string;
 }
 
@@ -15833,35 +15850,154 @@ export type AutocompleteFocusedOption = Pick<CommandInteractionOption, 'name'> &
 };
 
 export declare const Colors: {
+  /**
+   * 0x000000 | rgb(0,0,0)
+   */
   Default: 0x000000;
+
+  /**
+   * 0xFFFFFF | rgb(255,255,255)
+   */
   White: 0xffffff;
+
+  /**
+   * 0x1ABC9C | rgb(26,188,156)
+   */
   Aqua: 0x1abc9c;
+
+  /**
+   * 0x57F287 | rgb(87,242,135)
+   */
   Green: 0x57f287;
+
+  /**
+   * 0x3498DB | rgb(52,152,219)
+   */
   Blue: 0x3498db;
+
+  /**
+   * 0xFEE75C | rgb(254,231,92)
+   */
   Yellow: 0xfee75c;
+
+  /**
+   * 0x9B59B6 | rgb(155,89,182)
+   */
   Purple: 0x9b59b6;
+
+  /**
+   * 0xE91E63 | rgb(233,30,99)
+   */
   LuminousVividPink: 0xe91e63;
+
+  /**
+   * 0xEB459E | rgb(235,69,158)
+   */
   Fuchsia: 0xeb459e;
+
+  /**
+   * 0xF1C40F | rgb(241,196,15)
+   */
   Gold: 0xf1c40f;
+
+  /**
+   * 0xE67E22 | rgb(230,126,34)
+   */
   Orange: 0xe67e22;
+
+  /**
+   * 0xED4245 | rgb(237,66,69)
+   */
   Red: 0xed4245;
+
+  /**
+   * 0x95A5A6 | rgb(149,165,166)
+   */
   Grey: 0x95a5a6;
+
+  /**
+   * 0x34495E | rgb(52,73,94)
+   */
   Navy: 0x34495e;
+
+  /**
+   * 0x11806A | rgb(17,128,106)
+   */
   DarkAqua: 0x11806a;
+
+  /**
+   * 0x1F8B4C | rgb(31,139,76)
+   */
   DarkGreen: 0x1f8b4c;
+
+  /**
+   * 0x206694 | rgb(32,102,148)
+   */
   DarkBlue: 0x206694;
+
+  /**
+   * 0x71368A | rgb(113,54,138)
+   */
   DarkPurple: 0x71368a;
+
+  /**
+   * 0xAD1457 | rgb(173,20,87)
+   */
   DarkVividPink: 0xad1457;
+
+  /**
+   * 0xC27C0E | rgb(194,124,14)
+   */
   DarkGold: 0xc27c0e;
+
+  /**
+   * 0xA84300 | rgb(168,67,0)
+   */
   DarkOrange: 0xa84300;
+
+  /**
+   * 0x992D22 | rgb(153,45,34)
+   */
   DarkRed: 0x992d22;
+
+  /**
+   * 0x979C9F | rgb(151,156,159)
+   */
   DarkGrey: 0x979c9f;
+
+  /**
+   * 0x7F8C8D | rgb(127,140,141)
+   */
   DarkerGrey: 0x7f8c8d;
+
+  /**
+   * 0xBCC0C0 | rgb(188,192,192)
+   */
   LightGrey: 0xbcc0c0;
+
+  /**
+   * 0x2C3E50 | rgb(44,62,80)
+   */
   DarkNavy: 0x2c3e50;
+
+  /**
+   * 0x5865F2 | rgb(88,101,242)
+   */
   Blurple: 0x5865f2;
+
+  /**
+   * 0x99AAb5 | rgb(153,170,181)
+   */
   Greyple: 0x99aab5;
+
+  /**
+   * 0x2C2F33 | rgb(44,47,51)
+   */
   DarkButNotBlack: 0x2c2f33;
+
+  /**
+   * 0x23272A | rgb(35,39,42)
+   */
   NotQuiteBlack: 0x23272a;
 };
 
