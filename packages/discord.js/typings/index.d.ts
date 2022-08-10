@@ -1386,7 +1386,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForTextChannel | AllowedThreadTypeForNewsChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForTextChannel | AllowedThreadTypeForNewsChannel>;
 
   /**
    * The topic of the text channel
@@ -6258,6 +6258,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   public stickers: Collection<Snowflake, Sticker>;
 
   /**
+   * A generally increasing integer (there may be gaps or duplicates) that represents
+   * the approximate position of the message in a thread.
+   */
+  public position: number | null;
+
+  /**
    * Whether or not this message was sent by Discord, not actually a user (e.g. pin notifications)
    */
   public system: boolean;
@@ -7572,7 +7578,7 @@ export class NewsChannel extends BaseGuildTextChannel {
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForNewsChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForNewsChannel>;
 
   /**
    * The type of the channel
@@ -9559,7 +9565,7 @@ export class TextChannel extends BaseGuildTextChannel {
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForTextChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForTextChannel>;
 
   /**
    * The type of the channel
@@ -9697,6 +9703,12 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWeb
    * `ThreadChannel#messages.cache.size`</info>
    */
   public messageCount: number | null;
+
+  /**
+   * The number of messages ever sent in a thread, similar to `ThreadChannel#messageCount` except it
+   * will not decrement whenever a message is deleted
+   */
+  public totalMessageSent: number | null;
 
   /**
    * A manager of the members that are part of this thread
@@ -11695,6 +11707,8 @@ export enum DiscordjsErrorCodes {
   NotImplemented = 'NotImplemented',
 
   SweepFilterReturn = 'SweepFilterReturn',
+
+  GuildForumMessageRequired = 'GuildForumMessageRequired',
 }
 
 export interface DiscordjsErrorFields<Name extends string> {
@@ -13548,40 +13562,13 @@ export class StageInstanceManager extends CachedManager<Snowflake, StageInstance
 /**
  * Manages API methods for {@link ThreadChannel} objects and stores their cache.
  */
-export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, ThreadChannel, ThreadChannelResolvable> {
+export class ThreadManager extends CachedManager<Snowflake, ThreadChannel, ThreadChannelResolvable> {
   public constructor(channel: TextChannel | NewsChannel, iterable?: Iterable<RawThreadChannelData>);
 
   /**
    * The channel this Manager belongs to
    */
   public channel: TextChannel | NewsChannel;
-
-  /**
-   * Creates a new thread in the channel.
-   * @param options Options to create a new thread
-   * @example
-   * // Create a new public thread
-   * channel.threads
-   *   .create({
-   *     name: 'food-talk',
-   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
-   *     reason: 'Needed a separate thread for food',
-   *   })
-   *   .then(threadChannel => console.log(threadChannel))
-   *   .catch(console.error);
-   * @example
-   * // Create a new private thread
-   * channel.threads
-   *   .create({
-   *      name: 'mod-talk',
-   *      autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
-   *      type: ChannelType.GuildPrivateThread,
-   *      reason: 'Needed a separate thread for moderation',
-   *    })
-   *   .then(threadChannel => console.log(threadChannel))
-   *   .catch(console.error);
-   */
-  public create(options: ThreadCreateOptions<AllowedThreadType>): Promise<AnyThreadChannel>;
 
   /**
    * Obtains a thread from Discord, or the channel cache if it's already available.
@@ -13614,6 +13601,65 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
+}
+
+export class GuildTextThreadManager<AllowedThreadType> extends ThreadManager {
+  /**
+   * Creates a new thread in the channel.
+   * @param options Options to create a new thread
+   * @example
+   * // Create a new public thread
+   * channel.threads
+   *   .create({
+   *     name: 'food-talk',
+   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *     reason: 'Needed a separate thread for food',
+   *   })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   * @example
+   * // Create a new private thread
+   * channel.threads
+   *   .create({
+   *      name: 'mod-talk',
+   *      autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *      type: ChannelType.GuildPrivateThread,
+   *      reason: 'Needed a separate thread for moderation',
+   *    })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   */
+  public create(options: GuildTextThreadCreateOptions<AllowedThreadType>): Promise<ThreadChannel>;
+}
+
+export class GuildForumThreadManager extends ThreadManager {
+  /**
+   * Creates a new thread in the channel.
+   * @param {GuildForumThreadCreateOptions} [options] Options to create a new thread
+   * @returns {Promise<ThreadChannel>}
+   * @example
+   * // Create a new public thread
+   * channel.threads
+   *   .create({
+   *     name: 'food-talk',
+   *     autoArchiveDuration: 60,
+   *     reason: 'Needed a separate thread for food',
+   *   })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   * @example
+   * // Create a new private thread
+   * channel.threads
+   *   .create({
+   *      name: 'mod-talk',
+   *      autoArchiveDuration: 60,
+   *      type: ChannelType.GuildPrivateThread,
+   *      reason: 'Needed a separate thread for moderation',
+   *    })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   */
+  public create(options: GuildForumThreadCreateOptions): Promise<ThreadChannel>;
 }
 
 /**
@@ -19392,7 +19438,7 @@ export type ThreadChannelType =
  * Options for creating a thread.
  * <warn>Only one of `startMessage` or `type` can be defined.</warn>
  */
-export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
+export interface GuildTextThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
   /**
    * The message to start a thread from. <warn>If this is defined then type of thread gets automatically defined and cannot be
    * changed. The provided `type` field will be ignored</warn>
@@ -19411,6 +19457,16 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
    * <info>Can only be set when type will be {@link ChannelType.GuildPrivateThread}</info>
    */
   invitable?: AllowedThreadType extends ChannelType.GuildPrivateThread ? boolean : never;
+}
+
+/**
+ * Options for creating a thread. <warn>Only one of `startMessage` or `type` can be defined.</warn>
+ */
+export interface GuildForumThreadCreateOptions extends StartThreadOptions {
+  /**
+   * The message associated with the thread post
+   */
+  message: MessageOptions | MessagePayload;
 }
 
 /**
@@ -19605,6 +19661,7 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 's
    * The id of the thread in the channel to send to. <info>For interaction webhooks, this property is ignored</info>
    */
   threadId?: Snowflake;
+  threadName?: string;
 }
 
 /**

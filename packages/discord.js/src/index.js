@@ -65,6 +65,7 @@ exports.GuildMemberManager = require('./managers/GuildMemberManager');
 exports.GuildMemberRoleManager = require('./managers/GuildMemberRoleManager');
 exports.GuildScheduledEventManager = require('./managers/GuildScheduledEventManager');
 exports.GuildStickerManager = require('./managers/GuildStickerManager');
+exports.GuildTextThreadManager = require('./managers/GuildTextThreadManager');
 exports.MessageManager = require('./managers/MessageManager');
 exports.PermissionOverwriteManager = require('./managers/PermissionOverwriteManager');
 exports.PresenceManager = require('./managers/PresenceManager');
