@@ -123,6 +123,7 @@ import {
   FormattingPatterns,
   APIEmbedProvider,
   AuditLogOptionsType,
+  TextChannelType,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -192,7 +193,10 @@ declare module 'node:events' {
   class EventEmitter {
     // Add type overloads for client events.
     public static once<K extends keyof ClientEvents>(eventEmitter: Client, eventName: K): Promise<ClientEvents[K]>;
-    public static on<K extends keyof ClientEvents>(eventEmitter: Client, eventName: K): AsyncIterator<ClientEvents[K]>;
+    public static on<K extends keyof ClientEvents>(
+      eventEmitter: Client,
+      eventName: K,
+    ): AsyncIterableIterator<ClientEvents[K]>;
   }
 }
 
@@ -860,129 +864,6 @@ export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
   Message | APIMessage
 >;
 
-export interface InteractionResponseFields<Cached extends CacheType = CacheType> {
-  /**
-   * Whether the reply to this interaction has been deferred
-   */
-  deferred: boolean;
-
-  /**
-   * Whether the reply to this interaction is ephemeral
-   */
-  ephemeral: boolean | null;
-
-  /**
-   * Whether this interaction has already been replied to
-   */
-  replied: boolean;
-
-  /**
-   * An associated interaction webhook, can be used to further interact with this interaction
-   */
-  webhook: InteractionWebhook;
-
-  /**
-   * Creates a reply to this interaction.
-   * <info>Use the `fetchReply` option to get the bot's reply message.</info>
-   * @param options The options for the reply
-   * @example
-   * // Reply to the interaction and fetch the response
-   * interaction.reply({ content: 'Pong!', fetchReply: true })
-   *   .then((message) => console.log(`Reply sent with content ${message.content}`))
-   *   .catch(console.error);
-   * @example
-   * // Create an ephemeral reply with an embed
-   * const embed = new EmbedBuilder().setDescription('Pong!');
-   *
-   * interaction.reply({ embeds: [embed], ephemeral: true })
-   *   .then(() => console.log('Reply sent.'))
-   *   .catch(console.error);
-   */
-  reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<Message>;
-  reply(options: string | MessagePayload | InteractionReplyOptions): Promise<void>;
-
-  /**
-   * Deletes the initial reply to this interaction.
-   * @see {@link Webhook.deleteMessage}
-   * @example
-   * // Delete the reply to this interaction
-   * interaction.deleteReply()
-   *   .then(console.log)
-   *   .catch(console.error);
-   */
-  deleteReply(): Promise<void>;
-
-  /**
-   * Edits the initial reply to this interaction.
-   * @see {@link Webhook.editMessage}
-   * @param options The new options for the message
-   * @example
-   * // Edit the reply to this interaction
-   * interaction.editReply('New content')
-   *   .then(console.log)
-   *   .catch(console.error);
-   */
-  editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<Message>;
-
-  /**
-   * Defers the reply to this interaction.
-   * @param options Options for deferring the reply to this interaction
-   * @example
-   * // Defer the reply to this interaction
-   * interaction.deferReply()
-   *   .then(console.log)
-   *   .catch(console.error)
-   * @example
-   * // Defer to send an ephemeral reply later
-   * interaction.deferReply({ ephemeral: true })
-   *   .then(console.log)
-   *   .catch(console.error);
-   */
-  deferReply(options: InteractionDeferReplyOptions & { fetchReply: true }): Promise<Message>;
-  deferReply(options?: InteractionDeferReplyOptions): Promise<void>;
-
-  /**
-   * Fetches the initial reply to this interaction.
-   * @see {@link Webhook.fetchMessage}
-   * @example
-   * // Fetch the reply to this interaction
-   * interaction.fetchReply()
-   *   .then(reply => console.log(`Replied with ${reply.content}`))
-   *   .catch(console.error);
-   */
-  fetchReply(): Promise<Message>;
-
-  /**
-   * Send a follow-up message to this interaction.
-   * @param options The options for the reply
-   */
-  followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
-
-  /**
-   * Shows a modal component
-   * @param modal The modal to show
-   */
-  showModal(
-    modal:
-      | JSONEncodable<APIModalInteractionResponseCallbackData>
-      | ModalComponentData
-      | APIModalInteractionResponseCallbackData,
-  ): Promise<void>;
-
-  /**
-   * Collects a single modal submit interaction that passes the filter.
-   * The Promise will reject if the time expires.
-   * @param options Options to pass to the internal collector
-   * @example
-   * // Collect a modal submit interaction
-   * const filter = (interaction) => interaction.customId === 'modal';
-   * interaction.awaitModalSubmit({ filter, time: 15_000 })
-   *   .then(interaction => console.log(`${interaction.customId} was submitted!`))
-   *   .catch(console.error);
-   */
-  awaitModalSubmit(options: AwaitModalSubmitOptions<ModalSubmitInteraction>): Promise<ModalSubmitInteraction<Cached>>;
-}
-
 export type BooleanCache<T extends CacheType> = T extends 'cached' ? true : false;
 
 /**
@@ -1360,7 +1241,7 @@ export class BaseGuildEmoji extends Emoji {
 /**
  * Represents a text-based guild channel on Discord.
  */
-export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel) {
+export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, true) {
   /**
    * @param guild The guild the text channel is part of
    * @param data The data for the text channel
@@ -1728,6 +1609,34 @@ export type ComponentEmojiResolvable = APIMessageComponentEmoji | string;
  * Represents a button builder.
  */
 export class ButtonBuilder extends BuilderButtonComponent {
+  /**
+   * Creates a new button from API data
+   *
+   * @param data - The API data to create this button with
+   * @example
+   * Creating a button from an API data object
+   * ```ts
+   * const button = new ButtonBuilder({
+   * 	style: 'primary',
+   * 	label: 'Click Me',
+   * 	emoji: {
+   * 		name: ':smile:',
+   * 		id: '12345678901234567890123456789012',
+   * 	},
+   *  custom_id: '12345678901234567890123456789012',
+   * });
+   * ```
+   * @example
+   * Creating a button using setters and API data
+   * ```ts
+   * const button = new ButtonBuilder({
+   * 	style: 'primary',
+   * 	label: 'Click Me',
+   * })
+   * .setEmoji({ name: ':smile:', id: '12345678901234567890123456789012' })
+   * .setCustomId('12345678901234567890123456789012');
+   * ```
+   */
   public constructor(data?: Partial<ButtonComponentData> | Partial<APIButtonComponent>);
 
   /**
@@ -3307,7 +3216,7 @@ export class DataResolver extends null {
 /**
  * Represents a direct message channel between two users.
  */
-export class DMChannel extends TextBasedChannelMixin(BaseChannel, [
+export class DMChannel extends TextBasedChannelMixin(BaseChannel, false, [
   'bulkDelete',
   'fetchWebhooks',
   'createWebhook',
@@ -3663,7 +3572,7 @@ export class Guild extends AnonymousGuild {
   /**
    * Widget channel for this guild
    */
-  public get widgetChannel(): TextChannel | null;
+  public get widgetChannel(): TextChannel | NewsChannel | VoiceBasedChannel | null;
 
   /**
    * The widget channel's id, if enabled
@@ -4054,8 +3963,8 @@ export class Guild extends AnonymousGuild {
   public toJSON(): unknown;
 }
 
-export class GuildAuditLogs<T extends GuildAuditLogsResolvable = null> {
-  public constructor(guild: Guild, data: RawGuildAuditLogData);
+export class GuildAuditLogs<T extends GuildAuditLogsResolvable = AuditLogEvent> {
+  private constructor(guild: Guild, data: RawGuildAuditLogData);
 
   /**
    * Cached application commands, includes application commands from other applications
@@ -4083,11 +3992,6 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = null> {
   public entries: Collection<Snowflake, GuildAuditLogsEntry<T>>;
 
   /**
-   * Audit logs entry.
-   */
-  public static Entry: typeof GuildAuditLogsEntry;
-
-  /**
    * Transforms the audit logs to a plain object.
    */
   public toJSON(): unknown;
@@ -4097,13 +4001,14 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = null> {
  * Audit logs entry.
  */
 export class GuildAuditLogsEntry<
-  TAction extends GuildAuditLogsResolvable = null,
+  TAction extends GuildAuditLogsResolvable = AuditLogEvent,
   TActionType extends GuildAuditLogsActionType = TAction extends keyof GuildAuditLogsTypes
     ? GuildAuditLogsTypes[TAction][1]
-    : 'All',
+    : GuildAuditLogsActionType,
   TTargetType extends GuildAuditLogsTargetType = TAction extends keyof GuildAuditLogsTypes
     ? GuildAuditLogsTypes[TAction][0]
-    : 'Unknown',
+    : GuildAuditLogsTargetType,
+  TResolvedType = TAction extends null ? AuditLogEvent : TAction,
 > {
   public constructor(logs: GuildAuditLogs, guild: Guild, data: RawGuildAuditLogEntryData);
 
@@ -4113,9 +4018,9 @@ export class GuildAuditLogsEntry<
   public static Targets: GuildAuditLogsTargets;
 
   /**
-   * Specific action type of this entry in its string presentation
+   * The type of action that occurred.
    */
-  public action: TAction;
+  public action: TResolvedType;
 
   /**
    * The action type of this entry
@@ -4145,7 +4050,9 @@ export class GuildAuditLogsEntry<
   /**
    * Any extra data from the entry
    */
-  public extra: TAction extends keyof GuildAuditLogsEntryExtraField ? GuildAuditLogsEntryExtraField[TAction] : null;
+  public extra: TResolvedType extends keyof GuildAuditLogsEntryExtraField
+    ? GuildAuditLogsEntryExtraField[TResolvedType]
+    : null;
 
   /**
    * The entry's id
@@ -4663,8 +4570,8 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * Bans this guild member.
    * @param options Options for the ban
    * @example
-   * // ban a guild member
-   * guildMember.ban({ deleteMessageDays: 7, reason: 'They deserved it' })
+   * // Ban a guild member, deleting a week's worth of messages
+   * guildMember.ban({ deleteMessageSeconds: 60 * 60 * 24 * 7, reason: 'They deserved it' })
    *   .then(console.log)
    *   .catch(console.error);
    */
@@ -5351,6 +5258,11 @@ export class Integration extends Base {
   public get roles(): Collection<Snowflake, Role>;
 
   /**
+   * The scopes this application has been authorized for
+   */
+  public scopes: OAuth2Scopes[];
+
+  /**
    * The date at which this integration was last synced at
    */
   public get syncedAt(): Date | null;
@@ -5476,6 +5388,8 @@ export type Interaction<Cached extends CacheType = CacheType> =
   | ButtonInteraction<Cached>
   | AutocompleteInteraction<Cached>
   | ModalSubmitInteraction<Cached>;
+
+export type RepliableInteraction<Cached extends CacheType = CacheType> = Exclude<Interaction, AutocompleteInteraction>;
 
 /**
  * Represents an interaction.
@@ -5644,7 +5558,7 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   /**
    * Indicates whether this interaction can be replied to.
    */
-  public isRepliable(): this is this & InteractionResponseFields<Cached>;
+  public isRepliable(): this is RepliableInteraction<Cached>;
 }
 
 /**
@@ -6079,8 +5993,8 @@ export interface MappedInteractionTypes<Cached extends boolean = boolean> {
 /**
  * Represents a message on Discord.
  */
-export class Message<Cached extends boolean = boolean> extends Base {
-  private readonly _cacheType: Cached;
+export class Message<InGuild extends boolean = boolean> extends Base {
+  private readonly _cacheType: InGuild;
 
   /**
    * @param client The instantiating client
@@ -6115,7 +6029,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The channel that the message was sent in
    */
-  public get channel(): If<Cached, GuildTextBasedChannel, TextBasedChannel>;
+  public get channel(): If<InGuild, GuildTextBasedChannel, TextBasedChannel>;
 
   /**
    * The id of the channel the message was sent in
@@ -6192,12 +6106,12 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * The id of the guild the message was sent in, if any
    */
-  public guildId: If<Cached, Snowflake>;
+  public guildId: If<InGuild, Snowflake>;
 
   /**
    * The guild the message was sent in (if in a guild channel)
    */
-  public get guild(): If<Cached, Guild>;
+  public get guild(): If<InGuild, Guild>;
 
   /**
    * Whether this message has a thread associated with it
@@ -6311,8 +6225,8 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .catch(console.error);
    */
   public awaitMessageComponent<T extends MessageComponentType>(
-    options?: AwaitMessageCollectorOptionsParams<T, Cached>,
-  ): Promise<MappedInteractionTypes<Cached>[T]>;
+    options?: AwaitMessageCollectorOptionsParams<T, InGuild>,
+  ): Promise<MappedInteractionTypes<InGuild>[T]>;
 
   /**
    * Similar to createReactionCollector but in promise form.
@@ -6350,8 +6264,8 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
   public createMessageComponentCollector<T extends MessageComponentType>(
-    options?: MessageCollectorOptionsParams<T, Cached>,
-  ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
+    options?: MessageCollectorOptionsParams<T, InGuild>,
+  ): InteractionCollector<MappedInteractionTypes<InGuild>[T]>;
 
   /**
    * Deletes the message.
@@ -6361,7 +6275,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(msg => console.log(`Deleted message from ${msg.author.username}`))
    *   .catch(console.error);
    */
-  public delete(): Promise<Message>;
+  public delete(): Promise<Message<InGuild>>;
 
   /**
    * Edits the content of the message.
@@ -6372,7 +6286,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(msg => console.log(`Updated the content of a message to ${msg.content}`))
    *   .catch(console.error);
    */
-  public edit(content: string | MessageEditOptions | MessagePayload): Promise<Message>;
+  public edit(content: string | MessageEditOptions | MessagePayload): Promise<Message<InGuild>>;
 
   /**
    * Used mainly internally. Whether two messages are identical in properties. If you want to compare messages
@@ -6386,7 +6300,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Fetches the Message this crosspost/reply/pin-add references, if available to the client
    */
-  public fetchReference(): Promise<Message>;
+  public fetchReference(): Promise<Message<InGuild>>;
 
   /**
    * Fetches the webhook used to create this message.
@@ -6403,13 +6317,13 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *     .catch(console.error);
    * }
    */
-  public crosspost(): Promise<Message>;
+  public crosspost(): Promise<Message<InGuild>>;
 
   /**
    * Fetch this message.
    * @param {} [force=true] Whether to skip the cache check and request the API
    */
-  public fetch(force?: boolean): Promise<Message>;
+  public fetch(force?: boolean): Promise<Message<InGuild>>;
 
   /**
    * Pins this message to the channel's pinned messages.
@@ -6420,7 +6334,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  public pin(reason?: string): Promise<Message>;
+  public pin(reason?: string): Promise<Message<InGuild>>;
 
   /**
    * Adds a reaction to the message.
@@ -6441,7 +6355,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
   /**
    * Removes the attachments from this message.
    */
-  public removeAttachments(): Promise<Message>;
+  public removeAttachments(): Promise<Message<InGuild>>;
 
   /**
    * Send an inline reply to this message.
@@ -6452,7 +6366,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(() => console.log(`Replied to message "${message.content}"`))
    *   .catch(console.error);
    */
-  public reply(options: string | MessagePayload | ReplyMessageOptions): Promise<Message>;
+  public reply(options: string | MessagePayload | ReplyMessageOptions): Promise<Message<InGuild>>;
 
   /**
    * Resolves a component by a custom id.
@@ -6471,7 +6385,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    * Suppresses or unsuppresses embeds on a message.
    * @param {} [suppress=true] If the embeds should be suppressed or not
    */
-  public suppressEmbeds(suppress?: boolean): Promise<Message>;
+  public suppressEmbeds(suppress?: boolean): Promise<Message<InGuild>>;
 
   /**
    * Transforms the message to a plain object.
@@ -6495,7 +6409,7 @@ export class Message<Cached extends boolean = boolean> extends Base {
    *   .then(console.log)
    *   .catch(console.error)
    */
-  public unpin(reason?: string): Promise<Message>;
+  public unpin(reason?: string): Promise<Message<InGuild>>;
 
   /**
    * Whether this message is from a guild.
@@ -7366,6 +7280,11 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
   message: Message<BooleanCache<Cached>>;
 
   /**
+   * The id of the channel this interaction was sent in
+   */
+  channelId: Snowflake;
+
+  /**
    * Updates the original message of the component on which the interaction was received on.
    * @param options The options for the updated message
    * @example
@@ -7381,18 +7300,6 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
   update(
     options: string | MessagePayload | InteractionUpdateOptions,
   ): Promise<InteractionResponse<BooleanCache<Cached>>>;
-
-  /**
-   * Defers an update to the message to which the component was attached.
-   * @param options Options for deferring the update to this interaction
-   * @example
-   * // Defer updating and reset the component's loading state
-   * interaction.deferUpdate()
-   *   .then(console.log)
-   *   .catch(console.error);
-   */
-  deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<Message>;
-  deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -7543,6 +7450,18 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    * @param options The options for the reply
    */
   public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message<BooleanCache<Cached>>>;
+
+  /**
+   * Defers an update to the message to which the component was attached.
+   * @param options Options for deferring the update to this interaction
+   * @example
+   * // Defer updating and reset the component's loading state
+   * interaction.deferUpdate()
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
+  public deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<Message>;
+  public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -9582,7 +9501,11 @@ export interface PrivateThreadChannel extends ThreadChannel {
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWebhooks', 'createWebhook', 'setNSFW']) {
+export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
+  'fetchWebhooks',
+  'createWebhook',
+  'setNSFW',
+]) {
   /**
    * @param guild The guild the thread channel is part of
    * @param data The data for the thread channel
@@ -9795,7 +9718,7 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, ['fetchWeb
    * reject. If you just need the id of that message, use {@link ThreadChannel.id} instead.</info>
    * @param options Additional options for this fetch
    */
-  public fetchStarterMessage(options?: BaseFetchOptions): Promise<Message>;
+  public fetchStarterMessage(options?: BaseFetchOptions): Promise<Message<true> | null>;
 
   /**
    * Sets whether the thread is archived.
@@ -10498,7 +10421,10 @@ export type ComponentData =
 /**
  * Represents a guild voice channel on Discord.
  */
-export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, ['lastPinTimestamp', 'lastPinAt']) {
+export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, true, [
+  'lastPinTimestamp',
+  'lastPinAt',
+]) {
   /**
    * The camera video quality mode of the channel
    */
@@ -10752,12 +10678,12 @@ export class VoiceState extends Base {
 }
 
 export class Webhook extends WebhookMixin() {
-  public constructor(client: Client, data?: RawWebhookData);
+  private constructor(client: Client, data?: RawWebhookData);
 
   /**
    * The avatar for the webhook
    */
-  public avatar: string;
+  public avatar: string | null;
 
   /**
    * A link to the webhook's avatar.
@@ -12617,6 +12543,26 @@ export class GuildManager extends CachedManager<Snowflake, Guild, GuildResolvabl
 }
 
 /**
+ * Options used for adding or removing a role from a member.
+ */
+export interface AddOrRemoveGuildMemberRoleOptions {
+  /**
+   * The user to add/remove the role from
+   */
+  user: GuildMemberResolvable;
+
+  /**
+   * The role to add/remove
+   */
+  role: RoleResolvable;
+
+  /**
+   * Reason for adding/removing the role
+   */
+  reason?: string;
+}
+
+/**
  * Manages API methods for GuildMembers and stores their cache.
  */
 export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, GuildMemberResolvable> {
@@ -12783,6 +12729,18 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
    *   .catch(console.error);
    */
   public unban(user: UserResolvable, reason?: string): Promise<User | null>;
+
+  /**
+   * Adds a role to a member.
+   * @param options Options for adding the role
+   */
+  public addRole(options: AddOrRemoveGuildMemberRoleOptions): Promise<GuildMember | User | Snowflake>;
+
+  /**
+   * Removes a role from a member.
+   * @param options Options for removing the role
+   */
+  public removeRole(options: AddOrRemoveGuildMemberRoleOptions): Promise<GuildMember | User | Snowflake>;
 }
 
 /**
@@ -13136,19 +13094,23 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
 /**
  * Manages API methods for Messages and holds their cache.
  */
-export class MessageManager extends CachedManager<Snowflake, Message, MessageResolvable> {
+export class MessageManager<InGuild extends boolean = boolean> extends CachedManager<
+  Snowflake,
+  Message<InGuild>,
+  MessageResolvable
+> {
   public constructor(channel: TextBasedChannel, iterable?: Iterable<RawMessageData>);
 
   /**
    * The channel that the messages belong to
    */
-  public channel: TextBasedChannel;
+  public channel: If<InGuild, GuildTextBasedChannel, TextBasedChannel>;
 
   /**
    * Publishes a message in an announcement channel to all channels following it, even if it's not cached.
    * @param message The message to publish
    */
-  public crosspost(message: MessageResolvable): Promise<Message>;
+  public crosspost(message: MessageResolvable): Promise<Message<InGuild>>;
 
   /**
    * Deletes a message, even if it's not cached.
@@ -13161,13 +13123,15 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    * @param message The message to edit
    * @param options The options to edit the message
    */
-  public edit(message: MessageResolvable, options: string | MessagePayload | MessageEditOptions): Promise<Message>;
+  public edit(
+    message: MessageResolvable,
+    options: string | MessagePayload | MessageEditOptions,
+  ): Promise<Message<InGuild>>;
 
   /**
    * Gets a message, or messages, from this channel.
    * <info>The returned Collection does not contain reaction users of the messages if they were not cached.
    * Those need to be fetched separately in such a case.</info>
-   * @param message The id of the message to fetch, or query parameters.
    * @param options Additional options for this fetch
    * @example
    * // Get message
@@ -13185,8 +13149,8 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    *   .then(messages => console.log(`${messages.filter(m => m.author.id === '84484653687267328').size} messages`))
    *   .catch(console.error);
    */
-  public fetch(options: MessageResolvable | FetchMessageOptions): Promise<Message>;
-  public fetch(options?: FetchMessagesOptions): Promise<Collection<Snowflake, Message>>;
+  public fetch(options: MessageResolvable | FetchMessageOptions): Promise<Message<InGuild>>;
+  public fetch(options?: FetchMessagesOptions): Promise<Collection<Snowflake, Message<InGuild>>>;
 
   /**
    * Fetches the pinned messages of this channel and returns a collection of them.
@@ -13199,7 +13163,7 @@ export class MessageManager extends CachedManager<Snowflake, Message, MessageRes
    *   .then(messages => console.log(`Received ${messages.size} messages`))
    *   .catch(console.error);
    */
-  public fetchPinned(cache?: boolean): Promise<Collection<Snowflake, Message>>;
+  public fetchPinned(cache?: boolean): Promise<Collection<Snowflake, Message<InGuild>>>;
 
   /**
    * Adds a reaction to a message, even if it's not cached.
@@ -13730,13 +13694,21 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 // to each of those classes
 
 export type Constructable<T> = abstract new (...args: any[]) => T;
-export function PartialTextBasedChannel<T>(Base?: Constructable<T>): Constructable<T & PartialTextBasedChannelFields>;
-export function TextBasedChannelMixin<T, I extends keyof TextBasedChannelFields = never>(
+export function PartialTextBasedChannel<T>(
   Base?: Constructable<T>,
-  ignore?: I[],
-): Constructable<T & Omit<TextBasedChannelFields, I>>;
+): Constructable<T & PartialTextBasedChannelFields<false>>;
 
-export interface PartialTextBasedChannelFields {
+export function TextBasedChannelMixin<
+  T,
+  InGuild extends boolean = boolean,
+  I extends keyof TextBasedChannelFields<InGuild> = never,
+>(
+  Base?: Constructable<T>,
+  inGuild?: InGuild,
+  ignore?: I[],
+): Constructable<T & Omit<TextBasedChannelFields<InGuild>, I>>;
+
+export interface PartialTextBasedChannelFields<InGuild extends boolean = boolean> {
   /**
    * Sends a message to this channel.
    * @param options The options to provide
@@ -13783,10 +13755,11 @@ export interface PartialTextBasedChannelFields {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  send(options: string | MessagePayload | MessageOptions): Promise<Message>;
+  send(options: string | MessagePayload | MessageOptions): Promise<Message<InGuild>>;
 }
 
-export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
+export interface TextBasedChannelFields<InGuild extends boolean = boolean>
+  extends PartialTextBasedChannelFields<InGuild> {
   /**
    * The channel's last message id, if one was sent
    */
@@ -13810,7 +13783,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   /**
    * A manager of the messages sent to this channel
    */
-  messages: MessageManager;
+  messages: MessageManager<InGuild>;
 
   /**
    * Collects a single component interaction that passes the filter.
@@ -13855,7 +13828,7 @@ export interface TextBasedChannelFields extends PartialTextBasedChannelFields {
   bulkDelete(
     messages: Collection<Snowflake, Message> | readonly MessageResolvable[] | number,
     filterOld?: boolean,
-  ): Promise<Collection<Snowflake, Message>>;
+  ): Promise<Collection<Snowflake, Message | PartialMessage | undefined>>;
 
   /**
    * Creates a button interaction collector.
@@ -14328,6 +14301,30 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   channelTypes?: ChannelType[];
 }
 
+export interface ApplicationCommandRoleOptionData extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.Role;
+}
+
+export interface ApplicationCommandRoleOption extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.Role;
+}
+
+export interface ApplicationCommandUserOptionData extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.User;
+}
+
+export interface ApplicationCommandUserOption extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.User;
+}
+
+export interface ApplicationCommandMentionableOptionData extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.Mentionable;
+}
+
+export interface ApplicationCommandMentionableOption extends BaseApplicationCommandOptionsData {
+  type: ApplicationCommandOptionType.Mentionable;
+}
+
 export interface ApplicationCommandAttachmentOption extends BaseApplicationCommandOptionsData {
   /**
    * The type of the option
@@ -14335,14 +14332,22 @@ export interface ApplicationCommandAttachmentOption extends BaseApplicationComma
   type: ApplicationCommandOptionType.Attachment;
 }
 
-export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
+export interface ApplicationCommandAutocompleteNumericOption
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
-  type:
-    | ApplicationCommandOptionType.String
-    | ApplicationCommandOptionType.Number
-    | ApplicationCommandOptionType.Integer;
+  type: CommandOptionNumericResolvableType;
+
+  /**
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  minValue?: number;
+
+  /**
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  maxValue?: number;
 
   /**
    * Whether the option is an autocomplete option
@@ -14350,41 +14355,31 @@ export interface ApplicationCommandAutocompleteOption extends Omit<BaseApplicati
   autocomplete: true;
 }
 
-export interface ApplicationCommandChoicesData extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
+export interface ApplicationCommandAutocompleteStringOption
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
-  type: CommandOptionChoiceResolvableType;
+  type: ApplicationCommandOptionType.String;
 
   /**
-   * The choices of the option for the user to pick from
+   * The minimum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
    */
-  choices?: ApplicationCommandOptionChoiceData[];
+  minLength?: number;
+
+  /**
+   * The maximum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
+   */
+  maxLength?: number;
 
   /**
    * Whether the option is an autocomplete option
    */
-  autocomplete?: false;
+  autocomplete: true;
 }
 
-export interface ApplicationCommandChoicesOption extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
-  /**
-   * The type of the option
-   */
-  type: CommandOptionChoiceResolvableType;
-
-  /**
-   * The choices of the option for the user to pick from
-   */
-  choices?: ApplicationCommandOptionChoiceData[];
-
-  /**
-   * Whether the option is an autocomplete option
-   */
-  autocomplete?: false;
-}
-
-export interface ApplicationCommandNumericOptionData extends ApplicationCommandChoicesData {
+export interface ApplicationCommandAutocompleteNumericOptionData
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
   /**
    * The type of the option
    */
@@ -14409,9 +14404,107 @@ export interface ApplicationCommandNumericOptionData extends ApplicationCommandC
    * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
    */
   max_value?: number;
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete: true;
 }
 
-export interface ApplicationCommandStringOptionData extends ApplicationCommandChoicesData {
+export interface ApplicationCommandAutocompleteStringOptionData
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
+  /**
+   * The type of the option
+   */
+  type: ApplicationCommandOptionType.String;
+
+  /**
+   * The minimum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
+   */
+  minLength?: number;
+
+  /**
+   * The minimum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
+   */
+  min_length?: number;
+
+  /**
+   * The maximum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
+   */
+  maxLength?: number;
+
+  /**
+   * The maximum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
+   */
+  max_length?: number;
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete: true;
+}
+
+export interface ApplicationCommandChoicesData<Type extends string | number = string | number>
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
+  /**
+   * The type of the option
+   */
+  type: CommandOptionChoiceResolvableType;
+
+  /**
+   * The choices of the option for the user to pick from
+   */
+  choices?: ApplicationCommandOptionChoiceData<Type>[];
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete?: false;
+}
+
+export interface ApplicationCommandChoicesOption<Type extends string | number = string | number>
+  extends Omit<BaseApplicationCommandOptionsData, 'autocomplete'> {
+  /**
+   * The type of the option
+   */
+  type: CommandOptionChoiceResolvableType;
+
+  /**
+   * The choices of the option for the user to pick from
+   */
+  choices?: ApplicationCommandOptionChoiceData<Type>[];
+
+  /**
+   * Whether the option is an autocomplete option
+   */
+  autocomplete?: false;
+}
+
+export interface ApplicationCommandNumericOptionData extends ApplicationCommandChoicesData<number> {
+  type: CommandOptionNumericResolvableType;
+
+  /**
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  minValue?: number;
+
+  /**
+   * The minimum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  min_value?: number;
+
+  /**
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  maxValue?: number;
+
+  /**
+   * The maximum value for an {@link ApplicationCommandOptionType.Integer} or {@link ApplicationCommandOptionType.Number} option
+   */
+  max_value?: number;
+}
+
+export interface ApplicationCommandStringOptionData extends ApplicationCommandChoicesData<string> {
   /**
    * The type of the option
    */
@@ -14438,7 +14531,14 @@ export interface ApplicationCommandStringOptionData extends ApplicationCommandCh
   max_length?: number;
 }
 
-export interface ApplicationCommandNumericOption extends ApplicationCommandChoicesOption {
+export interface ApplicationCommandBooleanOptionData extends BaseApplicationCommandOptionsData {
+  /**
+   * The type of the option
+   */
+  type: ApplicationCommandOptionType.Boolean;
+}
+
+export interface ApplicationCommandNumericOption extends ApplicationCommandChoicesOption<number> {
   /**
    * The type of the option
    */
@@ -14455,7 +14555,7 @@ export interface ApplicationCommandNumericOption extends ApplicationCommandChoic
   maxValue?: number;
 }
 
-export interface ApplicationCommandStringOption extends ApplicationCommandChoicesOption {
+export interface ApplicationCommandStringOption extends ApplicationCommandChoicesOption<string> {
   /**
    * The type of the option
    */
@@ -14470,6 +14570,13 @@ export interface ApplicationCommandStringOption extends ApplicationCommandChoice
    * The maximum length for an {@link ApplicationCommandOptionType.String} option (maximum of `6000`)
    */
   maxLength?: number;
+}
+
+export interface ApplicationCommandBooleanOption extends BaseApplicationCommandOptionsData {
+  /**
+   * The type of the option
+   */
+  type: ApplicationCommandOptionType.Boolean;
 }
 
 export interface ApplicationCommandSubGroupData extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -14505,14 +14612,7 @@ export interface ApplicationCommandSubCommandData extends Omit<BaseApplicationCo
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: (
-    | ApplicationCommandChoicesData
-    | ApplicationCommandNonOptionsData
-    | ApplicationCommandChannelOptionData
-    | ApplicationCommandAutocompleteOption
-    | ApplicationCommandNumericOptionData
-    | ApplicationCommandStringOptionData
-  )[];
+  options?: Exclude<ApplicationCommandOptionData, ApplicationCommandSubGroupData | ApplicationCommandSubCommandData>[];
 }
 
 export interface ApplicationCommandSubCommand extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -14524,7 +14624,7 @@ export interface ApplicationCommandSubCommand extends Omit<BaseApplicationComman
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: (ApplicationCommandChoicesOption | ApplicationCommandNonOptions | ApplicationCommandChannelOption)[];
+  options?: Exclude<ApplicationCommandOption, ApplicationCommandSubGroup | ApplicationCommandSubCommand>[];
 }
 
 export interface ApplicationCommandNonOptionsData extends BaseApplicationCommandOptionsData {
@@ -14548,10 +14648,14 @@ export type ApplicationCommandOptionData =
   | ApplicationCommandSubGroupData
   | ApplicationCommandNonOptionsData
   | ApplicationCommandChannelOptionData
-  | ApplicationCommandChoicesData
-  | ApplicationCommandAutocompleteOption
+  | ApplicationCommandAutocompleteNumericOptionData
+  | ApplicationCommandAutocompleteStringOptionData
   | ApplicationCommandNumericOptionData
   | ApplicationCommandStringOptionData
+  | ApplicationCommandRoleOptionData
+  | ApplicationCommandUserOptionData
+  | ApplicationCommandMentionableOptionData
+  | ApplicationCommandBooleanOptionData
   | ApplicationCommandSubCommandData;
 
 /**
@@ -14559,18 +14663,23 @@ export type ApplicationCommandOptionData =
  */
 export type ApplicationCommandOption =
   | ApplicationCommandSubGroup
+  | ApplicationCommandAutocompleteNumericOption
+  | ApplicationCommandAutocompleteStringOption
   | ApplicationCommandNonOptions
   | ApplicationCommandChannelOption
-  | ApplicationCommandChoicesOption
   | ApplicationCommandNumericOption
   | ApplicationCommandStringOption
+  | ApplicationCommandRoleOption
+  | ApplicationCommandUserOption
+  | ApplicationCommandMentionableOption
+  | ApplicationCommandBooleanOption
   | ApplicationCommandAttachmentOption
   | ApplicationCommandSubCommand;
 
 /**
  * A choice for an application command option.
  */
-export interface ApplicationCommandOptionChoiceData {
+export interface ApplicationCommandOptionChoiceData<Value extends string | number = string | number> {
   /**
    * The name of the choice
    */
@@ -14584,7 +14693,7 @@ export interface ApplicationCommandOptionChoiceData {
   /**
    * The value of the choice
    */
-  value: string | number;
+  value: Value;
 }
 
 /**
@@ -14750,8 +14859,15 @@ export interface BanOptions {
   /**
    * Number of days of messages to delete, must be between 0 and 7, inclusive
    * @default 0
+   * @deprecated Use {@link deleteMessageSeconds} instead.
    */
   deleteMessageDays?: number;
+
+  /**
+   * Number of seconds of messages to delete, must be between 0 and 604800 (7 days), inclusive
+   * @default 0
+   */
+  deleteMessageSeconds?: number;
 
   /**
    * The reason for the ban
@@ -15073,7 +15189,7 @@ export interface WebhookCreateOptions extends ChannelWebhookCreateOptions {
   /**
    * The channel to create the webhook for
    */
-  channel: GuildChannelResolvable;
+  channel: TextChannel | NewsChannel | VoiceChannel | Snowflake;
 }
 
 export interface ClientEvents {
@@ -15286,7 +15402,7 @@ export interface ClientEvents {
    * @param messages The deleted messages, mapped by their id
    * @param channel The channel that the messages were deleted in
    */
-  messageDeleteBulk: [messages: Collection<Snowflake, Message | PartialMessage>, channel: TextBasedChannel];
+  messageDeleteBulk: [messages: Collection<Snowflake, Message | PartialMessage>, channel: GuildTextBasedChannel];
 
   /**
    * Emitted whenever a reaction is added to a cached message.
@@ -17089,7 +17205,7 @@ export interface GuildAuditLogsEntryExtraField {
   [AuditLogEvent.StageInstanceCreate]: StageChannel | { id: Snowflake };
   [AuditLogEvent.StageInstanceDelete]: StageChannel | { id: Snowflake };
   [AuditLogEvent.StageInstanceUpdate]: StageChannel | { id: Snowflake };
-  [AuditLogEvent.ApplicationCommandPermissionUpdate]: { applicationId: Snowflake; guild: Guild | { id: Snowflake } };
+  [AuditLogEvent.ApplicationCommandPermissionUpdate]: { applicationId: Snowflake };
 }
 
 export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLogsActionType> {
@@ -17354,7 +17470,7 @@ export interface GuildWidgetSettings {
   /**
    * The widget invite channel
    */
-  channel: NonThreadGuildBasedChannel | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | null;
 }
 
 /**
@@ -17660,7 +17776,7 @@ export interface GuildWidgetSettingsData {
   /**
    * The widget invite channel
    */
-  channel: GuildChannelResolvable | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | Snowflake | null;
 }
 
 /**
@@ -19351,13 +19467,16 @@ export type Channel =
 /**
  * The channels that are text-based.
  */
-export type TextBasedChannel = Extract<Channel, { messages: MessageManager }>;
+export type TextBasedChannel = Exclude<Extract<Channel, { type: TextChannelType }>, PartialGroupDMChannel>;
 
 /**
  * The types of channels that are text-based.
  */
 export type TextBasedChannelTypes = TextBasedChannel['type'];
 
+/**
+ * The types of channels that are voice-based.
+ */
 export type VoiceBasedChannel = Extract<Channel, { bitrate: number }>;
 
 export type GuildBasedChannel = Extract<Channel, { guild: Guild }>;
@@ -19366,6 +19485,9 @@ export type CategoryChildChannel = Exclude<Extract<Channel, { parent: CategoryCh
 
 export type NonThreadGuildBasedChannel = Exclude<GuildBasedChannel, AnyThreadChannel>;
 
+/**
+ * The guild channels that are text-based.
+ */
 export type GuildTextBasedChannel = Extract<GuildBasedChannel, TextBasedChannel>;
 
 /**

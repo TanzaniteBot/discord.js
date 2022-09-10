@@ -197,7 +197,7 @@ class InteractionResponses {
     });
     this.deferred = true;
 
-    return options.fetchReply ? this.fetchReply() : new InteractionResponse(this, this.message.interaction?.id);
+    return options.fetchReply ? this.fetchReply() : new InteractionResponse(this, this.message?.interaction?.id);
   }
 
   /**
@@ -255,7 +255,7 @@ class InteractionResponses {
    * An object containing the same properties as {@link CollectorOptions}, but a few less:
    * @typedef {Object} AwaitModalSubmitOptions
    * @property {CollectorFilter} [filter] The filter applied to this collector
-   * @property {number} time Time to wait for an interaction before rejecting
+   * @property {number} time Time in milliseconds to wait for an interaction before rejecting
    */
 
   /**

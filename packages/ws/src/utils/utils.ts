@@ -1,14 +1,17 @@
 import type { ShardRange } from '../ws/WebSocketManager';
 
-export type Awaitable<T> = T | Promise<T>;
+export type Awaitable<T> = Promise<T> | T;
 
 /**
  * Yields the numbers in the given range as an array
+ *
  * @example
+ * ```ts
  * range({ start: 3, end: 5 }); // [3, 4, 5]
+ * ```
  */
 export function range({ start, end }: ShardRange): number[] {
-	return Array.from({ length: end - start + 1 }, (_, i) => i + start);
+	return Array.from({ length: end - start + 1 }, (_, index) => index + start);
 }
 
 /**

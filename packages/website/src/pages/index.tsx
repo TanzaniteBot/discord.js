@@ -1,73 +1,52 @@
 import Image from 'next/future/image';
 import Link from 'next/link';
-import { forwardRef, MouseEventHandler, Ref } from 'react';
-import codeSample from '../assets/code-sample.png';
-import logo from '../assets/djs_logo_rainbow_400x400.png';
+import { FiExternalLink } from 'react-icons/fi';
 import vercelLogo from '../assets/powered-by-vercel.svg';
-import text from '../text.json';
-
-interface ButtonProps {
-	label: string;
-	href?: string;
-	ref?: Ref<HTMLAnchorElement>;
-	onClick?: MouseEventHandler<HTMLAnchorElement>;
-}
-
-// eslint-disable-next-line react/display-name
-const LinkButton = forwardRef<HTMLAnchorElement, ButtonProps>(({ label, onClick, href }: ButtonProps, ref) => (
-	<a
-		href={href}
-		onClick={onClick}
-		ref={ref}
-		className="no-underline max-h-[70px] bg-blurple px-3 py-4 rounded-lg font-semibold text-white"
-	>
-		{label}
-	</a>
-));
+import { SyntaxHighlighter } from '~/components/SyntaxHighlighter';
+import { CODE_EXAMPLE } from '~/util/constants';
 
 export default function IndexRoute() {
 	return (
-		<main className="w-full max-w-full max-h-full h-full flex-col bg-white dark:bg-dark overflow-y-auto">
-			<div className="flex h-[65px] sticky top-0 border-b border-gray justify-center px-10 bg-white dark:bg-dark">
-				<div className="flex items-center w-full max-w-[1100px] justify-between">
-					<div className="h-[50px] w-[50px] rounded-lg overflow-hidden">
-						<Image className="h-[50px] w-[50px]" src={logo} />
-					</div>
-					<div className="flex flex-row space-x-8">
-						<Link href="/docs" passHref>
-							<a className="no-underline text-blurple font-semibold">Docs</a>
+		<div className="mx-auto flex max-w-6xl flex-col place-items-center gap-12 py-16 px-8 lg:h-full lg:place-content-center lg:py-0 lg:px-6">
+			<div className="flex flex-col place-items-center gap-10 lg:flex-row lg:gap-6">
+				<div className="flex max-w-lg flex-col gap-3 lg:mr-8">
+					<h1 className="text-3xl font-black leading-tight sm:text-5xl sm:leading-tight">
+						The <span className="bg-blurple relative rounded py-1 px-3 text-white">most popular</span> way to build
+						Discord <br /> bots.
+					</h1>
+					<p className="my-6 leading-normal text-neutral-700 dark:text-neutral-300">
+						discord.js is a powerful node.js module that allows you to interact with the Discord API very easily. It
+						takes a much more object-oriented approach than most other JS Discord libraries, making your bot&apos;s code
+						significantly tidier and easier to comprehend.
+					</p>
+					<div className="flex flex-row gap-4">
+						<Link href="/docs" prefetch={false}>
+							<a className="bg-blurple flex h-11 transform-gpu cursor-pointer select-none appearance-none place-items-center rounded border-0 px-6 text-base font-semibold leading-none text-white no-underline active:translate-y-px">
+								Docs
+							</a>
 						</Link>
-						<a className="text-blurple font-semibold">Guide</a>
+						<a
+							className="dark:bg-dark-400 dark:border-dark-100 dark:hover:bg-dark-300 dark:active:bg-dark-200 border-light-900 hover:bg-light-200 active:bg-light-300 flex h-11 transform-gpu cursor-pointer select-none appearance-none place-items-center gap-2 rounded border bg-transparent px-4 text-base font-semibold leading-none text-black no-underline active:translate-y-px dark:text-white"
+							href="https://discordjs.guide"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							Guide <FiExternalLink />
+						</a>
 					</div>
 				</div>
+				<SyntaxHighlighter code={CODE_EXAMPLE} />
 			</div>
-			<div className="xl:flex xl:flex-col xl:justify-center w-full max-w-full box-border p-10">
-				<div className="flex flex-col xl:flex-row grow max-w-[1100px] pb-10 space-y-10 xl:space-x-20 place-items-center place-self-center">
-					<div className="flex flex-col max-w-[800px] lt-xl:items-center">
-						<h1 className="font-bold text-6xl text-blurple my-2">{text.heroTitle}</h1>
-						<p className="text-xl text-dark-100 dark:text-gray-300">{text.heroDescription}</p>
-						<div className="flex flew-row space-x-4">
-							<LinkButton label="Read the guide" />
-							<Link href="/docs" passHref>
-								<LinkButton label="Check out the docs" />
-							</Link>
-						</div>
-					</div>
-					<div className="sm:flex sm:grow sm:shrink h-full xl:items-center hidden">
-						<Image src={codeSample} className="max-w-[600px] h-full rounded-xl shadow-md overflow-hidden" />
-					</div>
-				</div>
-				<div className="flex place-content-center">
-					<a href="https://vercel.com/?utm_source=discordjs&utm_campaign=oss">
-						<Image
-							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-							src={vercelLogo}
-							alt="Vercel"
-							className="max-w-[250px] shadow-md overflow-hidden"
-						/>
-					</a>
-				</div>
+			<div className="flex place-content-center">
+				<a
+					href="https://vercel.com/?utm_source=discordjs&utm_campaign=oss"
+					target="_blank"
+					rel="noopener noreferrer"
+					title="Vercel"
+				>
+					<Image src={vercelLogo} alt="Vercel" />
+				</a>
 			</div>
-		</main>
+		</div>
 	);
 }

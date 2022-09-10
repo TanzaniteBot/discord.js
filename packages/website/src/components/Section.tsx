@@ -1,62 +1,43 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { type ReactNode, useState } from 'react';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
-import { Separator } from './Seperator';
-
-export interface SectionProps {
-	children: ReactNode;
-	title: string;
-	className?: string | undefined;
-	defaultClosed?: boolean;
-	iconElement?: JSX.Element;
-	showSeparator?: boolean;
-}
+import { Disclosure, DisclosureContent, useDisclosureState } from 'ariakit/disclosure';
+import type { PropsWithChildren } from 'react';
+import { VscChevronDown } from 'react-icons/vsc';
 
 export function Section({
 	title,
+	icon,
+	padded = false,
+	dense = false,
+	defaultClosed = false,
 	children,
-	className,
-	defaultClosed,
-	iconElement,
-	showSeparator = true,
-}: SectionProps) {
-	const [collapsed, setCollapsed] = useState(defaultClosed ?? false);
+}: PropsWithChildren<{
+	defaultClosed?: boolean;
+	dense?: boolean;
+	icon?: JSX.Element;
+	padded?: boolean;
+	title: string;
+}>) {
+	const disclosure = useDisclosureState({ defaultOpen: !defaultClosed });
 
 	return (
-		<div className={className}>
-			<h3
-				className="flex gap-2 whitespace-pre-wrap font-semibold dark:text-white cursor-pointer"
-				onClick={() => setCollapsed(!collapsed)}
+		<div className="flex flex-col">
+			<Disclosure
+				className="bg-light-600 hover:bg-light-700 active:bg-light-800 dark:bg-dark-600 dark:hover:bg-dark-500 dark:active:bg-dark-400 rounded p-3"
+				state={disclosure}
 			>
-				{collapsed ? <VscChevronRight size={20} /> : <VscChevronDown size={20} />}
-				{iconElement ?? null}
-				{title}
-			</h3>
-			<AnimatePresence initial={false} exitBeforeEnter>
-				{collapsed ? null : (
-					<>
-						<motion.div
-							transition={{ duration: 0.5, ease: [0.04, 0.62, 0.23, 0.98] }}
-							key="content"
-							initial="collapsed"
-							animate="open"
-							exit="collapsed"
-							variants={{
-								open: {
-									opacity: 1,
-									height: 'auto',
-									paddingLeft: '1.75rem',
-									paddingRight: '1.75rem',
-								},
-								collapsed: { opacity: 0, height: 0, paddingLeft: '1.75rem', paddingRight: '1.75rem', paddingBottom: 0 },
-							}}
-						>
-							{children}
-						</motion.div>
-						{showSeparator && <Separator />}
-					</>
-				)}
-			</AnimatePresence>
+				<div className="flex flex-row place-content-between place-items-center">
+					<div className="flex flex-row place-items-center gap-3">
+						{icon ?? null}
+						<span className="font-semibold">{title}</span>
+					</div>
+					<VscChevronDown
+						className={`transform transition duration-150 ease-in-out ${disclosure.open ? 'rotate-180' : 'rotate-0'}`}
+						size={20}
+					/>
+				</div>
+			</Disclosure>
+			<DisclosureContent state={disclosure}>
+				{padded ? <div className={`py-5 ${dense ? 'mx-2 px-0' : 'px-4.5 mx-6.5'}`}>{children}</div> : children}
+			</DisclosureContent>
 		</div>
 	);
 }
