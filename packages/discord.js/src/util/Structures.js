@@ -30,6 +30,7 @@
  * * **`ModalSubmitInteraction`**
  * * **`DirectoryChannel`**
  * * **`PartialGroupDMChannel`**
+ * * **`ForumChannel`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -127,6 +128,7 @@ const structures = {
   ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
   DirectoryChannel: require('../structures/DirectoryChannel'),
   PartialGroupDMChannel: require('../structures/PartialGroupDMChannel'),
+  ForumChannel: require('../structures/ForumChannel'),
 };
 
 module.exports = Structures;

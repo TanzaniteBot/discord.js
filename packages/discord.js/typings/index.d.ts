@@ -124,6 +124,7 @@ import {
   APIEmbedProvider,
   AuditLogOptionsType,
   TextChannelType,
+  ChannelFlags,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -405,7 +406,7 @@ export class ActivityFlagsBitField extends BitField<ActivityFlagsString> {
  * Bundles common attributes and methods between {@link Guild} and {@link InviteGuild}
  */
 export abstract class AnonymousGuild extends BaseGuild {
-  public constructor(client: Client, data: RawAnonymousGuildData, immediatePatch?: boolean);
+  public constructor(client: Client<true>, data: RawAnonymousGuildData, immediatePatch?: boolean);
 
   /**
    * The hash of the guild banner
@@ -459,7 +460,7 @@ export abstract class AnonymousGuild extends BaseGuild {
  * Represents an OAuth2 Application.
  */
 export abstract class Application extends Base {
-  public constructor(client: Client, data: RawApplicationData);
+  public constructor(client: Client<true>, data: RawApplicationData);
 
   /**
    * The time the application was created at
@@ -522,7 +523,7 @@ export abstract class Application extends Base {
  * Represents an application command.
  */
 export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
-  public constructor(client: Client, data: RawApplicationCommandData, guild?: Guild, guildId?: Snowflake);
+  public constructor(client: Client<true>, data: RawApplicationCommandData, guild?: Guild, guildId?: Snowflake);
 
   /**
    * The parent application's id
@@ -798,12 +799,12 @@ export class ApplicationFlagsBitField extends BitField<ApplicationFlagsString> {
  * Represents a data model that is identifiable by a Snowflake (i.e. Discord API data models).
  */
 export abstract class Base {
-  public constructor(client: Client);
+  public constructor(client: Client<true>);
 
   /**
    * The client that instantiated this
    */
-  public readonly client: Client;
+  public readonly client: Client<true>;
 
   /**
    * Transforms the class to a plain object.
@@ -999,7 +1000,9 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<Message>;
+  public editReply(
+    options: string | MessagePayload | WebhookEditMessageOptions,
+  ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Fetches the initial reply to this interaction.
@@ -1010,13 +1013,13 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
    */
-  public fetchReply(): Promise<Message>;
+  public fetchReply(): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Send a follow-up message to this interaction.
    * @param options The options for the reply
    */
-  public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
+  public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Creates a reply to this interaction.
@@ -1132,7 +1135,7 @@ export class InteractionResponse<Cached extends boolean = boolean> {
  * The base class for {@link Guild}, {@link OAuth2Guild} and {@link InviteGuild}.
  */
 export abstract class BaseGuild extends Base {
-  public constructor(client: Client, data: RawBaseGuildData);
+  public constructor(client: Client<true>, data: RawBaseGuildData);
 
   /**
    * The time this guild was created at
@@ -1200,7 +1203,7 @@ export abstract class BaseGuild extends Base {
  * Parent class for {@link GuildEmoji} and {@link GuildPreviewEmoji}.
  */
 export class BaseGuildEmoji extends Emoji {
-  public constructor(client: Client, data: RawGuildEmojiData, guild: Guild | GuildPreview);
+  public constructor(client: Client<true>, data: RawGuildEmojiData, guild: Guild | GuildPreview);
 
   /**
    * Whether this emoji is available
@@ -1247,7 +1250,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
    * @param data The data for the text channel
    * @param client A safety parameter for the client that instantiated this
    */
-  public constructor(guild: Guild, data?: RawGuildChannelData, client?: Client, immediatePatch?: boolean);
+  public constructor(guild: Guild, data?: RawGuildChannelData, client?: Client<true>, immediatePatch?: boolean);
 
   /**
    * The default auto archive duration for newly created threads in this channel
@@ -1267,7 +1270,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForTextChannel | AllowedThreadTypeForNewsChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForTextChannel | AllowedThreadTypeForNewsChannel>;
 
   /**
    * The topic of the text channel
@@ -1321,7 +1324,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
    * @param reason Reason for changing the channel's type
    */
   public setType(type: ChannelType.GuildText, reason?: string): Promise<TextChannel>;
-  public setType(type: ChannelType.GuildNews, reason?: string): Promise<NewsChannel>;
+  public setType(type: ChannelType.GuildAnnouncement, reason?: string): Promise<NewsChannel>;
 }
 
 /**
@@ -1373,14 +1376,15 @@ export class BaseGuildVoiceChannel extends GuildChannel {
 
   /**
    * Sets the RTC region of the channel.
-   * @param rtcRegion The new region of the channel. Set to `null` to remove a specific region for the channel
-   * @param reason The reason for modifying this region.
+   * @param {?string} rtcRegion The new region of the channel. Set to `null` to remove a specific region for the channel
+   * @param {string} [reason] The reason for modifying this region.
+   * @returns {Promise<StageChannel>}
    * @example
    * // Set the RTC region to sydney
-   * channel.setRTCRegion('sydney');
+   * stageChannel.setRTCRegion('sydney');
    * @example
    * // Remove a fixed region for this channel - let Discord decide automatically
-   * channel.setRTCRegion(null, 'We want to let Discord decide.');
+   * stageChannel.setRTCRegion(null, 'We want to let Discord decide.');
    */
   public setRTCRegion(rtcRegion: string | null, reason?: string): Promise<this>;
 
@@ -1488,7 +1492,7 @@ export class BitField<S extends string, N extends number | bigint = number> {
  * Represents a button interaction.
  */
 export class ButtonInteraction<Cached extends CacheType = CacheType> extends MessageComponentInteraction<Cached> {
-  public constructor(client: Client, data: RawMessageButtonInteractionData);
+  public constructor(client: Client<true>, data: RawMessageButtonInteractionData);
 
   /**
    * The type of component which was interacted with
@@ -1994,20 +1998,20 @@ export class Embed {
 }
 
 export interface MappedChannelCategoryTypes {
-  [ChannelType.GuildNews]: NewsChannel;
+  [ChannelType.GuildAnnouncement]: NewsChannel;
   [ChannelType.GuildVoice]: VoiceChannel;
   [ChannelType.GuildText]: TextChannel;
   [ChannelType.GuildStageVoice]: StageChannel;
-  [ChannelType.GuildForum]: never; // TODO: Fix when guild forums come out
+  [ChannelType.GuildForum]: ForumChannel;
 }
 
 export type CategoryChannelType = Exclude<
   ChannelType,
   | ChannelType.DM
   | ChannelType.GroupDM
-  | ChannelType.GuildPublicThread
-  | ChannelType.GuildNewsThread
-  | ChannelType.GuildPrivateThread
+  | ChannelType.PublicThread
+  | ChannelType.AnnouncementThread
+  | ChannelType.PrivateThread
   | ChannelType.GuildCategory
   | ChannelType.GuildDirectory
 >;
@@ -2034,11 +2038,38 @@ export class CategoryChannel extends GuildChannel {
  */
 export type CategoryChannelResolvable = Snowflake | CategoryChannel;
 
+export type ChannelFlagsString = keyof typeof ChannelFlags;
+
+/**
+ * Data that can be resolved to give a channel flag bitfield. This can be:
+ * * A string (see {@link ChannelFlagsBitField.Flags})
+ * * A channel flag
+ * * An instance of ChannelFlagsBitField
+ * * An Array of ChannelFlagsResolvable
+ */
+export type ChannelFlagsResolvable = BitFieldResolvable<ChannelFlagsString, number>;
+
+/**
+ * Data structure that makes it easy to interact with a {@link BaseChannel#flags} bitfield.
+ */
+export class ChannelFlagsBitField extends BitField<ChannelFlagsString> {
+  /**
+   * Numeric guild channel flags.
+   */
+  public static Flags: typeof ChannelFlags;
+
+  /**
+   * Resolves bitfields to their numeric form.
+   * @param bit bit(s) to resolve
+   */
+  public static resolve(bit?: BitFieldResolvable<ChannelFlagsString, ChannelFlags>): number;
+}
+
 /**
  * Represents any channel on Discord.
  */
 export abstract class BaseChannel extends Base {
-  public constructor(client: Client, data?: RawChannelData, immediatePatch?: boolean);
+  public constructor(client: Client<true>, data?: RawChannelData, immediatePatch?: boolean);
 
   /**
    * The time the channel was created at
@@ -2054,6 +2085,12 @@ export abstract class BaseChannel extends Base {
    * The channel's id
    */
   public id: Snowflake;
+
+  /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: Readonly<ChannelFlagsBitField> | null;
 
   /**
    * Whether this Channel is a partial
@@ -2379,7 +2416,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
  * Represents a Client OAuth2 Application.
  */
 export class ClientApplication extends Application {
-  public constructor(client: Client, data: RawClientApplicationData);
+  public constructor(client: Client<true>, data: RawClientApplicationData);
 
   /**
    * If this application's bot is public
@@ -2450,13 +2487,13 @@ export class ClientPresence extends Presence {
    * @param client The instantiating client
    * @param data The data for the client presence
    */
-  public constructor(client: Client, data: RawPresenceData);
+  public constructor(client: Client<true>, data: RawPresenceData);
 
   /**
    * Parses presence data into a packet ready to be sent to Discord
    * @param presence The data to parse
    */
-  private _parse(data: PresenceData): RawPresenceData;
+  private _parse(presence: PresenceData): RawPresenceData;
 
   /**
    * Sets the client's presence
@@ -2562,11 +2599,8 @@ export class Options extends null {
    * The default settings passed to {@link Options.cacheWithLimits}.
    * The caches that this changes are:
    * * `MessageManager` - Limit to 200 messages
-   * * `ChannelManager` - Sweep archived threads
-   * * `GuildChannelManager` - Sweep archived threads
-   * * `ThreadManager` - Sweep archived threads
    * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
-   * `makeCache: Options.cacheWithLimits({ ...Options.defaultMakeCacheSettings, ReactionManager: 0 })`</info>
+   * `makeCache: Options.cacheWithLimits({ ...Options.DefaultMakeCacheSettings, ReactionManager: 0 })`</info>
    */
   public static get DefaultMakeCacheSettings(): CacheWithLimitsOptions;
 
@@ -2658,7 +2692,7 @@ export interface CollectorEventTypes<K, V, F extends unknown[] = []> {
  * Abstract class for defining a new Collector.
  */
 export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmitter {
-  public constructor(client: Client, options?: CollectorOptions<[V, ...F]>);
+  public constructor(client: Client<true>, options?: CollectorOptions<[V, ...F]>);
 
   /**
    * Timeout for cleanup
@@ -2910,7 +2944,11 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
  * A resolver for command interaction options.
  */
 export class CommandInteractionOptionResolver<Cached extends CacheType = CacheType> {
-  public constructor(client: Client, options: CommandInteractionOption[], resolved: CommandInteractionResolvedData);
+  public constructor(
+    client: Client<true>,
+    options: CommandInteractionOption[],
+    resolved: CommandInteractionResolvedData,
+  );
 
   /**
    * The client that instantiated this.
@@ -3227,7 +3265,13 @@ export class DMChannel extends TextBasedChannelMixin(BaseChannel, false, [
    * @param client The instantiating client
    * @param data The data for the DM channel
    */
-  public constructor(client: Client, data?: RawDMChannelData);
+  public constructor(client: Client<true>, data?: RawDMChannelData);
+
+  /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: Readonly<ChannelFlagsBitField>;
 
   /**
    * The recipient's id
@@ -3264,7 +3308,7 @@ export class DMChannel extends TextBasedChannelMixin(BaseChannel, false, [
  * Represents an emoji, see {@link GuildEmoji} and {@link ReactionEmoji}.
  */
 export class Emoji extends Base {
-  public constructor(client: Client, emoji: RawEmojiData);
+  public constructor(client: Client<true>, emoji: RawEmojiData);
 
   /**
    * Whether or not the emoji is animated
@@ -3326,7 +3370,7 @@ export class Emoji extends Base {
  * check this with {@link Guild.available}.</info>
  */
 export class Guild extends AnonymousGuild {
-  public constructor(client: Client, data: RawGuildData);
+  public constructor(client: Client<true>, data: RawGuildData);
 
   /**
    * Creates a collection of this guild's roles, sorted by their position and ids.
@@ -3572,10 +3616,11 @@ export class Guild extends AnonymousGuild {
   /**
    * Widget channel for this guild
    */
-  public get widgetChannel(): TextChannel | NewsChannel | VoiceBasedChannel | null;
+  public get widgetChannel(): TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | null;
 
   /**
    * The widget channel's id, if enabled
+   * @type {?string}
    */
   public widgetChannelId: Snowflake | null;
 
@@ -4103,7 +4148,7 @@ export class GuildBan extends Base {
    * @param data The data for the ban
    * @param guild The guild in which the ban is
    */
-  public constructor(client: Client, data: RawGuildBanData, guild: Guild);
+  public constructor(client: Client<true>, data: RawGuildBanData, guild: Guild);
 
   /**
    * The guild in which the ban is
@@ -4147,7 +4192,7 @@ export abstract class GuildChannel extends BaseChannel {
    * @param client A safety parameter for the client that instantiated this
    * @param immediatePatch Control variable for patching
    */
-  public constructor(guild: Guild, data?: RawGuildChannelData, client?: Client, immediatePatch?: boolean);
+  public constructor(guild: Guild, data?: RawGuildChannelData, client?: Client<true>, immediatePatch?: boolean);
 
   /**
    * Gets the overall set of permissions for a member in this channel, taking into account channel overwrites.
@@ -4177,6 +4222,12 @@ export abstract class GuildChannel extends BaseChannel {
    * Whether the channel is deletable by the client user
    */
   public get deletable(): boolean;
+
+  /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: Readonly<ChannelFlagsBitField>;
 
   /**
    * The guild the channel is in
@@ -4355,7 +4406,7 @@ export class GuildEmoji extends BaseGuildEmoji {
    * @param data The data for the guild emoji
    * @param guild The guild the guild emoji is part of
    */
-  public constructor(client: Client, data: RawGuildEmojiData, guild: Guild);
+  public constructor(client: Client<true>, data: RawGuildEmojiData, guild: Guild);
 
   /**
    * Array of role ids this emoji is active for
@@ -4432,7 +4483,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * @param data The data for the guild member
    * @param guild The guild the member is part of
    */
-  public constructor(client: Client, data: RawGuildMemberData, guild: Guild);
+  public constructor(client: Client<true>, data: RawGuildMemberData, guild: Guild);
 
   /**
    * The guild member's avatar hash
@@ -4684,7 +4735,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
  * Represents the data about the guild any bot can preview, connected to the specified guild.
  */
 export class GuildPreview extends Base {
-  public constructor(client: Client, data: RawGuildPreviewData);
+  public constructor(client: Client<true>, data: RawGuildPreviewData);
 
   /**
    * The approximate count of members in this guild
@@ -4792,7 +4843,7 @@ export class GuildPreview extends Base {
  * Represents a scheduled event in a {@link Guild}.
  */
 export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildScheduledEventStatus> extends Base {
-  private constructor(client: Client, data: RawGuildScheduledEventData);
+  private constructor(client: Client<true>, data: RawGuildScheduledEventData);
 
   /**
    * The id of the guild scheduled event
@@ -5067,14 +5118,11 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
  * Represents the template for a guild.
  */
 export class GuildTemplate extends Base {
+  public constructor(client: Client<true>, data: RawGuildTemplateData);
+
   /**
    * @param client The instantiating client
    * @param data The raw data for the template
-   */
-  public constructor(client: Client, data: RawGuildTemplateData);
-
-  /**
-   * The timestamp of when this template was created at
    */
   public createdTimestamp: number;
 
@@ -5173,7 +5221,7 @@ export class GuildTemplate extends Base {
   public sync(): Promise<GuildTemplate>;
 
   /**
-   * A regular expression that globally matches guild template links.
+   * A regular expression that matches guild template links.
    * The `code` group property is present on the `exec()` result of this expression.
    */
   public static GuildTemplatesPattern: RegExp;
@@ -5183,7 +5231,7 @@ export class GuildTemplate extends Base {
  * Represents an instance of an emoji belonging to a public guild obtained through Discord's preview endpoint.
  */
 export class GuildPreviewEmoji extends BaseGuildEmoji {
-  public constructor(client: Client, data: RawGuildEmojiData, guild: GuildPreview);
+  public constructor(client: Client<true>, data: RawGuildEmojiData, guild: GuildPreview);
 
   /**
    * The public guild this emoji is part of
@@ -5200,7 +5248,7 @@ export class GuildPreviewEmoji extends BaseGuildEmoji {
  * Represents a guild integration.
  */
 export class Integration extends Base {
-  public constructor(client: Client, data: RawIntegrationData, guild: Guild);
+  public constructor(client: Client<true>, data: RawIntegrationData, guild: Guild);
 
   /**
    * The account integration information
@@ -5308,7 +5356,7 @@ export class Integration extends Base {
  * Represents an Integration's OAuth2 Application.
  */
 export class IntegrationApplication extends Application {
-  public constructor(client: Client, data: RawIntegrationApplicationData);
+  public constructor(client: Client<true>, data: RawIntegrationApplicationData);
 
   /**
    * The bot user for this application
@@ -5389,7 +5437,10 @@ export type Interaction<Cached extends CacheType = CacheType> =
   | AutocompleteInteraction<Cached>
   | ModalSubmitInteraction<Cached>;
 
-export type RepliableInteraction<Cached extends CacheType = CacheType> = Exclude<Interaction, AutocompleteInteraction>;
+export type RepliableInteraction<Cached extends CacheType = CacheType> = Exclude<
+  Interaction<Cached>,
+  AutocompleteInteraction<Cached>
+>;
 
 /**
  * Represents an interaction.
@@ -5397,7 +5448,7 @@ export type RepliableInteraction<Cached extends CacheType = CacheType> = Exclude
 export class BaseInteraction<Cached extends CacheType = CacheType> extends Base {
   // This a technique used to brand different cached types. Or else we'll get `never` errors on typeguard checks.
   private readonly _cacheType: Cached;
-  public constructor(client: Client, data: RawInteractionData);
+  public constructor(client: Client<true>, data: RawInteractionData);
 
   /**
    * The application's id
@@ -5579,7 +5630,7 @@ export class InteractionCollector<T extends CollectedInteraction> extends Collec
    * @param client The client on which to collect interactions
    * @param options The options to apply to this collector
    */
-  public constructor(client: Client, options?: InteractionCollectorOptions<T>);
+  public constructor(client: Client<true>, options?: InteractionCollectorOptions<T>);
 
   /**
    * Handles checking if the message has been deleted, and if so, stops the collector with the reason 'messageDelete'.
@@ -5701,7 +5752,7 @@ export class InteractionWebhook extends PartialWebhookMixin() {
    * @param id The application's id
    * @param token The interaction's token
    */
-  public constructor(client: Client, id: Snowflake, token: string);
+  public constructor(client: Client<true>, id: Snowflake, token: string);
 
   /**
    * The interaction's token
@@ -5724,7 +5775,7 @@ export class InteractionWebhook extends PartialWebhookMixin() {
  * Represents an invitation to a guild channel.
  */
 export class Invite extends Base {
-  public constructor(client: Client, data: RawInviteData);
+  public constructor(client: Client<true>, data: RawInviteData);
 
   /**
    * The channel this invite is for
@@ -5861,7 +5912,7 @@ export class Invite extends Base {
   public toString(): string;
 
   /**
-   * A regular expression that globally matches Discord invite links.
+   * A regular expression that matches Discord invite links.
    * The `code` group property is present on the `exec()` result of this expression.
    */
   public static InvitesPattern: RegExp;
@@ -5883,7 +5934,7 @@ export class Invite extends Base {
  * @deprecated
  */
 export class InviteStageInstance extends Base {
-  public constructor(client: Client, data: RawInviteStageInstance, channelId: Snowflake, guildId: Snowflake);
+  public constructor(client: Client<true>, data: RawInviteStageInstance, channelId: Snowflake, guildId: Snowflake);
 
   /**
    * The id of the stage channel this invite is for
@@ -5930,7 +5981,7 @@ export class InviteStageInstance extends Base {
  * Represents a guild received from an invite, includes welcome screen data if available.
  */
 export class InviteGuild extends AnonymousGuild {
-  public constructor(client: Client, data: RawInviteGuildData);
+  public constructor(client: Client<true>, data: RawInviteGuildData);
 
   /**
    * The welcome screen for this invite guild
@@ -6000,7 +6051,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    * @param client The instantiating client
    * @param data The data for the message
    */
-  public constructor(client: Client, data: RawMessageData);
+  public constructor(client: Client<true>, data: RawMessageData);
 
   private _patch(data: RawPartialMessageData | RawMessageData): void;
 
@@ -6172,6 +6223,12 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   public stickers: Collection<Snowflake, Sticker>;
 
   /**
+   * A generally increasing integer (there may be gaps or duplicates) that represents
+   * the approximate position of the message in a thread.
+   */
+  public position: number | null;
+
+  /**
    * Whether or not this message was sent by Discord, not actually a user (e.g. pin notifications)
    */
   public system: boolean;
@@ -6311,7 +6368,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    * Publishes a message in an announcement channel to all channels following it.
    * @example
    * // Crosspost a message
-   * if (message.channel.type === ChannelType.GuildNews) {
+   * if (message.channel.type === ChannelType.GuildAnnouncement) {
    *   message.crosspost()
    *     .then(() => console.log('Crossposted message'))
    *     .catch(console.error);
@@ -6366,7 +6423,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    *   .then(() => console.log(`Replied to message "${message.content}"`))
    *   .catch(console.error);
    */
-  public reply(options: string | MessagePayload | ReplyMessageOptions): Promise<Message<InGuild>>;
+  public reply(options: string | MessagePayload | MessageReplyOptions): Promise<Message<InGuild>>;
 
   /**
    * Resolves a component by a custom id.
@@ -6617,7 +6674,7 @@ export class MessageCollector extends Collector<Snowflake, Message, [Collection<
  * Represents a message component interaction.
  */
 export class MessageComponentInteraction<Cached extends CacheType = CacheType> extends BaseInteraction<Cached> {
-  public constructor(client: Client, data: RawMessageComponentInteractionData);
+  public constructor(client: Client<true>, data: RawMessageComponentInteractionData);
 
   /**
    * The interaction's type
@@ -6744,7 +6801,9 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public editReply(options: string | MessagePayload | WebhookEditMessageOptions): Promise<Message>;
+  public editReply(
+    options: string | MessagePayload | WebhookEditMessageOptions,
+  ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Fetches the initial reply to this interaction.
@@ -6755,13 +6814,13 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
    */
-  public fetchReply(): Promise<Message>;
+  public fetchReply(): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Send a follow-up message to this interaction.
    * @param options The options for the reply
    */
-  public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
+  public followUp(options: string | MessagePayload | InteractionReplyOptions): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Creates a reply to this interaction.
@@ -6797,7 +6856,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<Message>;
+  public update(options: InteractionUpdateOptions & { fetchReply: true }): Promise<Message<BooleanCache<Cached>>>;
   public update(
     options: string | MessagePayload | InteractionUpdateOptions,
   ): Promise<InteractionResponse<BooleanCache<Cached>>>;
@@ -7017,14 +7076,25 @@ export class MessageMentions {
 }
 
 /**
+ * A possible payload option.
+ */
+export type MessagePayloadOption =
+  | MessageCreateOptions
+  | MessageEditOptions
+  | WebhookCreateMessageOptions
+  | WebhookEditMessageOptions
+  | InteractionReplyOptions
+  | InteractionUpdateOptions;
+
+/**
  * Represents a message to be sent to the API.
  */
 export class MessagePayload {
   /**
    * @param target The target for this message to be sent to
-   * @param options Options passed in from send
+   * @param options The payload of this message
    */
-  public constructor(target: MessageTarget, options: MessageOptions | WebhookMessageOptions);
+  public constructor(target: MessageTarget, options: MessagePayloadOption);
 
   /**
    * Body sendable to the API
@@ -7062,9 +7132,9 @@ export class MessagePayload {
   public files: RawFile[] | null;
 
   /**
-   * Options passed in from send
+   * The payload of this message.
    */
-  public options: MessageOptions | WebhookMessageOptions;
+  public options: MessagePayloadOption;
 
   /**
    * The target for this message to be sent to
@@ -7079,8 +7149,8 @@ export class MessagePayload {
    */
   public static create(
     target: MessageTarget,
-    options: string | MessageOptions | WebhookMessageOptions,
-    extra?: MessageOptions | WebhookMessageOptions,
+    options: string | MessagePayloadOption,
+    extra?: MessagePayloadOption,
   ): MessagePayload;
 
   /**
@@ -7116,7 +7186,7 @@ export class MessageReaction {
    * @param data The data for the message reaction
    * @param message The message the reaction refers to
    */
-  public constructor(client: Client, data: RawMessageReactionData, message: Message);
+  public constructor(client: Client<true>, data: RawMessageReactionData, message: Message);
 
   /**
    * The emoji of this reaction.
@@ -7126,7 +7196,7 @@ export class MessageReaction {
   /**
    * The client that instantiated this message reaction
    */
-  public readonly client: Client;
+  public readonly client: Client<true>;
 
   /**
    * The number of people that have given the same reaction
@@ -7321,7 +7391,7 @@ export interface ModalMessageModalSubmitInteraction<Cached extends CacheType = C
  * Represents a modal interaction
  */
 export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extends BaseInteraction<Cached> {
-  public constructor(client: Client, data: APIModalSubmitInteraction);
+  public constructor(client: Client<true>, data: APIModalSubmitInteraction);
 
   /**
    * The interaction's type
@@ -7385,7 +7455,7 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .then(() => console.log('Reply sent.'))
    *   .catch(console.error);
    */
-  public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<Message>;
+  public reply(options: InteractionReplyOptions & { fetchReply: true }): Promise<Message<BooleanCache<Cached>>>;
   public reply(
     options: string | MessagePayload | InteractionReplyOptions,
   ): Promise<InteractionResponse<BooleanCache<Cached>>>;
@@ -7460,7 +7530,9 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public deferUpdate(options: InteractionDeferUpdateOptions & { fetchReply: true }): Promise<Message>;
+  public deferUpdate(
+    options: InteractionDeferUpdateOptions & { fetchReply: true },
+  ): Promise<Message<BooleanCache<Cached>>>;
   public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
@@ -7491,19 +7563,19 @@ export class NewsChannel extends BaseGuildTextChannel {
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForNewsChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForNewsChannel>;
 
   /**
    * The type of the channel
    */
-  public type: ChannelType.GuildNews;
+  public type: ChannelType.GuildAnnouncement;
 
   /**
    * Adds the target to this channel's followers.
    * @param channel The channel where the webhook should be created
    * @param reason Reason for creating the webhook
    * @example
-   * if (channel.type === ChannelType.GuildNews) {
+   * if (channel.type === ChannelType.GuildAnnouncement) {
    *   channel.addFollower('222197033908436994', 'Important announcements')
    *     .then(() => console.log('Added follower'))
    *     .catch(console.error);
@@ -7516,7 +7588,7 @@ export class NewsChannel extends BaseGuildTextChannel {
  * A partial guild received when using {@link GuildManager.fetch} to fetch multiple guilds.
  */
 export class OAuth2Guild extends BaseGuild {
-  public constructor(client: Client, data: RawOAuth2GuildData);
+  public constructor(client: Client<true>, data: RawOAuth2GuildData);
 
   /**
    * Whether the client user is the owner of the guild
@@ -7533,12 +7605,18 @@ export class OAuth2Guild extends BaseGuild {
  * Represents a Partial Group DM Channel on Discord.
  */
 export class PartialGroupDMChannel extends BaseChannel {
-  public constructor(client: Client, data: RawPartialGroupDMChannelData);
+  public constructor(client: Client<true>, data: RawPartialGroupDMChannelData);
 
   /**
    * The type of the channel
    */
   public type: ChannelType.GroupDM;
+
+  /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: null;
 
   /**
    * The name of this Group DM Channel
@@ -7570,11 +7648,183 @@ export class PartialGroupDMChannel extends BaseChannel {
   public toString(): ChannelMention;
 }
 
+export interface GuildForumTagEmoji {
+  /**
+   * The id of a guild's custom emoji
+   */
+  id: Snowflake | null;
+
+  /**
+   * The unicode character of the emoji
+   */
+  name: string | null;
+}
+
+export interface GuildForumTag {
+  /**
+   * The id of the tag
+   */
+  id: Snowflake;
+
+  /**
+   * The name of the tag
+   */
+  name: string;
+
+  /**
+   * Whether this tag can only be added to or removed from threads
+   * by a member with the `ManageThreads` permission
+   */
+  moderated: boolean;
+
+  /**
+   * The emoji of this tag
+   */
+  emoji: GuildForumTagEmoji | null;
+}
+
+export type GuildForumTagData = Partial<GuildForumTag> & {
+  /**
+   * The name of the tag
+   */
+  name: string;
+};
+
+export interface DefaultReactionEmoji {
+  /**
+   * The id of a guild's custom emoji
+   */
+  id: Snowflake | null;
+
+  /**
+   * The unicode character of the emoji
+   */
+  name: string | null;
+}
+
+/**
+ * Represents a channel that only contains threads
+ */
+export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
+  'send',
+  'lastMessage',
+  'lastPinAt',
+  'bulkDelete',
+  'sendTyping',
+  'createMessageCollector',
+  'awaitMessages',
+  'createMessageComponentCollector',
+  'awaitMessageComponent',
+]) {
+  public type: ChannelType.GuildForum;
+
+  /**
+   * A manager of the threads belonging to this channel
+   */
+  public threads: GuildForumThreadManager;
+
+  /**
+   * The set of tags that can be used in this channel.
+   */
+  public availableTags: GuildForumTag[];
+
+  /**
+   * The emoji to show in the add reaction button on a thread in a guild forum channel
+   */
+  public defaultReactionEmoji: DefaultReactionEmoji | null;
+
+  /**
+   * The initial rate limit per user (slowmode) to set on newly created threads in a channel.
+   */
+  public defaultThreadRateLimitPerUser: number | null;
+
+  /**
+   * The rate limit per user (slowmode) for this channel.
+   */
+  public rateLimitPerUser: number | null;
+
+  /**
+   * The default auto archive duration for newly created threads in this channel.
+   */
+  public defaultAutoArchiveDuration: ThreadAutoArchiveDuration | null;
+
+  /**
+   * If this channel is considered NSFW.
+   */
+  public nsfw: boolean;
+
+  /**
+   * The topic of this channel.
+   */
+  public topic: string | null;
+
+  /**
+   * Sets the available tags for this forum channel
+   * @param availableTags The tags to set as available in this channel
+   * @param reason Reason for changing the available tags
+   */
+  public setAvailableTags(availableTags: GuildForumTagData[], reason?: string): Promise<this>;
+
+  /**
+   * Sets the default reaction emoji for this channel
+   * @param defaultReactionEmoji The emoji to set as the default reaction emoji
+   * @param reason Reason for changing the default reaction emoji
+   */
+  public setDefaultReactionEmoji(defaultReactionEmoji: DefaultReactionEmoji | null, reason?: string): Promise<this>;
+
+  /**
+   * Sets the default rate limit per user (slowmode) for new threads in this channel
+   * @param defaultThreadRateLimitPerUser The rate limit to set on newly created threads in this channel
+   * @param reason Reason for changing the default rate limit
+   */
+  public setDefaultThreadRateLimitPerUser(defaultThreadRateLimitPerUser: number, reason?: string): Promise<this>;
+
+  /**
+   * Creates an invite to this guild channel.
+   * @param {} [options={}] The options for creating the invite
+   * @example
+   * // Create an invite to a channel
+   * channel.createInvite()
+   *   .then(invite => console.log(`Created an invite with a code of ${invite.code}`))
+   *   .catch(console.error);
+   */
+  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
+
+  /**
+   * Fetches a collection of invites to this guild channel.
+   * Resolves with a collection mapping invites by their codes.
+   * @param {} [cache=true] Whether to cache the fetched invites
+   */
+  public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
+
+  /**
+   * Sets the default auto archive duration for all newly created threads in this channel.
+   * @param defaultAutoArchiveDuration The new default auto archive duration
+   * @param reason Reason for changing the channel's default auto archive duration
+   */
+  public setDefaultAutoArchiveDuration(
+    defaultAutoArchiveDuration: ThreadAutoArchiveDuration,
+    reason?: string,
+  ): Promise<this>;
+
+  /**
+   * Sets a new topic for the guild channel.
+   * @param topic The new topic for the guild channel
+   * @param reason Reason for changing the guild channel's topic
+   * @example
+   * // Set a new channel topic
+   * channel.setTopic('needs more rate limiting')
+   *   .then(newChannel => console.log(`Channel's new topic is ${newChannel.topic}`))
+   *   .catch(console.error);
+   */
+  public setTopic(topic: string | null, reason?: string): Promise<this>;
+}
+
 /**
  * Represents a permission overwrite for a role or member in a guild channel.
  */
 export class PermissionOverwrites extends Base {
-  public constructor(client: Client, data: RawPermissionOverwriteData, channel: NonThreadGuildBasedChannel);
+  public constructor(client: Client<true>, data: RawPermissionOverwriteData, channel: NonThreadGuildBasedChannel);
 
   /**
    * The permissions that are allowed for the user or role.
@@ -7720,7 +7970,7 @@ export class Presence extends Base {
    * @param client The instantiating client
    * @param data The data for the presence
    */
-  public constructor(client: Client, data?: RawPresenceData);
+  public constructor(client: Client<true>, data?: RawPresenceData);
 
   /**
    * The activities of this presence
@@ -7963,7 +8213,7 @@ export class Role extends Base {
    * @param data The data for the role
    * @param guild The guild the role is part of
    */
-  public constructor(client: Client, data: RawRoleData, guild: Guild);
+  public constructor(client: Client<true>, data: RawRoleData, guild: Guild);
 
   /**
    * The base 10 color of the role
@@ -8226,7 +8476,7 @@ export class Role extends Base {
  * Represents a select menu interaction.
  */
 export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends MessageComponentInteraction<Cached> {
-  public constructor(client: Client, data: RawMessageSelectMenuInteractionData);
+  public constructor(client: Client<true>, data: RawMessageSelectMenuInteractionData);
 
   /**
    * The component which was interacted with
@@ -8411,7 +8661,7 @@ export class Shard extends EventEmitter {
    */
   public eval(script: string): Promise<unknown>;
   public eval<T>(fn: (client: Client) => T): Promise<T>;
-  public eval<T, P>(fn: (client: Client, context: Serialized<P>) => T, context: P): Promise<T>;
+  public eval<T, P>(fn: (client: Client<true>, context: Serialized<P>) => T, context: P): Promise<T>;
 
   /**
    * Fetches a client property value of the shard.
@@ -8468,7 +8718,7 @@ export class ShardClientUtil {
    * @param client Client of the current shard
    * @param mode Mode the shard was spawned with
    */
-  public constructor(client: Client, mode: ShardingManagerMode);
+  public constructor(client: Client<true>, mode: ShardingManagerMode);
 
   /**
    * Handles an IPC message.
@@ -8534,11 +8784,11 @@ export class ShardClientUtil {
   public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
   public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
   public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
+    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
     options: { context: P },
   ): Promise<Serialized<T>[]>;
   public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
+    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
     options: { context: P; shard: number },
   ): Promise<Serialized<T>>;
 
@@ -8575,7 +8825,7 @@ export class ShardClientUtil {
    * @param client The client to use
    * @param mode Mode the shard was spawned with
    */
-  public static singleton(client: Client, mode: ShardingManagerMode): ShardClientUtil;
+  public static singleton(client: Client<true>, mode: ShardingManagerMode): ShardClientUtil;
 
   /**
    * Get the shard id for a given guild id.
@@ -8660,11 +8910,11 @@ export class ShardingManager extends EventEmitter {
   public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
   public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
   public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
+    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
     options: { context: P },
   ): Promise<Serialized<T>[]>;
   public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
+    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
     options: { context: P; shard: number },
   ): Promise<Serialized<T>>;
 
@@ -8777,6 +9027,12 @@ export class StageChannel extends BaseGuildVoiceChannel {
  */
 export class DirectoryChannel extends BaseChannel {
   /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: Readonly<ChannelFlagsBitField>;
+
+  /**
    * The guild the channel is in
    */
   public guild: InviteGuild;
@@ -8796,7 +9052,7 @@ export class DirectoryChannel extends BaseChannel {
  * Represents a stage instance.
  */
 export class StageInstance extends Base {
-  public constructor(client: Client, data: RawStageInstanceData, channel: StageChannel);
+  public constructor(client: Client<true>, data: RawStageInstanceData, channel: StageChannel);
 
   /**
    * The stage instance's id
@@ -8944,7 +9200,7 @@ export class Sticker extends Base {
    * @param client The instantiating client
    * @param data The data for the sticker
    */
-  public constructor(client: Client, data: RawStickerData);
+  public constructor(client: Client<true>, data: RawStickerData);
 
   /**
    * The timestamp the sticker was created at
@@ -9080,7 +9336,7 @@ export class StickerPack extends Base {
    * @param client The instantiating client
    * @param pack The data for the sticker pack
    */
-  public constructor(client: Client, data: RawStickerPackData);
+  public constructor(client: Client<true>, data: RawStickerPackData);
 
   /**
    * The timestamp the sticker was created at
@@ -9143,7 +9399,7 @@ export class StickerPack extends Base {
  * A container for all cache sweeping intervals and their associated sweep methods.
  */
 export class Sweepers {
-  public constructor(client: Client, options: SweeperOptions);
+  public constructor(client: Client<true>, options: SweeperOptions);
 
   /**
    * The client that instantiated this
@@ -9362,7 +9618,7 @@ export class SystemChannelFlagsBitField extends BitField<SystemChannelFlagsStrin
  * Represents a Client OAuth2 Application Team.
  */
 export class Team extends Base {
-  public constructor(client: Client, data: RawTeamData);
+  public constructor(client: Client<true>, data: RawTeamData);
 
   /**
    * The Team's id
@@ -9478,7 +9734,7 @@ export class TextChannel extends BaseGuildTextChannel {
   /**
    * A manager of the threads belonging to this channel
    */
-  public threads: ThreadManager<AllowedThreadTypeForTextChannel>;
+  public threads: GuildTextThreadManager<AllowedThreadTypeForTextChannel>;
 
   /**
    * The type of the channel
@@ -9486,22 +9742,22 @@ export class TextChannel extends BaseGuildTextChannel {
   public type: ChannelType.GuildText;
 }
 
-export type AnyThreadChannel = PublicThreadChannel | PrivateThreadChannel;
+export type AnyThreadChannel<Forum extends boolean = boolean> = PublicThreadChannel<Forum> | PrivateThreadChannel;
 
-export interface PublicThreadChannel extends ThreadChannel {
-  type: ChannelType.GuildPublicThread | ChannelType.GuildNewsThread;
+export interface PublicThreadChannel<Forum extends boolean = boolean> extends ThreadChannel<Forum> {
+  type: ChannelType.PublicThread | ChannelType.AnnouncementThread;
 }
 
-export interface PrivateThreadChannel extends ThreadChannel {
+export interface PrivateThreadChannel extends ThreadChannel<false> {
   get createdTimestamp(): number;
   get createdAt(): Date;
-  type: ChannelType.GuildPrivateThread;
+  type: ChannelType.PrivateThread;
 }
 
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
+export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedChannelMixin(BaseChannel, true, [
   'fetchWebhooks',
   'createWebhook',
   'setNSFW',
@@ -9512,7 +9768,7 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
    * @param client A safety parameter for the client that instantiated this
    * @param fromInteraction Whether the data was from an interaction (partial)
    */
-  public constructor(guild: Guild, data?: RawThreadChannelData, client?: Client, fromInteraction?: boolean);
+  public constructor(guild: Guild, data?: RawThreadChannelData, client?: Client<true>, fromInteraction?: boolean);
 
   /**
    * Whether the thread is archived
@@ -9554,6 +9810,12 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
    * Whether the thread is editable by the client user (name, archived, autoArchiveDuration)
    */
   public get editable(): boolean;
+
+  /**
+   * The flags that are applied to the channel.
+   * <info>This is only `null` in a {@link PartialGroupDMChannel}. In all other cases, it is not `null`.</info>
+   */
+  public flags: Readonly<ChannelFlagsBitField>;
 
   /**
    * The guild the thread is in
@@ -9616,10 +9878,21 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
 
   /**
    * The approximate count of messages in this thread
-   * <info>This stops counting at 50. If you need an approximate value higher than that, use
-   * `ThreadChannel#messages.cache.size`</info>
+   * <info>Threads created before July 1, 2022 may have an inaccurate count.
+   * If you need an approximate value higher than that, use `ThreadChannel#messages.cache.size`</info>
    */
   public messageCount: number | null;
+
+  /**
+   * The tags applied to this thread
+   */
+  public appliedTags: Snowflake[];
+
+  /**
+   * The number of messages ever sent in a thread, similar to {@link ThreadChannel#messageCount} except it
+   * will not decrement whenever a message is deleted
+   */
+  public totalMessageSent: number | null;
 
   /**
    * A manager of the members that are part of this thread
@@ -9639,7 +9912,7 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
   /**
    * The parent channel of this thread
    */
-  public get parent(): TextChannel | NewsChannel | null;
+  public get parent(): If<Forum, ForumChannel, TextChannel | NewsChannel> | null;
 
   /**
    * The id of the parent channel of this thread
@@ -9714,8 +9987,9 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
 
   /**
    * Fetches the message that started this thread, if any.
-   * <info>This only works when the thread started from a message in the parent channel, otherwise the promise will
-   * reject. If you just need the id of that message, use {@link ThreadChannel.id} instead.</info>
+   * <info>The `Promise` will reject if the original message in a forum post is deleted
+   * or when the original message in the parent channel is deleted.
+   * If you just need the id of that message, use {@link ThreadChannel.id} instead.</info>
    * @param options Additional options for this fetch
    */
   public fetchStarterMessage(options?: BaseFetchOptions): Promise<Message<true> | null>;
@@ -9783,6 +10057,13 @@ export class ThreadChannel extends TextBasedChannelMixin(BaseChannel, true, [
    *   .catch(console.error);
    */
   public setName(name: string, reason?: string): Promise<AnyThreadChannel>;
+
+  /**
+   * Set the applied tags for this channel (only applicable to forum threads)
+   * @param appliedTags The tags to set for this channel
+   * @param reason Reason for changing the thread's applied tags
+   */
+  public setAppliedTags(appliedTags: Snowflake[], reason?: string): Promise<ThreadChannel<true>>;
 
   /**
    * When concatenated with a string, this automatically returns the channel's mention instead of the Channel object.
@@ -9931,7 +10212,7 @@ export class User extends PartialTextBasedChannel(Base) {
    * @param client The instantiating client
    * @param data The data for the user
    */
-  public constructor(client: Client, data: RawUserData);
+  public constructor(client: Client<true>, data: RawUserData);
 
   /**
    * Compares the user with an API user object
@@ -10313,7 +10594,7 @@ export function setPosition<T extends Channel | Role>(
   position: number,
   relative: boolean,
   sorted: Collection<Snowflake, T>,
-  client: Client,
+  client: Client<true>,
   route: string,
   reason?: string,
 ): Promise<{ id: Snowflake; position: number }[]>;
@@ -10353,7 +10634,7 @@ export interface CreateChannelOptions {
  * @returns Any kind of channel.
  * @private
  */
-export function createChannel(client: Client, data: APIChannel, guild?: Guild, extras?: CreateChannelOptions): Channel;
+export function createChannel(client: Client<true>, data: APIChannel, options?: CreateChannelOptions): Channel;
 
 /**
  * Transforms API data into a component
@@ -10678,7 +10959,7 @@ export class VoiceState extends Base {
 }
 
 export class Webhook extends WebhookMixin() {
-  private constructor(client: Client, data?: RawWebhookData);
+  private constructor(client: Client<true>, data?: RawWebhookData);
 
   /**
    * The avatar for the webhook
@@ -10784,7 +11065,7 @@ export class Webhook extends WebhookMixin() {
     options: string | MessagePayload | WebhookEditMessageOptions,
   ): Promise<Message>;
   public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<Message>;
-  public send(options: string | MessagePayload | Omit<WebhookMessageOptions, 'flags'>): Promise<Message>;
+  public send(options: string | MessagePayload | WebhookCreateMessageOptions): Promise<Message>;
 }
 
 /**
@@ -10835,7 +11116,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    * Sends a message with this webhook.
    * @param options The content for the reply
    */
-  public send(options: string | MessagePayload | WebhookMessageOptions): Promise<APIMessage>;
+  public send(options: string | MessagePayload | WebhookCreateMessageOptions): Promise<APIMessage>;
 }
 
 /**
@@ -11242,7 +11523,7 @@ export class Widget extends Base {
    * @param client The instantiating client
    * @param data The raw data
    */
-  public constructor(client: Client, data: RawWidgetData);
+  public constructor(client: Client<true>, data: RawWidgetData);
 
   /**
    * Builds the widget with the provided data.
@@ -11291,7 +11572,7 @@ export class WidgetMember extends Base {
    * @param client The instantiating client
    * @param data The raw data
    */
-  public constructor(client: Client, data: RawWidgetMemberData);
+  public constructor(client: Client<true>, data: RawWidgetMemberData);
 
   /**
    * The id of the user. It's an arbitrary number.
@@ -11388,7 +11669,7 @@ export class WelcomeChannel extends Base {
   /**
    * The channel of this welcome channel
    */
-  public get channel(): TextChannel | NewsChannel | null;
+  public get channel(): TextChannel | NewsChannel | ForumChannel | null;
 
   /**
    * The emoji of this welcome channel
@@ -11621,6 +11902,8 @@ export enum DiscordjsErrorCodes {
   NotImplemented = 'NotImplemented',
 
   SweepFilterReturn = 'SweepFilterReturn',
+
+  GuildForumMessageRequired = 'GuildForumMessageRequired',
 }
 
 export interface DiscordjsErrorFields<Name extends string> {
@@ -11659,7 +11942,7 @@ export abstract class BaseManager {
  * Manages the API methods of a data model along with a collection of instances.
  */
 export abstract class DataManager<K, Holds, R> extends BaseManager {
-  public constructor(client: Client, holds: Constructable<Holds>);
+  public constructor(client: Client<true>, holds: Constructable<Holds>);
 
   /**
    * The data structure belonging to this manager.
@@ -11696,7 +11979,7 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
  * Manages the API methods of a data model with a mutable cache of instances.
  */
 export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R> {
-  public constructor(client: Client, holds: Constructable<Holds>);
+  public constructor(client: Client<true>, holds: Constructable<Holds>);
   private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
 }
 
@@ -11716,7 +11999,7 @@ export class ApplicationCommandManager<
   PermissionsOptionsExtras = { guild: GuildResolvable },
   PermissionsGuildType = null,
 > extends CachedManager<Snowflake, ApplicationCommandScope, ApplicationCommandResolvable> {
-  public constructor(client: Client, iterable?: Iterable<unknown>);
+  public constructor(client: Client<true>, iterable?: Iterable<unknown>);
 
   /**
    * The manager for permissions of arbitrary commands on arbitrary guilds
@@ -12082,7 +12365,7 @@ export class ApplicationCommandPermissionsManager<
  * Holds methods to resolve GuildEmojis and stores their cache.
  */
 export class BaseGuildEmojiManager extends CachedManager<Snowflake, GuildEmoji, EmojiResolvable> {
-  public constructor(client: Client, iterable?: Iterable<RawGuildEmojiData>);
+  public constructor(client: Client<true>, iterable?: Iterable<RawGuildEmojiData>);
 
   /**
    * Resolves an EmojiResolvable to an emoji identifier.
@@ -12122,7 +12405,7 @@ export class CategoryChannelChildManager extends DataManager<Snowflake, Category
  * A manager of channels belonging to a client
  */
 export class ChannelManager extends CachedManager<Snowflake, Channel, ChannelResolvable> {
-  private constructor(client: Client, iterable: Iterable<RawChannelData>);
+  private constructor(client: Client<true>, iterable: Iterable<RawChannelData>);
 
   /**
    * Obtains a channel from Discord, or the channel cache if it's already available.
@@ -12337,8 +12620,11 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .then(channel => console.log(`The channel name is: ${channel.name}`))
    *   .catch(console.error);
    */
-  public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<NonThreadGuildBasedChannel | null>;
-  public fetch(id?: undefined, options?: BaseFetchOptions): Promise<Collection<Snowflake, NonThreadGuildBasedChannel>>;
+  public fetch(id: Snowflake, options?: BaseFetchOptions): Promise<GuildBasedChannel | null>;
+  public fetch(
+    id?: undefined,
+    options?: BaseFetchOptions,
+  ): Promise<Collection<Snowflake, NonThreadGuildBasedChannel | null>>;
 
   /**
    * Fetches all webhooks for the channel.
@@ -12524,7 +12810,7 @@ export class GuildEmojiRoleManager extends DataManager<Snowflake, Role, RoleReso
  * Manages API methods for Guilds and stores their cache.
  */
 export class GuildManager extends CachedManager<Snowflake, Guild, GuildResolvable> {
-  public constructor(client: Client, iterable?: Iterable<RawGuildData>);
+  public constructor(client: Client<true>, iterable?: Iterable<RawGuildData>);
 
   /**
    * Creates a guild.
@@ -13195,7 +13481,7 @@ export class PermissionOverwriteManager extends CachedManager<
   PermissionOverwrites,
   PermissionOverwriteResolvable
 > {
-  public constructor(client: Client, iterable?: Iterable<RawPermissionOverwriteData>);
+  public constructor(client: Client<true>, iterable?: Iterable<RawPermissionOverwriteData>);
 
   /**
    * Replaces the permission overwrites in this channel.
@@ -13279,7 +13565,7 @@ export class PermissionOverwriteManager extends CachedManager<
  * Manages API methods for Presences and holds their cache.
  */
 export class PresenceManager extends CachedManager<Snowflake, Presence, PresenceResolvable> {
-  public constructor(client: Client, iterable?: Iterable<RawPresenceData>);
+  public constructor(client: Client<true>, iterable?: Iterable<RawPresenceData>);
 }
 
 /**
@@ -13510,42 +13796,19 @@ export class StageInstanceManager extends CachedManager<Snowflake, StageInstance
 }
 
 /**
- * Manages API methods for {@link ThreadChannel} objects and stores their cache.
+ * Manages API methods for thread-based channels and stores their cache.
  */
-export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, ThreadChannel, ThreadChannelResolvable> {
-  public constructor(channel: TextChannel | NewsChannel, iterable?: Iterable<RawThreadChannelData>);
+export class ThreadManager<Forum extends boolean = boolean> extends CachedManager<
+  Snowflake,
+  ThreadChannel<Forum>,
+  ThreadChannelResolvable
+> {
+  public constructor(channel: TextChannel | NewsChannel | ForumChannel, iterable?: Iterable<RawThreadChannelData>);
 
   /**
    * The channel this Manager belongs to
    */
-  public channel: TextChannel | NewsChannel;
-
-  /**
-   * Creates a new thread in the channel.
-   * @param options Options to create a new thread
-   * @example
-   * // Create a new public thread
-   * channel.threads
-   *   .create({
-   *     name: 'food-talk',
-   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
-   *     reason: 'Needed a separate thread for food',
-   *   })
-   *   .then(threadChannel => console.log(threadChannel))
-   *   .catch(console.error);
-   * @example
-   * // Create a new private thread
-   * channel.threads
-   *   .create({
-   *      name: 'mod-talk',
-   *      autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
-   *      type: ChannelType.GuildPrivateThread,
-   *      reason: 'Needed a separate thread for moderation',
-   *    })
-   *   .then(threadChannel => console.log(threadChannel))
-   *   .catch(console.error);
-   */
-  public create(options: ThreadCreateOptions<AllowedThreadType>): Promise<AnyThreadChannel>;
+  public channel: If<Forum, ForumChannel, TextChannel | NewsChannel>;
 
   /**
    * Obtains a thread from Discord, or the channel cache if it's already available.
@@ -13578,6 +13841,62 @@ export class ThreadManager<AllowedThreadType> extends CachedManager<Snowflake, T
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
+}
+
+/**
+ * Manages API methods for {@link ThreadChannel} objects and stores their cache.
+ */
+export class GuildTextThreadManager<AllowedThreadType> extends ThreadManager<false> {
+  /**
+   * Creates a new thread in the channel.
+   * @param options Options to create a new thread
+   * @example
+   * // Create a new public thread
+   * channel.threads
+   *   .create({
+   *     name: 'food-talk',
+   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *     reason: 'Needed a separate thread for food',
+   *   })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   * @example
+   * // Create a new private thread
+   * channel.threads
+   *   .create({
+   *      name: 'mod-talk',
+   *      autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *      type: ChannelType.PrivateThread,
+   *      reason: 'Needed a separate thread for moderation',
+   *    })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   */
+  public create(options: GuildTextThreadCreateOptions<AllowedThreadType>): Promise<ThreadChannel>;
+}
+
+/**
+ * Manages API methods for threads in forum channels and stores their cache.
+ */
+export class GuildForumThreadManager extends ThreadManager<true> {
+  /**
+   * Creates a new thread in the channel.
+   * @param options Options to create a new thread
+   * @example
+   * // Create a new forum post
+   * forum.threads
+   *   .create({
+   *     name: 'Food Talk',
+   *     autoArchiveDuration: ThreadAutoArchiveDuration.OneHour,
+   *     message: {
+   *      content: 'Discuss your favorite food!',
+   *     },
+   *     reason: 'Needed a separate thread for food',
+   *   })
+   *   .then(threadChannel => console.log(threadChannel))
+   *   .catch(console.error);
+   */
+  public create(options: GuildForumThreadCreateOptions): Promise<ThreadChannel>;
 }
 
 /**
@@ -13629,14 +13948,14 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
  * Manages API methods for users and stores their cache.
  */
 export class UserManager extends CachedManager<Snowflake, User, UserResolvable> {
-  public constructor(client: Client, iterable?: Iterable<RawUserData>);
+  public constructor(client: Client<true>, iterable?: Iterable<RawUserData>);
 
   /**
    * The DM between the client's user and a user
    * @param userId The user id
    * @private
    */
-  public dmChannel(userId: Snowflake): DMChannel | null;
+  private dmChannel(userId: Snowflake): DMChannel | null;
 
   /**
    * Creates a {@link DMChannel} between the client and a user.
@@ -13670,7 +13989,7 @@ export class UserManager extends CachedManager<Snowflake, User, UserResolvable> 
    * @param user The UserResolvable to identify
    * @param options The options to provide
    */
-  public send(user: UserResolvable, options: string | MessagePayload | MessageOptions): Promise<Message>;
+  public send(user: UserResolvable, options: string | MessagePayload | MessageCreateOptions): Promise<Message>;
 }
 
 /**
@@ -13755,7 +14074,7 @@ export interface PartialTextBasedChannelFields<InGuild extends boolean = boolean
    *   .then(console.log)
    *   .catch(console.error);
    */
-  send(options: string | MessagePayload | MessageOptions): Promise<Message<InGuild>>;
+  send(options: string | MessagePayload | MessageCreateOptions): Promise<Message<InGuild>>;
 }
 
 export interface TextBasedChannelFields<InGuild extends boolean = boolean>
@@ -13992,7 +14311,9 @@ export interface PartialWebhookFields {
    *   .then(console.log)
    *   .catch(console.error);
    */
-  send(options: string | MessagePayload | Omit<WebhookMessageOptions, 'flags'>): Promise<APIMessage | Message>;
+  send(
+    options: string | MessagePayload | InteractionReplyOptions | WebhookCreateMessageOptions,
+  ): Promise<APIMessage | Message>;
 }
 
 export interface WebhookFields extends PartialWebhookFields {
@@ -14124,9 +14445,9 @@ export interface AddGuildMemberOptions {
 
 export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction | ThreadMember;
 
-export type AllowedThreadTypeForNewsChannel = ChannelType.GuildNewsThread;
+export type AllowedThreadTypeForNewsChannel = ChannelType.AnnouncementThread;
 
-export type AllowedThreadTypeForTextChannel = ChannelType.GuildPublicThread | ChannelType.GuildPrivateThread;
+export type AllowedThreadTypeForTextChannel = ChannelType.PublicThread | ChannelType.PrivateThread;
 
 /**
  * Base data for creating or editing an application command.
@@ -14964,6 +15285,11 @@ export interface Caches {
   GuildBanManager: [manager: typeof GuildBanManager, holds: typeof GuildBan];
 
   /**
+   * Manages API methods for threads in forum channels and stores their cache.
+   */
+  GuildForumThreadManager: [manager: typeof GuildForumThreadManager, holds: typeof ThreadChannel];
+
+  /**
    * Manages API methods for GuildInvites and stores their cache.
    */
   GuildInviteManager: [manager: typeof GuildInviteManager, holds: typeof Invite];
@@ -14977,6 +15303,11 @@ export interface Caches {
    * Manages API methods for Guild Stickers and stores their cache.
    */
   GuildStickerManager: [manager: typeof GuildStickerManager, holds: typeof Sticker];
+
+  /**
+   * Manages API methods for {@link ThreadChannel} objects and stores their cache.
+   */
+  GuildTextThreadManager: [manager: typeof GuildTextThreadManager, holds: typeof ThreadChannel];
 
   /**
    * Manages API methods for Messages and holds their cache.
@@ -15014,7 +15345,7 @@ export interface Caches {
   StageInstanceManager: [manager: typeof StageInstanceManager, holds: typeof StageInstance];
 
   /**
-   * Manages API methods for {@link ThreadChannel} objects and stores their cache.
+   * Manages API methods for thread-based channels and stores their cache.
    */
   ThreadManager: [manager: typeof ThreadManager, holds: typeof ThreadChannel];
 
@@ -15117,6 +15448,16 @@ export interface CategoryCreateChannelOptions {
   videoQualityMode?: VideoQualityMode;
 
   /**
+   * The tags that can be used in this channel (forum only).
+   */
+  availableTags?: GuildForumTagData[];
+
+  /**
+   * The emoji to show in the add reaction button on a thread in a guild forum channel.
+   */
+  defaultReactionEmoji?: DefaultReactionEmoji;
+
+  /**
    * Reason for creating the new channel
    */
   reason?: string;
@@ -15189,7 +15530,7 @@ export interface WebhookCreateOptions extends ChannelWebhookCreateOptions {
   /**
    * The channel to create the webhook for
    */
-  channel: TextChannel | NewsChannel | VoiceChannel | Snowflake;
+  channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel | Snowflake;
 }
 
 export interface ClientEvents {
@@ -15316,7 +15657,7 @@ export interface ClientEvents {
   guildMemberAdd: [member: GuildMember];
 
   /**
-   * Emitted whenever a member becomes available in a large guild.
+   * Emitted whenever a member becomes available.
    * @param member The member that became available
    */
   guildMemberAvailable: [member: GuildMember | PartialGuildMember];
@@ -15537,7 +15878,7 @@ export interface ClientEvents {
    * Emitted whenever a channel has its webhooks changed.
    * @param channel The channel that had a webhook update
    */
-  webhookUpdate: [channel: TextChannel | NewsChannel | VoiceChannel];
+  webhookUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel];
 
   /**
    * Emitted when an interaction is created.
@@ -15698,7 +16039,7 @@ export interface ClientOptions {
   makeCache?: CacheFactory;
 
   /**
-   * Default value for {@link MessageOptions.allowedMentions}
+   * The default value for {@link BaseMessageOptions.allowedMentions}
    */
   allowedMentions?: MessageMentionOptions;
 
@@ -15711,7 +16052,7 @@ export interface ClientOptions {
   partials?: Partials[];
 
   /**
-   * Default value for {@link ReplyMessageOptions.failIfNotExists}
+   * The default value for {@link MessageReplyOptions#failIfNotExists}
    * @default true
    */
   failIfNotExists?: boolean;
@@ -16166,7 +16507,7 @@ export enum Events {
   GuildMemberUpdate = 'guildMemberUpdate',
 
   /**
-   * Emitted whenever a member becomes available in a large guild.
+   * Emitted whenever a member becomes available.
    */
   GuildMemberAvailable = 'guildMemberAvailable',
 
@@ -16739,6 +17080,7 @@ interface Extendable {
   ModalSubmitInteraction: typeof ModalSubmitInteraction;
   DirectoryChannel: typeof DirectoryChannel;
   PartialGroupDMChannel: typeof PartialGroupDMChannel;
+  ForumChannel: typeof ForumChannel;
 }
 
 /**
@@ -17282,9 +17624,9 @@ export interface GuildChannelCreateOptions extends Omit<CategoryCreateChannelOpt
     ChannelType,
     | ChannelType.DM
     | ChannelType.GroupDM
-    | ChannelType.GuildPublicThread
-    | ChannelType.GuildNewsThread
-    | ChannelType.GuildPrivateThread
+    | ChannelType.PublicThread
+    | ChannelType.AnnouncementThread
+    | ChannelType.PrivateThread
   >;
 }
 
@@ -17311,7 +17653,7 @@ export interface GuildChannelEditOptions {
   /**
    * The type of the channel (only conversion between text and news is supported)
    */
-  type?: ChannelType.GuildText | ChannelType.GuildNews;
+  type?: ChannelType.GuildText | ChannelType.GuildAnnouncement;
 
   /**
    * The position of the channel
@@ -17372,6 +17714,26 @@ export interface GuildChannelEditOptions {
    * The camera video quality mode of the channel
    */
   videoQualityMode?: VideoQualityMode | null;
+
+  /**
+   * The tags to set as available in a forum channel
+   */
+  availableTags?: GuildForumTagData[];
+
+  /**
+   * The emoji to set as the default reaction emoji
+   */
+  defaultReactionEmoji?: DefaultReactionEmoji | null;
+
+  /**
+   * The rate limit per user (slowmode) to set on forum posts
+   */
+  defaultThreadRateLimitPerUser?: number;
+
+  /**
+   * The flags to set on the channel
+   */
+  flags?: ChannelFlagsResolvable;
 
   /**
    * Reason for editing this channel
@@ -17470,7 +17832,7 @@ export interface GuildWidgetSettings {
   /**
    * The widget invite channel
    */
-  channel: TextChannel | NewsChannel | VoiceBasedChannel | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | null;
 }
 
 /**
@@ -17776,7 +18138,7 @@ export interface GuildWidgetSettingsData {
   /**
    * The widget invite channel
    */
-  channel: TextChannel | NewsChannel | VoiceBasedChannel | Snowflake | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | Snowflake | null;
 }
 
 /**
@@ -18074,9 +18436,15 @@ export interface InteractionDeferReplyOptions {
 export type InteractionDeferUpdateOptions = Omit<InteractionDeferReplyOptions, 'ephemeral'>;
 
 /**
- * Options for a reply to an {@link BaseInteraction}.
+ * Options for a reply to a {@link BaseInteraction}.
  */
-export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'username' | 'avatarURL' | 'flags'> {
+export interface InteractionReplyOptions extends BaseMessageOptions {
+  /**
+   * Whether the message should be spoken aloud
+   * @default false
+   */
+  tts?: boolean;
+
   /**
    * Whether the reply should be ephemeral
    */
@@ -18089,9 +18457,12 @@ export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'us
 
   /**
    * Which flags to set for the message.
-   * Only `MessageFlags.SuppressEmbeds` and `MessageFlags.Ephemeral` can be set.
+   * <info>Only `MessageFlags.SuppressEmbeds` and `MessageFlags.Ephemeral` can be set.</info>
    */
-  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds' | 'Ephemeral'>, number>;
+  flags?: BitFieldResolvable<
+    Extract<MessageFlagsString, 'Ephemeral' | 'SuppressEmbeds'>,
+    MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds
+  >;
 }
 
 /**
@@ -18346,56 +18717,6 @@ export type MessageChannelComponentCollectorOptions<T extends CollectedMessageIn
   'channel' | 'guild' | 'interactionType'
 >;
 
-export interface MessageEditOptions {
-  /**
-   * An array of attachments to keep, all attachments will be kept if omitted
-   */
-  attachments?: JSONEncodable<AttachmentPayload>[];
-
-  /**
-   * Content to be edited
-   */
-  content?: string | null;
-
-  /**
-   * Embeds to be added/edited
-   */
-  embeds?: (JSONEncodable<APIEmbed> | APIEmbed)[] | null;
-
-  /**
-   * Files to add to the message
-   */
-  files?: (
-    | BufferResolvable
-    | Stream
-    | JSONEncodable<APIAttachment>
-    | Attachment
-    | AttachmentBuilder
-    | AttachmentPayload
-  )[];
-
-  /**
-   * Which flags to set for the message
-   * <info>Only the {@link MessageFlags.SuppressEmbeds} flag can be modified.</info>
-   */
-  flags?: BitFieldResolvable<MessageFlagsString, number>;
-
-  /**
-   * Which mentions should be parsed from the message content
-   */
-  allowedMentions?: MessageMentionOptions;
-
-  /**
-   * Action rows containing interactive components for the message (buttons, select menus)
-   */
-  components?: (
-    | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
-    | ActionRow<MessageActionRowComponent>
-    | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
-    | APIActionRowComponent<APIMessageActionRowComponent>
-  )[];
-}
-
 /**
  * @external
  * @see {@link [MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)}
@@ -18492,42 +18813,18 @@ export interface MessageMentionOptions {
  */
 export type MessageMentionTypes = 'roles' | 'users' | 'everyone';
 
-/**
- * Options provided when sending a message.
- */
-export interface MessageOptions {
-  /**
-   * Whether or not the message should be spoken aloud
-   * @default false
-   */
-  tts?: boolean;
-
-  /**
-   * The nonce for the message
-   * @default ''
-   */
-  nonce?: string | number;
-
+export interface BaseMessageOptions {
   /**
    * The content for the message
    * @default ''
    */
-  content?: string | null;
+  content?: string;
 
   /**
    * The embeds for the message
    * (see [here](https://discord.com/developers/docs/resources/channel#embed-object) for more details)
    */
   embeds?: (JSONEncodable<APIEmbed> | APIEmbed)[];
-
-  /**
-   * Action rows containing interactive components for the message (buttons, select menus)
-   */
-  components?: (
-    | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
-    | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
-    | APIActionRowComponent<APIMessageActionRowComponent>
-  )[];
 
   /**
    * Which mentions should be parsed from the message content
@@ -18548,7 +18845,33 @@ export interface MessageOptions {
   )[];
 
   /**
-   * The options for replying to a message
+   * Action rows containing interactive components for the message (buttons, select menus)
+   */
+  components?: (
+    | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
+    | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
+    | APIActionRowComponent<APIMessageActionRowComponent>
+  )[];
+}
+
+/**
+ * The options for sending a message.
+ */
+export interface MessageCreateOptions extends BaseMessageOptions {
+  /**
+   * Whether or not the message should be spoken aloud
+   * @default false
+   */
+  tts?: boolean;
+
+  /**
+   * The nonce for the message
+   * @default ''
+   */
+  nonce?: string | number;
+
+  /**
+   * Options provided when sending a message.
    */
   reply?: ReplyOptions;
 
@@ -18559,14 +18882,34 @@ export interface MessageOptions {
   stickers?: StickerResolvable[];
 
   /**
-   * Attachments to send in the message
+   * The flags to send with the message
+   */
+  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds'>, MessageFlags.SuppressEmbeds>;
+}
+
+export type GuildForumThreadMessageCreateOptions = BaseMessageOptions &
+  Pick<MessageCreateOptions, 'flags' | 'stickers'>;
+
+/**
+ * Options that can be passed to edit a message.
+ */
+export interface MessageEditOptions extends Omit<BaseMessageOptions, 'content'> {
+  /**
+   * The content for the message
+   * @default ''
+   */
+  content?: string | null;
+
+  /**
+   * An array of attachments to keep, all attachments will be kept if omitted
    */
   attachments?: JSONEncodable<AttachmentPayload>[];
 
   /**
-   * Which flags to set for the message. Only {@link MessageFlags.SuppressEmbeds} and {@link MessageFlags.Ephemeral} can be set.
+   * Which flags to set for the message
+   * <info>Only the {@link MessageFlags.SuppressEmbeds} flag can be modified.</info>
    */
-  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds'>, number>;
+  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds'>, MessageFlags.SuppressEmbeds>;
 }
 
 /**
@@ -18977,7 +19320,7 @@ export type Partialize<
   M extends keyof T | null = null,
   E extends keyof T | '' = '',
 > = {
-  readonly client: Client;
+  readonly client: Client<true>;
   id: Snowflake;
   partial: true;
 } & {
@@ -19071,6 +19414,9 @@ export interface ReactionCollectorOptions extends CollectorOptions<[MessageReact
   maxUsers?: number;
 }
 
+/**
+ * The options for replying to a message
+ */
 export interface ReplyOptions {
   /**
    * The message to reply to (must be in the same channel and not system)
@@ -19087,7 +19433,7 @@ export interface ReplyOptions {
 /**
  * Options provided when sending a message as an inline reply.
  */
-export interface ReplyMessageOptions extends Omit<MessageOptions, 'reply'> {
+export interface MessageReplyOptions extends Omit<MessageCreateOptions, 'reply'> {
   /**
    * Whether to error if the referenced message does not exist (creates a standard message in this case when false)
    * @default this.client.options.failIfNotExists
@@ -19462,12 +19808,16 @@ export type Channel =
   | StageChannel
   | TextChannel
   | AnyThreadChannel
-  | VoiceChannel;
+  | VoiceChannel
+  | ForumChannel;
 
 /**
  * The channels that are text-based.
  */
-export type TextBasedChannel = Exclude<Extract<Channel, { type: TextChannelType }>, PartialGroupDMChannel>;
+export type TextBasedChannel = Exclude<
+  Extract<Channel, { type: TextChannelType }>,
+  PartialGroupDMChannel | ForumChannel
+>;
 
 /**
  * The types of channels that are text-based.
@@ -19488,10 +19838,12 @@ export type NonThreadGuildBasedChannel = Exclude<GuildBasedChannel, AnyThreadCha
 /**
  * The guild channels that are text-based.
  */
-export type GuildTextBasedChannel = Extract<GuildBasedChannel, TextBasedChannel>;
+export type GuildTextBasedChannel = Exclude<Extract<GuildBasedChannel, TextBasedChannel>, ForumChannel>;
 
 /**
- * Data that can be resolved to a Text Channel object.
+ * Data that can be resolved to a Thread Channel object. This can be:
+ * A ThreadChannel object
+ * A Snowflake
  */
 export type TextChannelResolvable = Snowflake | TextChannel;
 
@@ -19505,16 +19857,13 @@ export type ThreadChannelResolvable = AnyThreadChannel | Snowflake;
 /**
  * The types of channels that are threads.
  */
-export type ThreadChannelType =
-  | ChannelType.GuildNewsThread
-  | ChannelType.GuildPublicThread
-  | ChannelType.GuildPrivateThread;
+export type ThreadChannelType = ChannelType.AnnouncementThread | ChannelType.PublicThread | ChannelType.PrivateThread;
 
 /**
  * Options for creating a thread.
  * <warn>Only one of `startMessage` or `type` can be defined.</warn>
  */
-export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
+export interface GuildTextThreadCreateOptions<AllowedThreadType> extends StartThreadOptions {
   /**
    * The message to start a thread from. <warn>If this is defined then type of thread gets automatically defined and cannot be
    * changed. The provided `type` field will be ignored</warn>
@@ -19523,16 +19872,30 @@ export interface ThreadCreateOptions<AllowedThreadType> extends StartThreadOptio
 
   /**
    * The type of thread to create. Defaults to {@link ChannelType.GuildPublicThread} if created in a {@link TextChannel}
-   * <warn>When creating threads in a {@link NewsChannel} this is ignored and is always
-   * {@link ChannelType.GuildNewsThread}</warn>
+   * Defaults to {@link ChannelType.PublicThread} if created in a {@link TextChannel}
    */
   type?: AllowedThreadType;
 
   /**
    * Whether non-moderators can add other non-moderators to the thread
-   * <info>Can only be set when type will be {@link ChannelType.GuildPrivateThread}</info>
+   * <info>Can only be set when type will be {@link ChannelType.PrivateThread}</info>
    */
-  invitable?: AllowedThreadType extends ChannelType.GuildPrivateThread ? boolean : never;
+  invitable?: AllowedThreadType extends ChannelType.PrivateThread ? boolean : never;
+}
+
+/**
+ * Options for creating a thread.
+ */
+export interface GuildForumThreadCreateOptions extends StartThreadOptions {
+  /**
+   * The message associated with the thread post
+   */
+  message: GuildForumThreadMessageCreateOptions | MessagePayload;
+
+  /**
+   * The tags to apply to the thread
+   */
+  appliedTags?: Snowflake[];
 }
 
 /**
@@ -19569,6 +19932,16 @@ export interface ThreadEditData {
    * <info>Can only be edited on {@link ChannelType.GuildPrivateThread}</info>
    */
   invitable?: boolean;
+
+  /**
+   * The tags to apply to the thread
+   */
+  appliedTags?: Snowflake[];
+
+  /**
+   * The flags to set on the channel
+   */
+  flags?: ChannelFlagsResolvable;
 
   /**
    * Reason for editing the thread
@@ -19693,10 +20066,13 @@ export interface WebhookEditData {
 /**
  * Options that can be passed into editMessage.
  */
-export type WebhookEditMessageOptions = Pick<
-  WebhookMessageOptions,
-  'content' | 'embeds' | 'files' | 'allowedMentions' | 'components' | 'attachments' | 'threadId'
->;
+export interface WebhookEditMessageOptions extends Omit<MessageEditOptions, 'flags'> {
+  /**
+   * The id of the thread this message belongs to
+   * <info>For interaction webhooks, this property is ignored</info>
+   */
+  threadId?: Snowflake;
+}
 
 /**
  * Options that can be passed into fetchMessage.
@@ -19711,7 +20087,7 @@ export interface WebhookFetchMessageOptions {
 /**
  * Options that can be passed into send.
  */
-export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 'stickers'> {
+export interface WebhookCreateMessageOptions extends Omit<MessageCreateOptions, 'nonce' | 'reply' | 'stickers'> {
   /**
    * Username override for the message
    * @default this.name
@@ -19727,6 +20103,11 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'reply' | 's
    * The id of the thread in the channel to send to. <info>For interaction webhooks, this property is ignored</info>
    */
   threadId?: Snowflake;
+
+  /**
+   * Name of the thread to create (only available if webhook is in a forum channel)
+   */
+  threadName?: string;
 }
 
 /**
@@ -19792,7 +20173,7 @@ export interface WelcomeChannelData {
   /**
    * The channel to link for this welcome channel
    */
-  channel: GuildTextChannelResolvable;
+  channel: TextChannel | NewsChannel | ForumChannel | Snowflake;
 
   /**
    * The emoji to display for this welcome channel
