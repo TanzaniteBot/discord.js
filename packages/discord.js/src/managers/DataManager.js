@@ -1,7 +1,7 @@
 'use strict';
 
 const BaseManager = require('./BaseManager');
-const { Error, ErrorCodes } = require('../errors');
+const { DiscordjsError, ErrorCodes } = require('../errors');
 
 let Structures;
 
@@ -32,7 +32,7 @@ class DataManager extends BaseManager {
    * @abstract
    */
   get cache() {
-    throw new Error(ErrorCodes.NotImplemented, 'get cache', this.constructor.name);
+    throw new DiscordjsError(ErrorCodes.NotImplemented, 'get cache', this.constructor.name);
   }
 
   /**

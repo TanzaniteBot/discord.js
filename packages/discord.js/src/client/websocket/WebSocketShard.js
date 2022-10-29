@@ -5,7 +5,6 @@ const { setTimeout, setInterval, clearTimeout, clearInterval } = require('node:t
 const { GatewayDispatchEvents, GatewayIntentBits, GatewayOpcodes } = require('discord-api-types/v10');
 const WebSocket = require('../../WebSocket');
 const Events = require('../../util/Events');
-const IntentsBitField = require('../../util/IntentsBitField');
 const Status = require('../../util/Status');
 const WebSocketShardEvents = require('../../util/WebSocketShardEvents');
 
@@ -512,7 +511,7 @@ class WebSocketShard extends EventEmitter {
       this.emit(WebSocketShardEvents.AllReady);
       return;
     }
-    const hasGuildsIntent = new IntentsBitField(this.manager.client.options.intents).has(GatewayIntentBits.Guilds);
+    const hasGuildsIntent = this.manager.client.options.intents.has(GatewayIntentBits.Guilds);
     // Step 2. Create a timeout that will mark the shard as ready if there are still unavailable guilds
     // * The timeout is 15 seconds by default
     // * This can be optionally changed in the client options via the `waitGuildTimeout` option
@@ -687,7 +686,7 @@ class WebSocketShard extends EventEmitter {
     // Clone the identify payload and assign the token and shard info
     const d = {
       ...client.options.ws,
-      intents: IntentsBitField.resolve(client.options.intents),
+      intents: client.options.intents.bitfield,
       token: client.token,
       shard: [this.id, Number(client.options.shardCount)],
     };
@@ -741,7 +740,12 @@ class WebSocketShard extends EventEmitter {
    */
   _send(data) {
     if (this.connection?.readyState !== WebSocket.OPEN) {
-      this.debug(`Tried to send packet '${JSON.stringify(data)}' but no WebSocket is available!`);
+      this.debug(
+        `Tried to send packet '${JSON.stringify(data).replaceAll(
+          this.manager.client.token,
+          this.manager.client._censoredToken,
+        )}' but no WebSocket is available!`,
+      );
       this.destroy({ closeCode: 4_000 });
       return;
     }

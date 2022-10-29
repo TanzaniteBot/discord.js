@@ -1,7 +1,7 @@
 'use strict';
 
+const { lazy } = require('@discordjs/util');
 const { ChannelType } = require('discord-api-types/v10');
-const { lazy } = require('./Util');
 
 const getCategoryChannel = lazy(() => require('../util/Structures').get('CategoryChannel'));
 const getDMChannel = lazy(() => require('../util/Structures').get('DMChannel'));

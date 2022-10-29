@@ -12,7 +12,6 @@ import {
   hyperlink,
   inlineCode,
   italic,
-  JSONEncodable,
   quote,
   roleMention,
   SelectMenuBuilder as BuilderSelectMenuComponent,
@@ -31,6 +30,7 @@ import {
   ComponentBuilder,
   type RestOrArray,
 } from '@discordjs/builders';
+import { Awaitable, JSONEncodable } from '@discordjs/util';
 import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
 import {
@@ -125,6 +125,7 @@ import {
   AuditLogOptionsType,
   TextChannelType,
   ChannelFlags,
+  SortOrderType,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -193,11 +194,14 @@ import {
 declare module 'node:events' {
   class EventEmitter {
     // Add type overloads for client events.
-    public static once<K extends keyof ClientEvents>(eventEmitter: Client, eventName: K): Promise<ClientEvents[K]>;
-    public static on<K extends keyof ClientEvents>(
-      eventEmitter: Client,
-      eventName: K,
-    ): AsyncIterableIterator<ClientEvents[K]>;
+    public static once<E extends EventEmitter, K extends keyof ClientEvents>(
+      eventEmitter: E,
+      eventName: E extends Client ? K : string,
+    ): Promise<E extends Client ? ClientEvents[K] : any[]>;
+    public static on<E extends EventEmitter, K extends keyof ClientEvents>(
+      eventEmitter: E,
+      eventName: E extends Client ? K : string,
+    ): AsyncIterableIterator<E extends Client ? ClientEvents[K] : any>;
   }
 }
 
@@ -1716,7 +1720,7 @@ export class SelectMenuOptionBuilder extends BuildersSelectMenuOption {
  * Represents a modal builder.
  */
 export class ModalBuilder extends BuildersModal {
-  public constructor(data?: Partial<ModalComponentData> | Partial<APIModalComponent>);
+  public constructor(data?: Partial<ModalComponentData> | Partial<APIModalInteractionResponseCallbackData>);
 
   /**
    * Creates a new modal builder from JSON data
@@ -2188,6 +2192,11 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   private _validateOptions(options: ClientOptions): void;
 
   /**
+   * Partially censored client token for debug logging purposes.
+   */
+  private get _censoredToken(): string | null;
+
+  /**
    * The action manager of the client
    */
   public application: If<Ready, ClientApplication>;
@@ -2214,7 +2223,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   /**
    * The options the client was instantiated with
    */
-  public options: ClientOptions;
+  public options: Omit<ClientOptions, 'intents'> & { intents: IntentsBitField };
 
   /**
    * Time at which the client was last regarded as being in the {@link Status.Ready} state
@@ -3169,7 +3178,7 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
   >;
 
   /**
-   * The id of the target of the interaction
+   * The id of the target of this interaction
    */
   public targetId: Snowflake;
 
@@ -5512,7 +5521,7 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public type: InteractionType;
 
   /**
-   * The user which sent this interaction
+   * The user who created this interaction
    */
   public user: User;
 
@@ -6471,7 +6480,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   /**
    * Whether this message is from a guild.
    */
-  public inGuild(): this is Message<true> & this;
+  public inGuild(): this is Message<true>;
 }
 
 /**
@@ -7759,6 +7768,11 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
   public topic: string | null;
 
   /**
+   * The default sort order mode used to order posts
+   */
+  public defaultSortOrder: SortOrderType | null;
+
+  /**
    * Sets the available tags for this forum channel
    * @param availableTags The tags to set as available in this channel
    * @param reason Reason for changing the available tags
@@ -7818,6 +7832,13 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    *   .catch(console.error);
    */
   public setTopic(topic: string | null, reason?: string): Promise<this>;
+
+  /**
+   * Sets the default sort order mode used to order posts
+   * @param defaultSortOrder The default sort order mode to set on this channel
+   * @param reason Reason for changing the default sort order
+   */
+  public setDefaultSortOrder(defaultSortOrder: SortOrderType | null, reason?: string): Promise<this>;
 }
 
 /**
@@ -10374,12 +10395,12 @@ export class UserContextMenuCommandInteraction<
   public commandType: ApplicationCommandType.User;
 
   /**
-   * The user this interaction was sent from
+   * The target user from this interaction
    */
   public get targetUser(): User;
 
   /**
-   * The member this interaction was sent from
+   * The target member from this interaction
    */
   public get targetMember(): CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember>;
 
@@ -10489,6 +10510,36 @@ export function escapeStrikethrough(text: string): string;
  * @param text Content to escape
  */
 export function escapeSpoiler(text: string): string;
+
+/**
+ * Escapes escape characters in a string.
+ * @param text Content to escape
+ */
+export function escapeEscape(text: string): string;
+
+/**
+ * Escapes heading characters in a string.
+ * @param text Content to escape
+ */
+export function escapeHeading(text: string): string;
+
+/**
+ * Escapes bulleted list characters in a string.
+ * @param text Content to escape
+ */
+export function escapeBulletedList(text: string): string;
+
+/**
+ * Escapes numbered list characters in a string.
+ * @param text Content to escape
+ */
+export function escapeNumberedList(text: string): string;
+
+/**
+ * Escapes masked link characters in a string.
+ * @param text Content to escape
+ */
+export function escapeMaskedLink(text: string): string;
 
 /**
  * The content to put in a code block with all code block fences replaced by the equivalent backticks.
@@ -11885,6 +11936,7 @@ export enum DiscordjsErrorCodes {
 
   InteractionAlreadyReplied = 'InteractionAlreadyReplied',
   InteractionNotReplied = 'InteractionNotReplied',
+  /** @deprecated */
   InteractionEphemeralReplied = 'InteractionEphemeralReplied',
 
   CommandInteractionOptionNotFound = 'CommandInteractionOptionNotFound',
@@ -12549,6 +12601,19 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    * The guild this Manager belongs to
    */
   public guild: Guild;
+
+  /**
+   * Adds the target channel to a channel's followers.
+   * @param channel The channel to follow
+   * @param targetChannel The channel where published announcements will be posted at
+   * @param reason Reason for creating the webhook
+   * @returns Returns created target webhook id.
+   */
+  public addFollower(
+    channel: NewsChannel | Snowflake,
+    targetChannel: TextChannelResolvable,
+    reason?: string,
+  ): Promise<Snowflake>;
 
   /**
    * Creates a new channel in the guild.
@@ -15131,8 +15196,6 @@ export interface AuditLogChange {
   new?: APIAuditLogChange['new_value'];
 }
 
-export type Awaitable<T> = T | PromiseLike<T>;
-
 /**
  * An object containing the same properties as CollectorOptions, but a few more
  */
@@ -15456,6 +15519,16 @@ export interface CategoryCreateChannelOptions {
    * The emoji to show in the add reaction button on a thread in a guild forum channel.
    */
   defaultReactionEmoji?: DefaultReactionEmoji;
+
+  /**
+   * The default auto archive duration for all new threads in this channel
+   */
+  defaultAutoArchiveDuration?: ThreadAutoArchiveDuration;
+
+  /**
+   * The default sort order mode used to order posts (forum only).
+   */
+  defaultSortOrder?: SortOrderType;
 
   /**
    * Reason for creating the new channel
@@ -16994,58 +17067,88 @@ export interface ErrorEvent {
  */
 export interface EscapeMarkdownOptions {
   /**
-   * Whether to escape code blocks or not
+   * Whether to escape code blocks
    * @default true
    */
   codeBlock?: boolean;
 
   /**
-   * Whether to escape inline code or not
+   * Whether to escape inline code
    * @default true
    */
   inlineCode?: boolean;
 
   /**
-   * Whether to escape bolds or not
+   * Whether to escape bolds
    * @default true
    */
   bold?: boolean;
 
   /**
-   * Whether to escape italics or not
+   * Whether to escape italics
    * @default true
    */
   italic?: boolean;
 
   /**
-   * Whether to escape underlines or not
+   * Whether to escape underlines
    * @default true
    */
   underline?: boolean;
 
   /**
-   * Whether to escape underlines or not
+   * Whether to escape strikethroughs
    * @default true
    */
   strikethrough?: boolean;
 
   /**
-   * Whether to escape spoilers or not
+   * Whether to escape spoilers
    * @default true
    */
   spoiler?: boolean;
 
   /**
-   * Whether to escape text inside inline code or not
+   * Whether to escape text inside code blocks
+   * @default true
+   */
+  codeBlockContent?: boolean;
+
+  /**
+   * Whether to escape text inside inline code
    * @default true
    */
   inlineCodeContent?: boolean;
 
   /**
-   * Whether to escape text inside code blocks or not
+   * Whether to escape escape characters
    * @default true
    */
-  codeBlockContent?: boolean;
+  escape?: boolean;
+
+  /**
+   * Whether to escape headings
+   * @default false
+   */
+  heading?: boolean;
+
+  /**
+   * Whether to escape bulleted lists
+   * @default false
+   */
+  bulletedList?: boolean;
+
+  /**
+   * Whether to escape numbered lists
+   * @default false
+   */
+  numberedList?: boolean;
+
+  /**
+   * Whether to escape masked links
+   * @default false
+   */
+  maskedLink?: boolean;
 }
 
 /**
@@ -17734,6 +17837,11 @@ export interface GuildChannelEditOptions {
    * The flags to set on the channel
    */
   flags?: ChannelFlagsResolvable;
+
+  /**
+   * The default sort order mode to set on the channel
+   */
+  defaultSortOrder?: SortOrderType | null;
 
   /**
    * Reason for editing this channel
@@ -20259,3 +20367,4 @@ export type InternalDiscordGatewayAdapterCreator = (
 export * from 'discord-api-types/v10';
 export * from '@discordjs/builders';
 export * from '@discordjs/rest';
+export * from '@discordjs/util';

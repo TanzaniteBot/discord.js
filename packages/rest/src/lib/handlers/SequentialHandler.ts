@@ -137,7 +137,7 @@ export class SequentialHandler implements IHandler {
 	 * @param time - The amount of time to delay all requests for
 	 */
 	private async globalDelayFor(time: number): Promise<void> {
-		await sleep(time, undefined, { ref: false });
+		await sleep(time);
 		this.manager.globalDelay = null;
 	}
 
@@ -460,7 +460,7 @@ export class SequentialHandler implements IHandler {
 
 				this.#sublimitPromise?.resolve();
 				this.#sublimitPromise = null;
-				await sleep(sublimitTimeout, undefined, { ref: false });
+				await sleep(sublimitTimeout);
 				let resolve: () => void;
 				// eslint-disable-next-line promise/param-names, no-promise-executor-return
 				const promise = new Promise<void>((res) => (resolve = res));
@@ -482,7 +482,7 @@ export class SequentialHandler implements IHandler {
 			}
 
 			// We are out of retries, throw an error
-			throw new HTTPError(res.constructor.name, status, method, url, requestData);
+			throw new HTTPError(status, method, url, requestData);
 		} else {
 			// Handle possible malformed requests
 			if (status >= 400 && status < 500) {

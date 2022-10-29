@@ -3,7 +3,7 @@
 const { PermissionFlagsBits } = require('discord-api-types/v10');
 const Base = require('./Base');
 const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const { Error, ErrorCodes } = require('../errors');
+const { DiscordjsError, ErrorCodes } = require('../errors');
 const GuildMemberRoleManager = require('../managers/GuildMemberRoleManager');
 const PermissionsBitField = require('../util/PermissionsBitField');
 let Structures;
@@ -255,7 +255,7 @@ class GuildMember extends Base {
     if (this.user.id === this.guild.ownerId) return false;
     if (this.user.id === this.client.user.id) return false;
     if (this.client.user.id === this.guild.ownerId) return true;
-    if (!this.guild.members.me) throw new Error(ErrorCodes.GuildUncachedMe);
+    if (!this.guild.members.me) throw new DiscordjsError(ErrorCodes.GuildUncachedMe);
     return this.guild.members.me.roles.highest.comparePositionTo(this.roles.highest) > 0;
   }
 
@@ -265,7 +265,7 @@ class GuildMember extends Base {
    * @readonly
    */
   get kickable() {
-    if (!this.guild.members.me) throw new Error(ErrorCodes.GuildUncachedMe);
+    if (!this.guild.members.me) throw new DiscordjsError(ErrorCodes.GuildUncachedMe);
     return this.manageable && this.guild.members.me.permissions.has(PermissionFlagsBits.KickMembers);
   }
 
@@ -275,7 +275,7 @@ class GuildMember extends Base {
    * @readonly
    */
   get bannable() {
-    if (!this.guild.members.me) throw new Error(ErrorCodes.GuildUncachedMe);
+    if (!this.guild.members.me) throw new DiscordjsError(ErrorCodes.GuildUncachedMe);
     return this.manageable && this.guild.members.me.permissions.has(PermissionFlagsBits.BanMembers);
   }
 
@@ -308,7 +308,7 @@ class GuildMember extends Base {
    */
   permissionsIn(channel) {
     channel = this.guild.channels.resolve(channel);
-    if (!channel) throw new Error(ErrorCodes.GuildChannelResolve);
+    if (!channel) throw new DiscordjsError(ErrorCodes.GuildChannelResolve);
     return channel.permissionsFor(this);
   }
 
