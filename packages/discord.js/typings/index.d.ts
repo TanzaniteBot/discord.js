@@ -14,14 +14,17 @@ import {
   italic,
   quote,
   roleMention,
-  SelectMenuBuilder as BuilderSelectMenuComponent,
+  ChannelSelectMenuBuilder as BuilderChannelSelectMenuComponent,
+  MentionableSelectMenuBuilder as BuilderMentionableSelectMenuComponent,
+  RoleSelectMenuBuilder as BuilderRoleSelectMenuComponent,
+  StringSelectMenuBuilder as BuilderStringSelectMenuComponent,
+  UserSelectMenuBuilder as BuilderUserSelectMenuComponent,
   TextInputBuilder as BuilderTextInputComponent,
   SelectMenuOptionBuilder as BuildersSelectMenuOption,
   spoiler,
   strikethrough,
   time,
   TimestampStyles,
-  TimestampStylesString,
   underscore,
   userMention,
   ModalActionRowComponentBuilder,
@@ -35,7 +38,6 @@ import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
 import {
   APIActionRowComponent,
-  APIApplicationCommand,
   APIApplicationCommandInteractionData,
   APIApplicationCommandOption,
   APIAuditLogChange,
@@ -126,6 +128,17 @@ import {
   TextChannelType,
   ChannelFlags,
   SortOrderType,
+  APIMessageStringSelectInteractionData,
+  APIMessageUserSelectInteractionData,
+  APIStringSelectComponent,
+  APIUserSelectComponent,
+  APIRoleSelectComponent,
+  APIMentionableSelectComponent,
+  APIChannelSelectComponent,
+  APIGuildMember,
+  APIMessageRoleSelectInteractionData,
+  APIMessageMentionableSelectInteractionData,
+  APIMessageChannelSelectInteractionData,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -158,13 +171,11 @@ import {
   RawInviteData,
   RawInviteGuildData,
   RawInviteStageInstance,
-  RawAttachmentData,
   RawMessageButtonInteractionData,
   RawMessageComponentInteractionData,
   RawMessageData,
   RawMessagePayloadData,
   RawMessageReactionData,
-  RawMessageSelectMenuInteractionData,
   RawOAuth2GuildData,
   RawPartialGroupDMChannelData,
   RawPartialMessageData,
@@ -333,7 +344,11 @@ export interface BaseComponentData {
 export type MessageActionRowComponentData =
   | JSONEncodable<APIMessageActionRowComponent>
   | ButtonComponentData
-  | SelectMenuComponentData;
+  | StringSelectMenuComponentData
+  | UserSelectMenuComponentData
+  | RoleSelectMenuComponentData
+  | MentionableSelectMenuComponentData
+  | ChannelSelectMenuComponentData;
 
 export type ModalActionRowComponentData = JSONEncodable<APIModalActionRowComponent> | TextInputComponentData;
 
@@ -368,7 +383,13 @@ export class ActionRowBuilder<T extends AnyComponentBuilder = AnyComponentBuilde
   ): ActionRowBuilder;
 }
 
-export type MessageActionRowComponent = ButtonComponent | SelectMenuComponent;
+export type MessageActionRowComponent =
+  | ButtonComponent
+  | StringSelectMenuComponent
+  | UserSelectMenuComponent
+  | RoleSelectMenuComponent
+  | MentionableSelectMenuComponent
+  | ChannelSelectMenuComponent;
 export type ModalActionRowComponent = TextInputComponent;
 
 /**
@@ -992,7 +1013,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public deleteReply(): Promise<void>;
+  public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
    * Edits the initial reply to this interaction.
@@ -1005,7 +1026,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    */
   public editReply(
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | InteractionEditReplyOptions,
   ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
@@ -1017,7 +1038,7 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
    */
-  public fetchReply(): Promise<Message<BooleanCache<Cached>>>;
+  public fetchReply(message?: Snowflake | '@original'): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Send a follow-up message to this interaction.
@@ -1663,8 +1684,8 @@ export class ButtonBuilder extends BuilderButtonComponent {
 /**
  * Class used to build select menu components to be sent through the API
  */
-export class SelectMenuBuilder extends BuilderSelectMenuComponent {
-  public constructor(data?: Partial<SelectMenuComponentData | APISelectMenuComponent>);
+export class StringSelectMenuBuilder extends BuilderStringSelectMenuComponent {
+  public constructor(data?: Partial<StringSelectMenuComponentData | APIStringSelectComponent>);
 
   /**
    * Normalizes a select menu option emoji
@@ -1689,12 +1710,64 @@ export class SelectMenuBuilder extends BuilderSelectMenuComponent {
   public override setOptions(
     ...options: RestOrArray<BuildersSelectMenuOption | SelectMenuComponentOptionData | APISelectMenuOption>
   ): this;
+  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): StringSelectMenuBuilder;
+}
+
+export {
+  /** @deprecated Use {@link StringSelectMenuBuilder} instead */
+  StringSelectMenuBuilder as SelectMenuBuilder,
+};
+
+/**
+ * Represents a user select menu component
+ */
+export class UserSelectMenuBuilder extends BuilderUserSelectMenuComponent {
+  public constructor(data?: Partial<UserSelectMenuComponentData | APIUserSelectComponent>);
 
   /**
    * Creates a new select menu builder from json data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): SelectMenuBuilder;
+  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): UserSelectMenuBuilder;
+}
+
+export class RoleSelectMenuBuilder extends BuilderRoleSelectMenuComponent {
+  public constructor(data?: Partial<RoleSelectMenuComponentData | APIRoleSelectComponent>);
+
+  /**
+   * Creates a new select menu builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): RoleSelectMenuBuilder;
+}
+
+/**
+ * Class used to build select menu components to be sent through the API
+ * @extends {BuildersMentionableSelectMenu}
+ */
+export class MentionableSelectMenuBuilder extends BuilderMentionableSelectMenuComponent {
+  public constructor(data?: Partial<MentionableSelectMenuComponentData | APIMentionableSelectComponent>);
+
+  /**
+   * Creates a new select menu builder from json data
+   * @param other The other data
+   */
+  public static from(
+    other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent,
+  ): MentionableSelectMenuBuilder;
+}
+
+/**
+ * Class used to build select menu components to be sent through the API
+ */
+export class ChannelSelectMenuBuilder extends BuilderChannelSelectMenuComponent {
+  public constructor(data?: Partial<ChannelSelectMenuComponentData | APIChannelSelectComponent>);
+
+  /**
+   * Creates a new select menu builder from json data
+   * @param other The other data
+   */
+  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): ChannelSelectMenuBuilder;
 }
 
 /**
@@ -1757,12 +1830,12 @@ export class TextInputComponent extends Component<APITextInputComponent> {
 /**
  * Represents a select menu component
  */
-export class SelectMenuComponent extends Component<APISelectMenuComponent> {
+export class BaseSelectMenuComponent<Data extends APISelectMenuComponent> extends Component<Data> {
   /**
    * Creates a new component from API data
    * @param data The API component data
    */
-  protected constructor(data: APISelectMenuComponent);
+  protected constructor(data: Data);
 
   /**
    * The placeholder for this select menu
@@ -1788,11 +1861,34 @@ export class SelectMenuComponent extends Component<APISelectMenuComponent> {
    * Whether this select menu is disabled
    */
   public get disabled(): boolean | null;
+}
 
+export class StringSelectMenuComponent extends BaseSelectMenuComponent<APIStringSelectComponent> {
   /**
    * The options in this select menu
    */
   public get options(): APISelectMenuOption[];
+}
+
+export {
+  /** @deprecated Use {@link StringSelectMenuComponent} instead */
+  StringSelectMenuComponent as SelectMenuComponent,
+};
+
+export class UserSelectMenuComponent extends BaseSelectMenuComponent<APIUserSelectComponent> {}
+
+export class RoleSelectMenuComponent extends BaseSelectMenuComponent<APIRoleSelectComponent> {}
+
+export class MentionableSelectMenuComponent extends BaseSelectMenuComponent<APIMentionableSelectComponent> {}
+
+/**
+ * Represents a channel select menu component
+ */
+export class ChannelSelectMenuComponent extends BaseSelectMenuComponent<APIChannelSelectComponent> {
+  /**
+   * The options in this select menu
+   */
+  public get channelTypes(): ChannelType[] | null;
 }
 
 export interface EmbedData {
@@ -5441,7 +5537,7 @@ export type Interaction<Cached extends CacheType = CacheType> =
   | ChatInputCommandInteraction<Cached>
   | MessageContextMenuCommandInteraction<Cached>
   | UserContextMenuCommandInteraction<Cached>
-  | SelectMenuInteraction<Cached>
+  | AnySelectMenuInteraction<Cached>
   | ButtonInteraction<Cached>
   | AutocompleteInteraction<Cached>
   | ModalSubmitInteraction<Cached>;
@@ -5611,9 +5707,41 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public isUserContextMenuCommand(): this is UserContextMenuCommandInteraction<Cached>;
 
   /**
-   * Indicates whether this interaction is a {@link SelectMenuInteraction}.
+   * Indicates whether this interaction is a {@link StringSelectMenuInteraction}.
+   *
+   * @deprecated Use {@link isStringSelectMenu} instead
    */
-  public isSelectMenu(): this is SelectMenuInteraction<Cached>;
+  public isSelectMenu(): this is StringSelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a select menu of any known type.
+   */
+  public isAnySelectMenu(): this is AnySelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link StringSelectMenuInteraction}.
+   */
+  public isStringSelectMenu(): this is StringSelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link UserSelectMenuInteraction}
+   */
+  public isUserSelectMenu(): this is UserSelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link RoleSelectMenuInteraction}
+   */
+  public isRoleSelectMenu(): this is RoleSelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link ChannelSelectMenuInteraction}
+   */
+  public isMentionableSelectMenu(): this is MentionableSelectMenuInteraction<Cached>;
+
+  /**
+   * Indicates whether this interaction is a {@link MenionableSelectMenuInteraction}
+   */
+  public isChannelSelectMenu(): this is ChannelSelectMenuInteraction<Cached>;
 
   /**
    * Indicates whether this interaction can be replied to.
@@ -6039,7 +6167,11 @@ export type AwaitMessageCollectorOptionsParams<T extends MessageComponentType, C
 
 export interface StringMappedInteractionTypes<Cached extends CacheType = CacheType> {
   Button: ButtonInteraction<Cached>;
-  SelectMenu: SelectMenuInteraction<Cached>;
+  StringSelectMenu: StringSelectMenuInteraction<Cached>;
+  UserSelectMenu: UserSelectMenuInteraction<Cached>;
+  RoleSelectMenu: RoleSelectMenuInteraction<Cached>;
+  MentionableSelectMenu: MentionableSelectMenuInteraction<Cached>;
+  ChannelSelectMenu: ChannelSelectMenuInteraction<Cached>;
   ActionRow: MessageComponentInteraction<Cached>;
 }
 
@@ -6047,7 +6179,11 @@ export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
 
 export interface MappedInteractionTypes<Cached extends boolean = boolean> {
   [ComponentType.Button]: ButtonInteraction<WrapBooleanCache<Cached>>;
-  [ComponentType.SelectMenu]: SelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.StringSelect]: StringSelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.UserSelect]: UserSelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.RoleSelect]: RoleSelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.MentionableSelect]: MentionableSelectMenuInteraction<WrapBooleanCache<Cached>>;
+  [ComponentType.ChannelSelect]: ChannelSelectMenuInteraction<WrapBooleanCache<Cached>>;
 }
 
 /**
@@ -6085,6 +6221,14 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    * The author of the message
    */
   public author: User;
+
+  /**
+   * Whether the message is bulk deletable by the client user
+   * @example
+   * // Filter for bulk deletable messages
+   * channel.bulkDelete(messages.filter(message => message.bulkDeletable));
+   */
+  public get bulkDeletable(): boolean;
 
   /**
    * The channel that the message was sent in
@@ -6798,7 +6942,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public deleteReply(): Promise<void>;
+  public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
    * Edits the initial reply to this interaction.
@@ -6811,7 +6955,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .catch(console.error);
    */
   public editReply(
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | InteractionEditReplyOptions,
   ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
@@ -6823,7 +6967,7 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
    */
-  public fetchReply(): Promise<Message<BooleanCache<Cached>>>;
+  public fetchReply(message?: Snowflake | '@original'): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Send a follow-up message to this interaction.
@@ -7478,7 +7622,7 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public deleteReply(): Promise<void>;
+  public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
    * Edits the initial reply to this interaction.
@@ -7491,7 +7635,7 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .catch(console.error);
    */
   public editReply(
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | InteractionEditReplyOptions,
   ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
@@ -7522,7 +7666,7 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
    */
-  public fetchReply(): Promise<Message<BooleanCache<Cached>>>;
+  public fetchReply(message?: Snowflake | '@original'): Promise<Message<BooleanCache<Cached>>>;
 
   /**
    * Send a follow-up message to this interaction.
@@ -8494,47 +8638,216 @@ export class Role extends Base {
 }
 
 /**
- * Represents a select menu interaction.
+ * Represents a {@link ComponentType.StringSelect} select menu interaction.
  */
-export class SelectMenuInteraction<Cached extends CacheType = CacheType> extends MessageComponentInteraction<Cached> {
-  public constructor(client: Client<true>, data: RawMessageSelectMenuInteractionData);
+export class StringSelectMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends MessageComponentInteraction<Cached> {
+  public constructor(client: Client<true>, data: APIMessageStringSelectInteractionData);
 
   /**
    * The component which was interacted with
    */
   public get component(): CacheTypeReducer<
     Cached,
-    SelectMenuComponent,
-    APISelectMenuComponent,
-    SelectMenuComponent | APISelectMenuComponent,
-    SelectMenuComponent | APISelectMenuComponent
+    StringSelectMenuComponent,
+    APIStringSelectComponent,
+    StringSelectMenuComponent | APIStringSelectComponent,
+    StringSelectMenuComponent | APIStringSelectComponent
+  >;
+  public componentType: ComponentType.StringSelect;
+  public values: string[];
+  public inGuild(): this is StringSelectMenuInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is StringSelectMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is StringSelectMenuInteraction<'raw'>;
+}
+
+export {
+  /** @deprecated Use {@link StringSelectMenuInteraction} instead */
+  StringSelectMenuInteraction as SelectMenuInteraction,
+};
+
+export class UserSelectMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends MessageComponentInteraction<Cached> {
+  public constructor(client: Client<true>, data: APIMessageUserSelectInteractionData);
+
+  /**
+   * The component which was interacted with
+   */
+  public get component(): CacheTypeReducer<
+    Cached,
+    UserSelectMenuComponent,
+    APIUserSelectComponent,
+    UserSelectMenuComponent | APIUserSelectComponent,
+    UserSelectMenuComponent | APIUserSelectComponent
   >;
 
   /**
    * The type of component which was interacted with
    */
-  public componentType: ComponentType.SelectMenu;
-
-  /**
-   * The values selected, if the component which was interacted with was a select menu
-   */
-  public values: string[];
+  public componentType: ComponentType.UserSelect;
+  public users: Collection<Snowflake, User>;
+  public members: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIGuildMember>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
    */
-  public inGuild(): this is SelectMenuInteraction<'raw' | 'cached'>;
+  public inGuild(): this is UserSelectMenuInteraction<'raw' | 'cached'>;
 
   /**
    * Indicates whether or not this interaction is both cached and received from a guild.
    */
-  public inCachedGuild(): this is SelectMenuInteraction<'cached'>;
+  public inCachedGuild(): this is UserSelectMenuInteraction<'cached'>;
 
   /**
    * Indicates whether or not this interaction is received from an uncached guild.
    */
-  public inRawGuild(): this is SelectMenuInteraction<'raw'>;
+  public inRawGuild(): this is UserSelectMenuInteraction<'raw'>;
 }
+
+export class RoleSelectMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends MessageComponentInteraction<Cached> {
+  public constructor(client: Client<true>, data: APIMessageRoleSelectInteractionData);
+
+  /**
+   * The component which was interacted with
+   */
+  public get component(): CacheTypeReducer<
+    Cached,
+    RoleSelectMenuComponent,
+    APIRoleSelectComponent,
+    RoleSelectMenuComponent | APIRoleSelectComponent,
+    RoleSelectMenuComponent | APIRoleSelectComponent
+  >;
+
+  /**
+   * The type of component which was interacted with
+   */
+  public componentType: ComponentType.RoleSelect;
+  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is RoleSelectMenuInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is RoleSelectMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is RoleSelectMenuInteraction<'raw'>;
+}
+
+export class MentionableSelectMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends MessageComponentInteraction<Cached> {
+  public constructor(client: Client<true>, data: APIMessageMentionableSelectInteractionData);
+
+  /**
+   * The component which was interacted with
+   */
+  public get component(): CacheTypeReducer<
+    Cached,
+    MentionableSelectMenuComponent,
+    APIMentionableSelectComponent,
+    MentionableSelectMenuComponent | APIMentionableSelectComponent,
+    MentionableSelectMenuComponent | APIMentionableSelectComponent
+  >;
+
+  /**
+   * The type of component which was interacted with
+   */
+  public componentType: ComponentType.MentionableSelect;
+  public users: Collection<Snowflake, User>;
+  public members: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIGuildMember>>;
+  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is MentionableSelectMenuInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is MentionableSelectMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is MentionableSelectMenuInteraction<'raw'>;
+}
+
+/**
+ * Represents a {@link ComponentType.ChannelSelect} select menu interaction.
+ */
+export class ChannelSelectMenuInteraction<
+  Cached extends CacheType = CacheType,
+> extends MessageComponentInteraction<Cached> {
+  public constructor(client: Client<true>, data: APIMessageChannelSelectInteractionData);
+
+  /**
+   * The component which was interacted with
+   */
+  public get component(): CacheTypeReducer<
+    Cached,
+    ChannelSelectMenuComponent,
+    APIChannelSelectComponent,
+    ChannelSelectMenuComponent | APIChannelSelectComponent,
+    ChannelSelectMenuComponent | APIChannelSelectComponent
+  >;
+
+  /**
+   * The interaction's type
+   */
+  public componentType: ComponentType.ChannelSelect;
+
+  /**
+   * Collection of the selected channels
+   */
+  public channels: Collection<Snowflake, CacheTypeReducer<Cached, Channel, APIChannel>>;
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
+  public inGuild(): this is ChannelSelectMenuInteraction<'raw' | 'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is both cached and received from a guild.
+   */
+  public inCachedGuild(): this is ChannelSelectMenuInteraction<'cached'>;
+
+  /**
+   * Indicates whether or not this interaction is received from an uncached guild.
+   */
+  public inRawGuild(): this is ChannelSelectMenuInteraction<'raw'>;
+}
+
+// Ideally this should be named SelectMenuInteraction, but that's the name of the "old" StringSelectMenuInteraction, meaning
+// the type name is reserved as a re-export to prevent a breaking change from being made, as such:
+// TODO: Rename this to SelectMenuInteraction in the next major
+export type AnySelectMenuInteraction<Cached extends CacheType = CacheType> =
+  | StringSelectMenuInteraction<Cached>
+  | UserSelectMenuInteraction<Cached>
+  | RoleSelectMenuInteraction<Cached>
+  | MentionableSelectMenuInteraction<Cached>
+  | ChannelSelectMenuInteraction<Cached>;
+
+export type SelectMenuType = APISelectMenuComponent['type'];
 
 export interface ShardEventTypes {
   /**
@@ -10659,14 +10972,22 @@ export function parseWebhookURL(url: string): WebhookClientDataIdWithToken | nul
 
 export interface MappedComponentBuilderTypes {
   [ComponentType.Button]: ButtonBuilder;
-  [ComponentType.SelectMenu]: SelectMenuBuilder;
+  [ComponentType.StringSelect]: StringSelectMenuBuilder;
+  [ComponentType.UserSelect]: UserSelectMenuBuilder;
+  [ComponentType.RoleSelect]: RoleSelectMenuBuilder;
+  [ComponentType.MentionableSelect]: MentionableSelectMenuBuilder;
+  [ComponentType.ChannelSelect]: ChannelSelectMenuBuilder;
   [ComponentType.ActionRow]: ActionRowBuilder;
   [ComponentType.TextInput]: TextInputBuilder;
 }
 
 export interface MappedComponentTypes {
   [ComponentType.Button]: ButtonComponent;
-  [ComponentType.SelectMenu]: SelectMenuComponent;
+  [ComponentType.StringSelect]: StringSelectMenuComponent;
+  [ComponentType.UserSelect]: UserSelectMenuComponent;
+  [ComponentType.RoleSelect]: RoleSelectMenuComponent;
+  [ComponentType.MentionableSelect]: MentionableSelectMenuComponent;
+  [ComponentType.ChannelSelect]: ChannelSelectMenuComponent;
   [ComponentType.ActionRow]: ActionRowComponent;
   [ComponentType.TextInput]: TextInputComponent;
 }
@@ -11342,9 +11663,14 @@ export class WebSocketShard extends EventEmitter {
   private sessionId: string | null;
 
   /**
+   * The resume url for this shard
+   */
+  private resumeURL: string | null;
+
+  /**
    * The last time a ping was sent (a timestamp)
    */
-  private lastPingTimestamp: number;
+  public lastPingTimestamp: number;
 
   /**
    * If we received a heartbeat ack back. Used to identify zombie connections
@@ -11767,6 +12093,11 @@ export type NonSystemMessageType =
 
 export const Constants: {
   /**
+   * Max bulk deletable message age
+   */
+  MaxBulkDeletableMessageAge: 1_209_600_000;
+
+  /**
    * The name of an item to be swept in Sweepers
    * * `applicationCommands` - both global and guild commands
    * * `bans`
@@ -11804,6 +12135,7 @@ export const Constants: {
    * The types of channels that are voice-based.
    */
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
+  SelectMenuTypes: SelectMenuType[];
 };
 
 export const version: string;
@@ -18471,7 +18803,11 @@ export interface IntegrationAccount {
 export type IntegrationType = 'twitch' | 'youtube' | 'discord';
 
 export type CollectedInteraction<Cached extends CacheType = CacheType> =
-  | SelectMenuInteraction<Cached>
+  | StringSelectMenuInteraction<Cached>
+  | UserSelectMenuInteraction<Cached>
+  | RoleSelectMenuInteraction<Cached>
+  | MentionableSelectMenuInteraction<Cached>
+  | ChannelSelectMenuInteraction<Cached>
   | ButtonInteraction<Cached>
   | ModalSubmitInteraction<Cached>;
 
@@ -18718,7 +19054,13 @@ export interface MakeErrorOptions {
 /**
  * Options for components that can be placed in an action row
  */
-export type ActionRowComponentOptions = ButtonComponentData | SelectMenuComponentData;
+export type ActionRowComponentOptions =
+  | ButtonComponentData
+  | StringSelectMenuComponentData
+  | UserSelectMenuComponentData
+  | RoleSelectMenuComponentData
+  | MentionableSelectMenuComponentData
+  | ChannelSelectMenuComponentData;
 
 /**
  * Data that can be resolved into components that can be placed in an action row
@@ -18808,7 +19150,11 @@ export type MessageComponent =
   | Component
   | ActionRowBuilder<MessageActionRowComponentBuilder | ModalActionRowComponentBuilder>
   | ButtonComponent
-  | SelectMenuComponent;
+  | StringSelectMenuComponent
+  | UserSelectMenuComponent
+  | RoleSelectMenuComponent
+  | MentionableSelectMenuComponent
+  | ChannelSelectMenuComponent;
 
 export type CollectedMessageInteraction<Cached extends CacheType = CacheType> = Exclude<
   CollectedInteraction<Cached>,
@@ -19063,12 +19409,7 @@ export interface MessageReference {
  */
 export type MessageResolvable = Message | Snowflake;
 
-export interface SelectMenuComponentData extends BaseComponentData {
-  /**
-   * The type of component
-   */
-  type: ComponentType.SelectMenu;
-
+export interface BaseSelectMenuComponentData extends BaseComponentData {
   /**
    * A unique string to be sent in the interaction when clicked
    */
@@ -19090,14 +19431,55 @@ export interface SelectMenuComponentData extends BaseComponentData {
   minValues?: number;
 
   /**
-   * Options for the select menu
-   */
-  options?: SelectMenuComponentOptionData[];
-
-  /**
    * Custom placeholder text to display when nothing is selected
    */
   placeholder?: string;
+}
+
+export interface StringSelectMenuComponentData extends BaseSelectMenuComponentData {
+  /**
+   * The type of component
+   */
+  type: ComponentType.StringSelect;
+
+  /**
+   * Options for the select menu
+   */
+
+  options?: SelectMenuComponentOptionData[];
+}
+
+export interface UserSelectMenuComponentData extends BaseSelectMenuComponentData {
+  /**
+   * The type of component
+   */
+  type: ComponentType.UserSelect;
+}
+
+export interface RoleSelectMenuComponentData extends BaseSelectMenuComponentData {
+  /**
+   * The type of component
+   */
+  type: ComponentType.RoleSelect;
+}
+
+export interface MentionableSelectMenuComponentData extends BaseSelectMenuComponentData {
+  /**
+   * The type of component
+   */
+  type: ComponentType.MentionableSelect;
+}
+
+export interface ChannelSelectMenuComponentData extends BaseSelectMenuComponentData {
+  /**
+   * The type of component
+   */
+  type: ComponentType.ChannelSelect;
+
+  /**
+   * Options for the select menu
+   */
+  channelTypes?: ChannelType[];
 }
 
 export interface MessageSelectOption {
@@ -20180,6 +20562,13 @@ export interface WebhookEditMessageOptions extends Omit<MessageEditOptions, 'fla
    * <info>For interaction webhooks, this property is ignored</info>
    */
   threadId?: Snowflake;
+}
+
+export interface InteractionEditReplyOptions extends WebhookEditMessageOptions {
+  /**
+   * The response to edit
+   */
+  message?: MessageResolvable | '@original';
 }
 
 /**

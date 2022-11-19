@@ -43,8 +43,20 @@ class InteractionCreateAction extends Action {
           case ComponentType.Button:
             InteractionClass = Structures.get('ButtonInteraction');
             break;
-          case ComponentType.SelectMenu:
-            InteractionClass = Structures.get('SelectMenuInteraction');
+          case ComponentType.StringSelect:
+            InteractionClass = Structures.get('StringSelectMenuInteraction');
+            break;
+          case ComponentType.UserSelect:
+            InteractionClass = Structures.get('UserSelectMenuInteraction');
+            break;
+          case ComponentType.RoleSelect:
+            InteractionClass = Structures.get('RoleSelectMenuInteraction');
+            break;
+          case ComponentType.MentionableSelect:
+            InteractionClass = Structures.get('MentionableSelectMenuInteraction');
+            break;
+          case ComponentType.ChannelSelect:
+            InteractionClass = Structures.get('ChannelSelectMenuInteraction');
             break;
           default:
             client.emit(
