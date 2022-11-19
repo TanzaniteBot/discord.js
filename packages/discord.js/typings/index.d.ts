@@ -139,6 +139,13 @@ import {
   APIMessageRoleSelectInteractionData,
   APIMessageMentionableSelectInteractionData,
   APIMessageChannelSelectInteractionData,
+  AutoModerationRuleKeywordPresetType,
+  AutoModerationActionType,
+  AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
+  AuditLogRuleTriggerType,
+  GatewayAutoModerationActionExecutionDispatchData,
+  APIAutoModerationRule,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -383,6 +390,15 @@ export class ActionRowBuilder<T extends AnyComponentBuilder = AnyComponentBuilde
   ): ActionRowBuilder;
 }
 
+/**
+ * Components that can be placed in an action row for messages.
+ * * ButtonComponent
+ * * StringSelectMenuComponent
+ * * UserSelectMenuComponent
+ * * RoleSelectMenuComponent
+ * * MentionableSelectMenuComponent
+ * * ChannelSelectMenuComponent
+ */
 export type MessageActionRowComponent =
   | ButtonComponent
   | StringSelectMenuComponent
@@ -390,6 +406,7 @@ export type MessageActionRowComponent =
   | RoleSelectMenuComponent
   | MentionableSelectMenuComponent
   | ChannelSelectMenuComponent;
+
 export type ModalActionRowComponent = TextInputComponent;
 
 /**
@@ -479,6 +496,233 @@ export abstract class AnonymousGuild extends BaseGuild {
    * @param {} [options={}] Options for the image URL
    */
   public splashURL(options?: ImageURLOptions): string | null;
+}
+
+/**
+ * Represents the structure of an executed action when an {@link AutoModerationRule} is triggered.
+ */
+export class AutoModerationActionExecution {
+  private constructor(data: GatewayAutoModerationActionExecutionDispatchData, guild: Guild);
+
+  /**
+   * The guild where this action was executed from.
+   */
+  public guild: Guild;
+
+  /**
+   * The action that was executed.
+   */
+  public action: AutoModerationAction;
+
+  /**
+   * The id of the auto moderation rule this action belongs to.
+   */
+  public ruleId: Snowflake;
+
+  /**
+   * The trigger type of the auto moderation rule which was triggered.
+   */
+  public ruleTriggerType: AutoModerationRuleTriggerType;
+
+  /**
+   * The id of the user that triggered this action.
+   */
+  public userId: Snowflake;
+
+  /**
+   * The id of the channel where this action was triggered from.
+   */
+  public channelId: Snowflake | null;
+
+  /**
+   * The id of the message that triggered this action.
+   * <info>This will not be present if the message was blocked or the content was not part of any message.</info>
+   */
+  public messageId: Snowflake | null;
+
+  /**
+   * The id of any system auto moderation messages posted as a result of this action.
+   */
+  public alertSystemMessageId: Snowflake | null;
+
+  /**
+   * The content that triggered this action.
+   * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged gateway intent.</info>
+   */
+  public content: string;
+
+  /**
+   * The word or phrase configured in the rule that triggered this action.
+   */
+  public matchedKeyword: string | null;
+
+  /**
+   * The substring in content that triggered this action.
+   */
+  public matchedContent: string | null;
+
+  /**
+   * The auto moderation rule this action belongs to.
+   */
+  public get autoModerationRule(): AutoModerationRule | null;
+}
+
+/**
+ * Represents an auto moderation rule.
+ */
+export class AutoModerationRule extends Base {
+  private constructor(client: Client<true>, data: APIAutoModerationRule, guild: Guild);
+
+  /**
+   * The id of this auto moderation rule.
+   */
+  public id: Snowflake;
+
+  /**
+   * The guild this auto moderation rule is for.
+   */
+  public guild: Guild;
+
+  /**
+   * The name of this auto moderation rule.
+   */
+  public name: string;
+
+  /**
+   * The user that created this auto moderation rule.
+   */
+  public creatorId: Snowflake;
+
+  /**
+   * The event type of this auto moderation rule.
+   */
+  public eventType: AutoModerationRuleEventType;
+
+  /**
+   * The trigger type of this auto moderation rule.
+   */
+  public triggerType: AutoModerationRuleTriggerType;
+
+  /**
+   * The trigger metadata of the rule.
+   */
+  public triggerMetadata: AutoModerationTriggerMetadata;
+
+  /**
+   * The actions of this auto moderation rule.
+   */
+  public actions: AutoModerationAction[];
+
+  /**
+   * Whether this auto moderation rule is enabled.
+   */
+  public enabled: boolean;
+
+  /**
+   * The roles exempt by this auto moderation rule.
+   */
+  public exemptRoles: Collection<Snowflake, Role>;
+
+  /**
+   * The channels exempt by this auto moderation rule.
+   */
+  public exemptChannels: Collection<Snowflake, GuildBasedChannel>;
+
+  /**
+   * Edits this auto moderation rule.
+   * @param options Options for editing this auto moderation rule
+   */
+  public edit(options: AutoModerationRuleEditOptions): Promise<AutoModerationRule>;
+
+  /**
+   * Deletes this auto moderation rule.
+   * @param reason The reason for deleting this auto moderation rule
+   */
+  public delete(reason?: string): Promise<void>;
+
+  /**
+   * Sets the name for this auto moderation rule.
+   * @param name The name of this auto moderation rule
+   * @param reason The reason for changing the name of this auto moderation rule
+   */
+  public setName(name: string, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the event type for this auto moderation rule.
+   * @param eventType The event type of this auto moderation rule
+   * @param reason The reason for changing the event type of this auto moderation rule
+   */
+  public setEventType(eventType: AutoModerationRuleEventType, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the keyword filter for this auto moderation rule.
+   * @param keywordFilter The keyword filter of this auto moderation rule
+   * @param reason The reason for changing the keyword filter of this auto moderation rule
+   */
+  public setKeywordFilter(keywordFilter: string[], reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the regular expression patterns for this auto moderation rule.
+   * @param regexPatterns The regular expression patterns of this auto moderation rule
+   * <info>Only Rust-flavored regular expressions are supported.</info>
+   * @param reason The reason for changing the regular expression patterns of this auto moderation rule
+   */
+  public setRegexPatterns(regexPatterns: string[], reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the presets for this auto moderation rule.
+   * @param presets The presets of this auto moderation rule
+   * @param reason The reason for changing the presets of this auto moderation rule
+   */
+  public setPresets(presets: AutoModerationRuleKeywordPresetType[], reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the allow list for this auto moderation rule.
+   * @param allowList The allow list of this auto moderation rule
+   * @param reason The reason for changing the allow list of this auto moderation rule
+   */
+  public setAllowList(allowList: string[], reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the mention total limit for this auto moderation rule.
+   * @param mentionTotalLimit The mention total limit of this auto moderation rule
+   * @param reason The reason for changing the mention total limit of this auto moderation rule
+   */
+  public setMentionTotalLimit(mentionTotalLimit: number, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the actions for this auto moderation rule.
+   * @param actions The actions of this auto moderation rule
+   * @param reason The reason for changing the actions of this auto moderation rule
+   */
+  public setActions(actions: AutoModerationActionOptions, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets whether this auto moderation rule should be enabled.
+   * @param {} [enabled=true] Whether to enable this auto moderation rule
+   * @param reason The reason for enabling or disabling this auto moderation rule
+   */
+  public setEnabled(enabled?: boolean, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the exempt roles for this auto moderation rule.
+   * @param exemptRoles The exempt roles of this auto moderation rule
+   * @param reason The reason for changing the exempt roles of this auto moderation rule
+   */
+  public setExemptRoles(
+    roles: Collection<Snowflake, Role> | RoleResolvable[],
+    reason?: string,
+  ): Promise<AutoModerationRule>;
+
+  /**
+   * Sets the exempt channels for this auto moderation rule.
+   * @param exemptChannels The exempt channels of this auto moderation rule
+   * @param reason The reason for changing the exempt channels of this auto moderation rule
+   */
+  public setExemptChannels(
+    channels: Collection<Snowflake, GuildBasedChannel> | GuildChannelResolvable[],
+    reason?: string,
+  ): Promise<AutoModerationRule>;
 }
 
 /**
@@ -821,6 +1065,13 @@ export class ApplicationFlagsBitField extends BitField<ApplicationFlagsString> {
 }
 
 /**
+ * Data that can be resolved to give an AutoModerationRule object. This can be:
+ * * An AutoModerationRule
+ * * A Snowflake
+ */
+export type AutoModerationRuleResolvable = AutoModerationRule | Snowflake;
+
+/**
  * Represents a data model that is identifiable by a Snowflake (i.e. Discord API data models).
  */
 export abstract class Base {
@@ -1005,10 +1256,11 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
   public deferReply(options?: InteractionDeferReplyOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
-   * Deletes the initial reply to this interaction.
+   * Deletes a reply to this interaction.
    * @see {@link Webhook.deleteMessage}
+   * @param {} [message='@original'] The response to delete
    * @example
-   * // Delete the reply to this interaction
+   * // Delete the initial reply to this interaction
    * interaction.deleteReply()
    *   .then(console.log)
    *   .catch(console.error);
@@ -1016,11 +1268,11 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
   public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
-   * Edits the initial reply to this interaction.
+   * Edits a reply to this interaction.
    * @see {@link Webhook.editMessage}
    * @param options The new options for the message
    * @example
-   * // Edit the reply to this interaction
+   * // Edit the initial reply to this interaction
    * interaction.editReply('New content')
    *   .then(console.log)
    *   .catch(console.error);
@@ -1030,10 +1282,11 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
   ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
-   * Fetches the initial reply to this interaction.
+   * Fetches a reply to this interaction.
    * @see {@link Webhook.fetchMessage}
+   * @param {} [message='@original'] The response to fetch
    * @example
-   * // Fetch the reply to this interaction
+   * // Fetch the initial reply to this interaction
    * interaction.fetchReply()
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
@@ -1731,6 +1984,9 @@ export class UserSelectMenuBuilder extends BuilderUserSelectMenuComponent {
   public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): UserSelectMenuBuilder;
 }
 
+/**
+ * Class used to build select menu components to be sent through the API
+ */
 export class RoleSelectMenuBuilder extends BuilderRoleSelectMenuComponent {
   public constructor(data?: Partial<RoleSelectMenuComponentData | APIRoleSelectComponent>);
 
@@ -1743,7 +1999,6 @@ export class RoleSelectMenuBuilder extends BuilderRoleSelectMenuComponent {
 
 /**
  * Class used to build select menu components to be sent through the API
- * @extends {BuildersMentionableSelectMenu}
  */
 export class MentionableSelectMenuBuilder extends BuilderMentionableSelectMenuComponent {
   public constructor(data?: Partial<MentionableSelectMenuComponentData | APIMentionableSelectComponent>);
@@ -1815,6 +2070,9 @@ export class TextInputBuilder extends BuilderTextInputComponent {
   public static from(other: JSONEncodable<APITextInputComponent> | APITextInputComponent): TextInputBuilder;
 }
 
+/**
+ * Represents a text input component.
+ */
 export class TextInputComponent extends Component<APITextInputComponent> {
   /**
    * The custom id of this text input
@@ -1863,6 +2121,9 @@ export class BaseSelectMenuComponent<Data extends APISelectMenuComponent> extend
   public get disabled(): boolean | null;
 }
 
+/**
+ * Represents a string select menu component
+ */
 export class StringSelectMenuComponent extends BaseSelectMenuComponent<APIStringSelectComponent> {
   /**
    * The options in this select menu
@@ -1875,10 +2136,19 @@ export {
   StringSelectMenuComponent as SelectMenuComponent,
 };
 
+/**
+ * Represents a user select menu component
+ */
 export class UserSelectMenuComponent extends BaseSelectMenuComponent<APIUserSelectComponent> {}
 
+/**
+ * Represents a role select menu component
+ */
 export class RoleSelectMenuComponent extends BaseSelectMenuComponent<APIRoleSelectComponent> {}
 
+/**
+ * Represents a mentionable select menu component
+ */
 export class MentionableSelectMenuComponent extends BaseSelectMenuComponent<APIMentionableSelectComponent> {}
 
 /**
@@ -3526,6 +3796,11 @@ export class Guild extends AnonymousGuild {
   public approximatePresenceCount: number | null;
 
   /**
+   * A manager of the auto moderation rules of this guild.
+   */
+  public autoModerationRules: AutoModerationRuleManager;
+
+  /**
    * Whether the guild is available to access. If it is not available, it indicates a server outage
    */
   public available: boolean;
@@ -4135,6 +4410,11 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = AuditLogEvent> 
    * Cached {@link GuildScheduledEvent}s.
    */
   private guildScheduledEvents: Collection<Snowflake, GuildScheduledEvent>;
+
+  /**
+   * Cached auto moderation rules.
+   */
+  private autoModerationRules: Collection<Snowflake, AutoModerationRule>;
 
   /**
    * The entries for this guild's audit logs
@@ -6934,10 +7214,11 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
-   * Deletes the initial reply to this interaction.
+   * Deletes a reply to this interaction.
    * @see {@link Webhook.deleteMessage}
+   * @param {} [message='@original'] The response to delete
    * @example
-   * // Delete the reply to this interaction
+   * // Delete the initial reply to this interaction
    * interaction.deleteReply()
    *   .then(console.log)
    *   .catch(console.error);
@@ -6945,11 +7226,11 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
-   * Edits the initial reply to this interaction.
+   * Edits a reply to this interaction.
    * @see {@link Webhook.editMessage}
    * @param options The new options for the message
    * @example
-   * // Edit the reply to this interaction
+   * // Edit the initial reply to this interaction
    * interaction.editReply('New content')
    *   .then(console.log)
    *   .catch(console.error);
@@ -6959,10 +7240,11 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   ): Promise<Message<BooleanCache<Cached>>>;
 
   /**
-   * Fetches the initial reply to this interaction.
+   * Fetches a reply to this interaction.
    * @see {@link Webhook.fetchMessage}
+   * @param {} [message='@original'] The response to fetch
    * @example
-   * // Fetch the reply to this interaction
+   * // Fetch the initial reply to this interaction
    * interaction.fetchReply()
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
@@ -7614,10 +7896,11 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
   ): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
-   * Deletes the initial reply to this interaction.
+   * Deletes a reply to this interaction.
    * @see {@link Webhook.deleteMessage}
+   * @param {} [message='@original'] The response to delete
    * @example
-   * // Delete the reply to this interaction
+   * // Delete the initial reply to this interaction
    * interaction.deleteReply()
    *   .then(console.log)
    *   .catch(console.error);
@@ -7625,11 +7908,11 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
   public deleteReply(message?: MessageResolvable | '@original'): Promise<void>;
 
   /**
-   * Edits the initial reply to this interaction.
+   * Edits a reply to this interaction.
    * @see {@link Webhook.editMessage}
    * @param options The new options for the message
    * @example
-   * // Edit the reply to this interaction
+   * // Edit the initial reply to this interaction
    * interaction.editReply('New content')
    *   .then(console.log)
    *   .catch(console.error);
@@ -7658,10 +7941,11 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
   public deferReply(options?: InteractionDeferReplyOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
-   * Fetches the initial reply to this interaction.
+   * Fetches a reply to this interaction.
    * @see {@link Webhook.fetchMessage}
+   * @param {} [message='@original'] The response to fetch
    * @example
-   * // Fetch the reply to this interaction
+   * // Fetch the initial reply to this interaction
    * interaction.fetchReply()
    *   .then(reply => console.log(`Replied with ${reply.content}`))
    *   .catch(console.error);
@@ -8655,8 +8939,20 @@ export class StringSelectMenuInteraction<
     StringSelectMenuComponent | APIStringSelectComponent,
     StringSelectMenuComponent | APIStringSelectComponent
   >;
+
+  /**
+   * The type of component which was interacted with
+   */
   public componentType: ComponentType.StringSelect;
+
+  /**
+   * The values selected
+   */
   public values: string[];
+
+  /**
+   * Indicates whether this interaction is received from a guild.
+   */
   public inGuild(): this is StringSelectMenuInteraction<'raw' | 'cached'>;
 
   /**
@@ -8675,6 +8971,9 @@ export {
   StringSelectMenuInteraction as SelectMenuInteraction,
 };
 
+/**
+ * Represents a {@link ComponentType.UserSelect} select menu interaction.
+ */
 export class UserSelectMenuInteraction<
   Cached extends CacheType = CacheType,
 > extends MessageComponentInteraction<Cached> {
@@ -8695,8 +8994,24 @@ export class UserSelectMenuInteraction<
    * The type of component which was interacted with
    */
   public componentType: ComponentType.UserSelect;
+
+  /**
+   * An array of the selected user ids
+   */
+  public values: Snowflake[];
+
+  /**
+   * Collection of the selected users
+   */
   public users: Collection<Snowflake, User>;
-  public members: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIGuildMember>>;
+
+  /**
+   * Collection of the selected members
+   */
+  public members: Collection<
+    Snowflake,
+    CacheTypeReducer<Cached, GuildMember, APIGuildMember, GuildMember | APIGuildMember, GuildMember | APIGuildMember>
+  >;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -8714,6 +9029,9 @@ export class UserSelectMenuInteraction<
   public inRawGuild(): this is UserSelectMenuInteraction<'raw'>;
 }
 
+/**
+ * Represents a {@link ComponentType.RoleSelect} select menu interaction.
+ */
 export class RoleSelectMenuInteraction<
   Cached extends CacheType = CacheType,
 > extends MessageComponentInteraction<Cached> {
@@ -8734,7 +9052,16 @@ export class RoleSelectMenuInteraction<
    * The type of component which was interacted with
    */
   public componentType: ComponentType.RoleSelect;
-  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
+
+  /**
+   * An array of the selected role ids
+   */
+  public values: Snowflake[];
+
+  /**
+   * Collection of the selected roles
+   */
+  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole, Role | APIRole, Role | APIRole>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -8752,6 +9079,9 @@ export class RoleSelectMenuInteraction<
   public inRawGuild(): this is RoleSelectMenuInteraction<'raw'>;
 }
 
+/**
+ * Represents a {@link ComponentType.MentionableSelect} select menu interaction.
+ */
 export class MentionableSelectMenuInteraction<
   Cached extends CacheType = CacheType,
 > extends MessageComponentInteraction<Cached> {
@@ -8772,9 +9102,29 @@ export class MentionableSelectMenuInteraction<
    * The type of component which was interacted with
    */
   public componentType: ComponentType.MentionableSelect;
+
+  /**
+   * An array of the selected user and role ids
+   */
+  public values: Snowflake[];
+
+  /**
+   * Collection of the selected users
+   */
   public users: Collection<Snowflake, User>;
-  public members: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIGuildMember>>;
-  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
+
+  /**
+   * Collection of the selected users
+   */
+  public members: Collection<
+    Snowflake,
+    CacheTypeReducer<Cached, GuildMember, APIGuildMember, GuildMember | APIGuildMember, GuildMember | APIGuildMember>
+  >;
+
+  /**
+   * Collection of the selected roles
+   */
+  public roles: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole, Role | APIRole, Role | APIRole>>;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -8817,9 +9167,17 @@ export class ChannelSelectMenuInteraction<
   public componentType: ComponentType.ChannelSelect;
 
   /**
+   * An array of the selected channel ids
+   */
+  public values: Snowflake[];
+
+  /**
    * Collection of the selected channels
    */
-  public channels: Collection<Snowflake, CacheTypeReducer<Cached, Channel, APIChannel>>;
+  public channels: Collection<
+    Snowflake,
+    CacheTypeReducer<Cached, Channel, APIChannel, Channel | APIChannel, Channel | APIChannel>
+  >;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -9763,6 +10121,18 @@ export class Sweepers {
   ): number;
 
   /**
+   * Sweeps all auto moderation rules and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which auto moderation rules will be removed from the caches
+   * @returns Amount of auto moderation rules that were removed from the caches
+   */
+  public sweepAutoModerationRules(
+    filter: CollectionSweepFilter<
+      SweeperDefinitions['autoModerationRules'][0],
+      SweeperDefinitions['autoModerationRules'][1]
+    >,
+  ): number;
+
+  /**
    * Sweeps all guild bans and removes the ones which are indicated by the filter.
    * @param filter The function used to determine which bans will be removed from the caches.
    * @returns Amount of bans that were removed from the caches
@@ -10398,6 +10768,18 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
    * @param reason Reason for changing the thread's applied tags
    */
   public setAppliedTags(appliedTags: Snowflake[], reason?: string): Promise<ThreadChannel<true>>;
+
+  /**
+   * Pins this thread from the forum channel (only applicable to forum threads).
+   * @param reason Reason for pinning
+   */
+  public pin(reason?: string): Promise<ThreadChannel<true>>;
+
+  /**
+   * Unpins this thread from the forum channel (only applicable to forum threads).
+   * @param reason Reason for unpinning
+   */
+  public unpin(reason?: string): Promise<ThreadChannel<true>>;
 
   /**
    * When concatenated with a string, this automatically returns the channel's mention instead of the Channel object.
@@ -12099,6 +12481,7 @@ export const Constants: {
 
   /**
    * The name of an item to be swept in Sweepers
+   * * `autoModerationRules`
    * * `applicationCommands` - both global and guild commands
    * * `bans`
    * * `emojis`
@@ -12135,6 +12518,10 @@ export const Constants: {
    * The types of channels that are voice-based.
    */
   VoiceBasedChannelTypes: VoiceBasedChannelTypes[];
+
+  /**
+   * The types of components that are select menus.
+   */
   SelectMenuTypes: SelectMenuType[];
 };
 
@@ -12743,6 +13130,67 @@ export class ApplicationCommandPermissionsManager<
    * @param commandId The application command's id
    */
   private permissionsPath(guildId: Snowflake, commandId?: Snowflake): string;
+}
+
+/**
+ * Manages API methods for auto moderation rules and stores their cache.
+ */
+export class AutoModerationRuleManager extends CachedManager<
+  Snowflake,
+  AutoModerationRule,
+  AutoModerationRuleResolvable
+> {
+  private constructor(guild: Guild, iterable: unknown);
+
+  /**
+   * The guild this manager belongs to.
+   */
+  public guild: Guild;
+
+  /**
+   * Creates a new auto moderation rule.
+   * @param options Options for creating the auto moderation rule
+   */
+  public create(options: AutoModerationRuleCreateOptions): Promise<AutoModerationRule>;
+
+  /**
+   * Edits an auto moderation rule.
+   * @param autoModerationRule The auto moderation rule to edit
+   * @param options Options for editing the auto moderation rule
+   */
+  public edit(
+    autoModerationRule: AutoModerationRuleResolvable,
+    options: AutoModerationRuleEditOptions,
+  ): Promise<AutoModerationRule>;
+
+  /**
+   * Fetches auto moderation rules from Discord.
+   * @param options Options for fetching auto moderation rule(s)
+   * @example
+   * // Fetch all auto moderation rules from a guild without caching
+   * guild.autoModerationRules.fetch({ cache: false })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Fetch a single auto moderation rule
+   * guild.autoModerationRules.fetch('979083472868098119')
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Fetch a single auto moderation rule without checking cache and without caching
+   * guild.autoModerationRules.fetch({ autoModerationRule: '979083472868098119', cache: false, force: true })
+   *   .then(console.log)
+   *   .catch(console.error)
+   */
+  public fetch(options: AutoModerationRuleResolvable | FetchAutoModerationRuleOptions): Promise<AutoModerationRule>;
+  public fetch(options?: FetchAutoModerationRulesOptions): Promise<Collection<Snowflake, AutoModerationRule>>;
+
+  /**
+   * Deletes an auto moderation rule.
+   * @param autoModerationRule The auto moderation rule to delete
+   * @param reason The reason for deleting the auto moderation rule
+   */
+  public delete(autoModerationRule: AutoModerationRuleResolvable, reason?: string): Promise<void>;
 }
 
 /**
@@ -15529,6 +15977,68 @@ export interface AuditLogChange {
 }
 
 /**
+ * An object containing information about an auto moderation rule action.
+ */
+export interface AutoModerationAction {
+  /**
+   * The type of this auto moderation rule action
+   */
+  type: AutoModerationActionType;
+
+  /**
+   * Additional metadata needed during execution
+   */
+  metadata: AutoModerationActionMetadata;
+}
+
+/**
+ * Additional data used when an auto moderation rule is executed.
+ */
+export interface AutoModerationActionMetadata {
+  /**
+   * The id of the channel to which content will be logged
+   */
+  channelId: Snowflake | null;
+
+  /**
+   * The timeout duration in seconds
+   */
+  durationSeconds: number | null;
+}
+
+/**
+ * Additional data used to determine whether an auto moderation rule should be triggered.
+ */
+export interface AutoModerationTriggerMetadata {
+  /**
+   * The substrings that will be searched for in the content
+   */
+  keywordFilter: string[];
+
+  /**
+   * The regular expression patterns which will be matched against the content
+   * <info>Only Rust-flavored regular expressions are supported.</info>
+   */
+  regexPatterns: string[];
+
+  /**
+   * The internally pre-defined wordsets which will be searched for in the content
+   */
+  presets: AutoModerationRuleKeywordPresetType[];
+
+  /**
+   * The substrings that will be exempt from triggering
+   * {@link AutoModerationRuleTriggerType.Keyword} and {@link AutoModerationRuleTriggerType.KeywordPreset}
+   */
+  allowList: string[];
+
+  /**
+   * The total number of role & user mentions allowed per message
+   */
+  mentionTotalLimit: number | null;
+}
+
+/**
  * An object containing the same properties as CollectorOptions, but a few more
  */
 export type AwaitMessageComponentOptions<T extends CollectedMessageInteraction> = Omit<
@@ -15639,6 +16149,11 @@ export type BitFieldResolvable<T extends string, N extends number | bigint> =
 export type BufferResolvable = Buffer | string;
 
 export interface Caches {
+  /**
+   * Manages API methods for auto moderation rules and stores their cache.
+   */
+  AutoModerationRuleManager: [manager: typeof AutoModerationRuleManager, holds: typeof AutoModerationRule];
+
   /**
    * Manages API methods for application commands and stores their cache.
    */
@@ -15946,6 +16461,38 @@ export interface ClientEvents {
    * @param data The updated permissions
    */
   applicationCommandPermissionsUpdate: [data: ApplicationCommandPermissionsUpdateData];
+
+  /**
+   * Emitted whenever an auto moderation rule is triggered.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   * @param autoModerationActionExecution The data of the execution
+   */
+  autoModerationActionExecution: [autoModerationActionExecution: AutoModerationActionExecution];
+
+  /**
+   * Emitted whenever an auto moderation rule is created.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   * @param autoModerationRule The created auto moderation rule
+   */
+  autoModerationRuleCreate: [autoModerationRule: AutoModerationRule];
+
+  /**
+   * Emitted whenever an auto moderation rule is deleted.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   * @param autoModerationRule The deleted auto moderation rule
+   */
+  autoModerationRuleDelete: [autoModerationRule: AutoModerationRule];
+
+  /**
+   * Emitted whenever an auto moderation rule gets updated.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   * @param oldAutoModerationRule The auto moderation rule before the update
+   * @param newAutoModerationRule The auto moderation rule after the update
+   */
+  autoModerationRuleUpdate: [
+    oldAutoModerationRule: AutoModerationRule | null,
+    newAutoModerationRule: AutoModerationRule,
+  ];
 
   cacheSweep: [message: string];
 
@@ -16872,6 +17419,30 @@ export enum Events {
   ApplicationCommandPermissionsUpdate = 'applicationCommandPermissionsUpdate',
 
   /**
+   * Emitted whenever an auto moderation rule is triggered.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   */
+  AutoModerationActionExecution = 'autoModerationActionExecution',
+
+  /**
+   * Emitted whenever an auto moderation rule is created.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   */
+  AutoModerationRuleCreate = 'autoModerationRuleCreate',
+
+  /**
+   * Emitted whenever an auto moderation rule is deleted.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   */
+  AutoModerationRuleDelete = 'autoModerationRuleDelete',
+
+  /**
+   * Emitted whenever an auto moderation rule gets updated.
+   * <info>This event requires the {@link PermissionFlagsBits.ManageGuild} permission.</info>
+   */
+  AutoModerationRuleUpdate = 'autoModerationRuleUpdate',
+
+  /**
    * Emitted when the client becomes ready to start working.
    */
   ClientReady = 'ready',
@@ -17508,7 +18079,11 @@ interface Extendable {
   StageInstance: typeof StageInstance;
   ChatInputCommandInteraction: typeof ChatInputCommandInteraction;
   ButtonInteraction: typeof ButtonInteraction;
-  SelectMenuInteraction: typeof SelectMenuInteraction;
+  SelectMenuInteraction: typeof StringSelectMenuInteraction;
+  UserSelectMenuInteraction: typeof UserSelectMenuInteraction;
+  MentionableSelectMenuInteraction: typeof MentionableSelectMenuInteraction;
+  RoleSelectMenuInteraction: typeof RoleSelectMenuInteraction;
+  StringSelectMenuInteraction: typeof StringSelectMenuInteraction;
   MessageContextMenuCommandInteraction: typeof MessageContextMenuCommandInteraction;
   AutocompleteInteraction: typeof AutocompleteInteraction;
   UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;
@@ -17565,6 +18140,26 @@ export interface FetchArchivedThreadOptions {
    * Maximum number of threads to return
    */
   limit?: number;
+}
+
+/**
+ * Options used to fetch a single auto moderation rule from a guild.
+ */
+export interface FetchAutoModerationRuleOptions extends BaseFetchOptions {
+  /**
+   * The auto moderation rule to fetch
+   */
+  autoModerationRule: AutoModerationRuleResolvable;
+}
+
+/**
+ * Options used to fetch all auto moderation rules from a guild.
+ */
+export interface FetchAutoModerationRulesOptions {
+  /**
+   * Whether to cache the fetched auto moderation rules
+   */
+  cache?: boolean;
 }
 
 /**
@@ -17952,6 +18547,12 @@ interface GuildAuditLogsTypes {
   [AuditLogEvent.ThreadUpdate]: ['Thread', 'Update'];
   [AuditLogEvent.ThreadDelete]: ['Thread', 'Delete'];
   [AuditLogEvent.ApplicationCommandPermissionUpdate]: ['ApplicationCommand', 'Update'];
+  [AuditLogEvent.AutoModerationRuleCreate]: ['AutoModerationRule', 'Create'];
+  [AuditLogEvent.AutoModerationRuleUpdate]: ['AutoModerationRule', 'Update'];
+  [AuditLogEvent.AutoModerationRuleDelete]: ['AutoModerationRule', 'Delete'];
+  [AuditLogEvent.AutoModerationBlockMessage]: ['AutoModerationRule', 'Create'];
+  [AuditLogEvent.AutoModerationFlagToChannel]: ['AutoModerationRule', 'Create'];
+  [AuditLogEvent.AutoModerationUserCommunicationDisabled]: ['AutoModerationRule', 'Create'];
 }
 
 export type GuildAuditLogsActionType = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][1] | 'All';
@@ -17983,6 +18584,18 @@ export interface GuildAuditLogsEntryExtraField {
   [AuditLogEvent.StageInstanceDelete]: StageChannel | { id: Snowflake };
   [AuditLogEvent.StageInstanceUpdate]: StageChannel | { id: Snowflake };
   [AuditLogEvent.ApplicationCommandPermissionUpdate]: { applicationId: Snowflake };
+  [AuditLogEvent.AutoModerationBlockMessage]: {
+    autoModerationRuleName: string;
+    autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+  };
+  [AuditLogEvent.AutoModerationFlagToChannel]: {
+    autoModerationRuleName: string;
+    autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+  };
+  [AuditLogEvent.AutoModerationUserCommunicationDisabled]: {
+    autoModerationRuleName: string;
+    autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+  };
 }
 
 export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLogsActionType> {
@@ -17998,6 +18611,7 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
   Sticker: Sticker;
   GuildScheduledEvent: GuildScheduledEvent;
   ApplicationCommand: ApplicationCommand;
+  AutoModerationRule: AutoModerationRule;
 }
 
 /**
@@ -18042,6 +18656,96 @@ export type GuildBanResolvable = GuildBan | UserResolvable;
  * Data that can be resolved to give a Guild Channel object.
  */
 export type GuildChannelResolvable = Snowflake | GuildBasedChannel;
+
+/**
+ * Options used to create an auto moderation rule.
+ */
+export interface AutoModerationRuleCreateOptions {
+  /**
+   * The name of the auto moderation rule
+   */
+  name: string;
+
+  /**
+   * The event type of the auto moderation rule
+   */
+  eventType: AutoModerationRuleEventType;
+
+  /**
+   * The trigger type of the auto moderation rule
+   */
+  triggerType: AutoModerationRuleTriggerType;
+
+  /**
+   * The trigger metadata of the auto moderation rule
+   * <info>This property is required if using a `triggerType` of
+   * {@link AutoModerationRuleTriggerType.Keyword}, {@link AutoModerationRuleTriggerType.KeywordPreset},
+   * or {@link AutoModerationRuleTriggerType.MentionSpam}.</info>
+   */
+  triggerMetadata?: AutoModerationTriggerMetadataOptions;
+
+  /**
+   * The actions that will execute when the auto moderation rule is triggered
+   */
+  actions: AutoModerationActionOptions;
+
+  /**
+   * Whether the auto moderation rule should be enabled
+   */
+  enabled?: boolean;
+
+  /**
+   * The roles that should not be affected by the auto moderation rule
+   */
+  exemptRoles?: Collection<Snowflake, Role> | RoleResolvable[];
+
+  /**
+   * The channels that should not be affected by the auto moderation rule
+   */
+  exemptChannels?: Collection<Snowflake, GuildBasedChannel> | GuildChannelResolvable[];
+
+  /**
+   * The reason for creating the auto moderation rule
+   */
+  reason?: string;
+}
+
+/**
+ * Options used to edit an auto moderation rule.
+ */
+export interface AutoModerationRuleEditOptions extends Partial<Omit<AutoModerationRuleCreateOptions, 'triggerType'>> {}
+
+/**
+ * Options used to set the trigger metadata of an auto moderation rule.
+ */
+export interface AutoModerationTriggerMetadataOptions extends Partial<AutoModerationTriggerMetadata> {}
+
+/**
+ * Options used to set the actions of an auto moderation rule.
+ */
+export interface AutoModerationActionOptions {
+  /**
+   * The type of this auto moderation rule action
+   */
+  type: AutoModerationActionType;
+
+  /**
+   * Additional metadata needed during execution
+   * <info>This property is required if using a `type` of
+   * {@link AutoModerationActionType.SendAlertMessage} or {@link AutoModerationActionType.Timeout}.</info>
+   */
+  metadata?: AutoModerationActionMetadataOptions;
+}
+
+/**
+ * Options used to set the metadata of an auto moderation rule action.
+ */
+export interface AutoModerationActionMetadataOptions extends Partial<Omit<AutoModerationActionMetadata, 'channelId'>> {
+  /**
+   * The channel to which content will be logged
+   */
+  channel: GuildTextChannelResolvable | ThreadChannel;
+}
 
 /**
  * Options used to create a new channel in a guild.
@@ -20248,6 +20952,7 @@ export interface LifetimeSweepOptions {
 
 export interface SweeperDefinitions {
   applicationCommands: [Snowflake, ApplicationCommand];
+  autoModerationRules: [Snowflake, AutoModerationRule];
   bans: [Snowflake, GuildBan];
   emojis: [Snowflake, GuildEmoji];
   invites: [string, Invite, true];
