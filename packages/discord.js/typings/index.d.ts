@@ -18080,10 +18080,11 @@ interface Extendable {
   ChatInputCommandInteraction: typeof ChatInputCommandInteraction;
   ButtonInteraction: typeof ButtonInteraction;
   SelectMenuInteraction: typeof StringSelectMenuInteraction;
-  UserSelectMenuInteraction: typeof UserSelectMenuInteraction;
+  ChannelSelectMenuInteraction: typeof ChannelSelectMenuInteraction;
   MentionableSelectMenuInteraction: typeof MentionableSelectMenuInteraction;
   RoleSelectMenuInteraction: typeof RoleSelectMenuInteraction;
   StringSelectMenuInteraction: typeof StringSelectMenuInteraction;
+  UserSelectMenuInteraction: typeof UserSelectMenuInteraction;
   MessageContextMenuCommandInteraction: typeof MessageContextMenuCommandInteraction;
   AutocompleteInteraction: typeof AutocompleteInteraction;
   UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;

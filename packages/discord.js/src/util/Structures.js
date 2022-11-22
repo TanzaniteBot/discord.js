@@ -23,10 +23,12 @@
  * * **`StageInstance`**
  * * **`ChatInputCommandInteraction`**
  * * **`ButtonInteraction`**
- * * **`UserSelectMenuInteraction`**
+ * * **`SelectMenuInteraction`**
+ * * **`ChannelSelectMenuInteraction`**
  * * **`MentionableSelectMenuInteraction`**
  * * **`RoleSelectMenuInteraction`**
  * * **`StringSelectMenuInteraction`**
+ * * **`UserSelectMenuInteraction`**
  * * **`MessageContextMenuCommandInteraction`**
  * * **`AutocompleteInteraction`**
  * * **`UserContextMenuCommandInteraction`**
@@ -125,10 +127,11 @@ const structures = {
   ChatInputCommandInteraction: require('../structures/ChatInputCommandInteraction'),
   ButtonInteraction: require('../structures/ButtonInteraction'),
   SelectMenuInteraction: require('../structures/SelectMenuInteraction'),
-  UserSelectMenuInteraction: require('../structures/UserSelectMenuInteraction'),
+  ChannelSelectMenuInteraction: require('../structures/ChannelSelectMenuInteraction'),
   MentionableSelectMenuInteraction: require('../structures/MentionableSelectMenuInteraction'),
   RoleSelectMenuInteraction: require('../structures/RoleSelectMenuInteraction'),
   StringSelectMenuInteraction: require('../structures/StringSelectMenuInteraction'),
+  UserSelectMenuInteraction: require('../structures/UserSelectMenuInteraction'),
   MessageContextMenuCommandInteraction: require('../structures/MessageContextMenuCommandInteraction'),
   AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
   UserContextMenuCommandInteraction: require('../structures/UserContextMenuCommandInteraction'),
