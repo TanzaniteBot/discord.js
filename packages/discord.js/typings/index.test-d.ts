@@ -24,6 +24,8 @@ import {
   APIEmbed,
   ApplicationCommandType,
   APIMessage,
+  APIActionRowComponent,
+  APIActionRowComponentTypes,
   APIStringSelectComponent,
 } from 'discord-api-types/v10';
 import {
@@ -134,6 +136,8 @@ import {
   Webhook,
   WebhookClient,
   InteractionWebhook,
+  ActionRowComponent,
+  ActionRow,
   GuildAuditLogsActionType,
   GuildAuditLogsTargetType,
   ModalSubmitInteraction,
@@ -148,9 +152,12 @@ import {
   RoleSelectMenuInteraction,
   ChannelSelectMenuInteraction,
   MentionableSelectMenuInteraction,
+  MessageMentions,
   AutoModerationActionExecution,
   AutoModerationRule,
   AutoModerationRuleManager,
+  PrivateThreadChannel,
+  PublicThreadChannel,
 } from '.';
 import { expectAssignable, expectNotAssignable, expectNotType, expectType } from 'tsd';
 import type { ContextMenuCommandBuilder, SlashCommandBuilder } from '@discordjs/builders';
@@ -361,6 +368,10 @@ client.on('messageCreate', async message => {
     expectType<GuildTextBasedChannel>(message.channel);
     expectType<Guild>(message.guild);
     expectType<GuildMember | null>(message.member);
+
+    expectType<MessageMentions<true>>(message.mentions);
+    expectType<Guild>(message.guild);
+    expectType<Collection<Snowflake, GuildMember>>(message.mentions.members);
   }
 
   expectType<TextBasedChannel>(message.channel);
@@ -1374,7 +1385,7 @@ declare const applicationNonChoiceOptionData: ApplicationCommandOptionData & {
 declare const applicationSubGroupCommandData: ApplicationCommandSubGroupData;
 {
   expectType<ApplicationCommandOptionType.SubcommandGroup>(applicationSubGroupCommandData.type);
-  expectType<ApplicationCommandSubCommandData[] | undefined>(applicationSubGroupCommandData.options);
+  expectType<ApplicationCommandSubCommandData[]>(applicationSubGroupCommandData.options);
 }
 
 declare const autoModerationRuleManager: AutoModerationRuleManager;
@@ -1460,6 +1471,10 @@ declare const guildChannelManager: GuildChannelManager;
   expectType<null>(message.guild);
   expectType<null>(message.guildId);
   expectType<TextBasedChannel>(message.channel.messages.channel);
+
+  expectType<MessageMentions<false>>(message.mentions);
+  expectType<null>(message.mentions.guild);
+  expectType<null>(message.mentions.members);
 }
 
 declare const guildForumThreadManager: GuildForumThreadManager;
@@ -1735,6 +1750,22 @@ client.on('interactionCreate', async interaction => {
 
       expectType<GuildBasedChannel>(interaction.options.getChannel('test', true));
       expectType<Role>(interaction.options.getRole('test', true));
+
+      expectType<PublicThreadChannel>(interaction.options.getChannel('test', true, [ChannelType.PublicThread]));
+      expectType<PublicThreadChannel>(interaction.options.getChannel('test', true, [ChannelType.AnnouncementThread]));
+      expectType<PublicThreadChannel>(
+        interaction.options.getChannel('test', true, [ChannelType.PublicThread, ChannelType.AnnouncementThread]),
+      );
+      expectType<PrivateThreadChannel>(interaction.options.getChannel('test', true, [ChannelType.PrivateThread]));
+
+      expectType<TextChannel>(interaction.options.getChannel('test', true, [ChannelType.GuildText]));
+      expectType<TextChannel | null>(interaction.options.getChannel('test', false, [ChannelType.GuildText]));
+      expectType<ForumChannel | VoiceChannel>(
+        interaction.options.getChannel('test', true, [ChannelType.GuildForum, ChannelType.GuildVoice]),
+      );
+      expectType<ForumChannel | VoiceChannel | null>(
+        interaction.options.getChannel('test', false, [ChannelType.GuildForum, ChannelType.GuildVoice]),
+      );
     } else {
       // @ts-expect-error
       consumeCachedCommand(interaction);
@@ -2018,6 +2049,24 @@ EmbedBuilder.from(embedData);
 
 declare const embedComp: Embed;
 EmbedBuilder.from(embedComp);
+
+declare const actionRowData: APIActionRowComponent<APIActionRowComponentTypes>;
+ActionRowBuilder.from(actionRowData);
+
+declare const actionRowComp: ActionRow<ActionRowComponent>;
+ActionRowBuilder.from(actionRowComp);
+
+declare const buttonsActionRowData: APIActionRowComponent<APIButtonComponent>;
+declare const buttonsActionRowComp: ActionRow<ButtonComponent>;
+
+expectType<ActionRowBuilder<ButtonBuilder>>(ActionRowBuilder.from<ButtonBuilder>(buttonsActionRowData));
+expectType<ActionRowBuilder<ButtonBuilder>>(ActionRowBuilder.from<ButtonBuilder>(buttonsActionRowComp));
+
+declare const anyComponentsActionRowData: APIActionRowComponent<APIActionRowComponentTypes>;
+declare const anyComponentsActionRowComp: ActionRow<ActionRowComponent>;
+
+expectType<ActionRowBuilder>(ActionRowBuilder.from(anyComponentsActionRowData));
+expectType<ActionRowBuilder>(ActionRowBuilder.from(anyComponentsActionRowComp));
 
 declare const stageChannel: StageChannel;
 declare const partialGroupDMChannel: PartialGroupDMChannel;

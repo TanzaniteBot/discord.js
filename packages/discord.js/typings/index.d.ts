@@ -1,3 +1,6 @@
+// DOM types required for undici
+/// <reference lib="dom" />
+
 import {
   ActionRowBuilder as BuilderActionRow,
   MessageActionRowComponentBuilder,
@@ -32,6 +35,7 @@ import {
   AnyComponentBuilder,
   ComponentBuilder,
   type RestOrArray,
+  ApplicationCommandOptionAllowedChannelTypes,
 } from '@discordjs/builders';
 import { Awaitable, JSONEncodable } from '@discordjs/util';
 import { Collection } from '@discordjs/collection';
@@ -146,6 +150,10 @@ import {
   AuditLogRuleTriggerType,
   GatewayAutoModerationActionExecutionDispatchData,
   APIAutoModerationRule,
+  ForumLayoutType,
+  ApplicationRoleConnectionMetadataType,
+  APIApplicationRoleConnectionMetadata,
+  ImageFormat,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -383,11 +391,11 @@ export class ActionRowBuilder<T extends AnyComponentBuilder = AnyComponentBuilde
    * Creates a new action row builder from JSON data
    * @param other The other data
    */
-  public static from(
+  public static from<T extends AnyComponentBuilder = AnyComponentBuilder>(
     other:
-      | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>>
-      | APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>,
-  ): ActionRowBuilder;
+      | JSONEncodable<APIActionRowComponent<ReturnType<T['toJSON']>>>
+      | APIActionRowComponent<ReturnType<T['toJSON']>>,
+  ): ActionRowBuilder<T>;
 }
 
 /**
@@ -695,7 +703,7 @@ export class AutoModerationRule extends Base {
    * @param actions The actions of this auto moderation rule
    * @param reason The reason for changing the actions of this auto moderation rule
    */
-  public setActions(actions: AutoModerationActionOptions, reason?: string): Promise<AutoModerationRule>;
+  public setActions(actions: AutoModerationActionOptions[], reason?: string): Promise<AutoModerationRule>;
 
   /**
    * Sets whether this auto moderation rule should be enabled.
@@ -897,6 +905,11 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   public version: Snowflake;
 
   /**
+   * Whether this command is age-restricted (18+)
+   */
+  public nsfw: boolean;
+
+  /**
    * Deletes this command.
    * @example
    * // Delete this command
@@ -1012,8 +1025,7 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   /**
    * Checks that an option for an {@link ApplicationCommand} is equal to the provided option
    * In most cases it is better to compare using {@link ApplicationCommand.equals}
-   * @param existing The option on the existing command,
-   * should be from {@link ApplicationCommand#options}
+   * @param existing The option on the existing command, should be from {@link ApplicationCommand.options}
    * @param options The option to compare against
    * @param {} [enforceOptionOrder=false] Whether to strictly check that options or choices are in the same
    * order in their array <info>The client may not always respect this ordering!</info>
@@ -1038,6 +1050,43 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   private static transformCommand(command: ApplicationCommandData): RESTPostAPIApplicationCommandsJSONBody;
 
   private static isAPICommandData(command: object): command is RESTPostAPIApplicationCommandsJSONBody;
+}
+
+/**
+ * Role connection metadata object for an application.
+ */
+export class ApplicationRoleConnectionMetadata {
+  public constructor(data: APIApplicationRoleConnectionMetadata);
+
+  /**
+   * The name of this metadata field
+   */
+  public name: string;
+
+  /**
+   * The name localizations for this metadata field
+   */
+  public nameLocalizations: LocalizationMap | null;
+
+  /**
+   * The description of this metadata field
+   */
+  public description: string;
+
+  /**
+   * The description localizations for this metadata field
+   */
+  public descriptionLocalizations: LocalizationMap | null;
+
+  /**
+   * The dictionary key for this metadata field
+   */
+  public key: string;
+
+  /**
+   * The type of this metadata field
+   */
+  public type: ApplicationRoleConnectionMetadataType;
 }
 
 /**
@@ -1392,6 +1441,16 @@ export class InteractionResponse<Cached extends boolean = boolean> {
   public id: Snowflake;
 
   /**
+   * The time the interaction response was created at
+   */
+  public get createdAt(): Date;
+
+  /**
+   * The timestamp the interaction response was created at
+   */
+  public get createdTimestamp(): number;
+
+  /**
    * Collects a single component interaction that passes the filter.
    * The Promise will reject if the time expires.
    * @param {} [options={}] Options to pass to the internal collector
@@ -1564,7 +1623,7 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
    *   .then(invite => console.log(`Created an invite with a code of ${invite.code}`))
    *   .catch(console.error);
    */
-  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
+  public createInvite(options?: InviteCreateOptions): Promise<Invite>;
 
   /**
    * Fetches a collection of invites to this guild channel.
@@ -1650,7 +1709,7 @@ export class BaseGuildVoiceChannel extends GuildChannel {
    *   .then(invite => console.log(`Created an invite with a code of ${invite.code}`))
    *   .catch(console.error);
    */
-  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
+  public createInvite(options?: InviteCreateOptions): Promise<Invite>;
 
   /**
    * Sets the RTC region of the channel.
@@ -1869,7 +1928,7 @@ export class ButtonComponent extends Component<APIButtonComponent> {
   /**
    * Whether this button is disabled
    */
-  public get disabled(): boolean | null;
+  public get disabled(): boolean;
 
   /**
    * The custom id of this button (only defined on non-link buttons)
@@ -1946,7 +2005,7 @@ export class StringSelectMenuBuilder extends BuilderStringSelectMenuComponent {
    */
   private static normalizeEmoji(
     selectMenuOption: JSONEncodable<APISelectMenuOption> | SelectMenuComponentOptionData,
-  ): (APISelectMenuOption | SelectMenuOptionBuilder)[];
+  ): (APISelectMenuOption | StringSelectMenuOptionBuilder)[];
 
   /**
    * Adds options to this select menu
@@ -1969,6 +2028,8 @@ export class StringSelectMenuBuilder extends BuilderStringSelectMenuComponent {
 export {
   /** @deprecated Use {@link StringSelectMenuBuilder} instead */
   StringSelectMenuBuilder as SelectMenuBuilder,
+  /** @deprecated Use {@link StringSelectMenuOptionBuilder} instead */
+  StringSelectMenuOptionBuilder as SelectMenuOptionBuilder,
 };
 
 /**
@@ -2026,9 +2087,9 @@ export class ChannelSelectMenuBuilder extends BuilderChannelSelectMenuComponent 
 }
 
 /**
- * Represents a select menu option
+ * Represents a select menu option builder.
  */
-export class SelectMenuOptionBuilder extends BuildersSelectMenuOption {
+export class StringSelectMenuOptionBuilder extends BuildersSelectMenuOption {
   public constructor(data?: SelectMenuComponentOptionData | APISelectMenuOption);
 
   /**
@@ -2041,7 +2102,7 @@ export class SelectMenuOptionBuilder extends BuildersSelectMenuOption {
    * Creates a new select menu option builder from JSON data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APISelectMenuOption> | APISelectMenuOption): SelectMenuOptionBuilder;
+  public static from(other: JSONEncodable<APISelectMenuOption> | APISelectMenuOption): StringSelectMenuOptionBuilder;
 }
 
 /**
@@ -2118,7 +2179,7 @@ export class BaseSelectMenuComponent<Data extends APISelectMenuComponent> extend
   /**
    * Whether this select menu is disabled
    */
-  public get disabled(): boolean | null;
+  public get disabled(): boolean;
 }
 
 /**
@@ -2420,7 +2481,7 @@ export type ChannelFlagsString = keyof typeof ChannelFlags;
 export type ChannelFlagsResolvable = BitFieldResolvable<ChannelFlagsString, number>;
 
 /**
- * Data structure that makes it easy to interact with a {@link BaseChannel#flags} bitfield.
+ * Data structure that makes it easy to interact with a {@link BaseChannel.flags} bitfield.
  */
 export class ChannelFlagsBitField extends BitField<ChannelFlagsString> {
   /**
@@ -2844,6 +2905,11 @@ export class ClientApplication extends Application {
   public get partial(): boolean;
 
   /**
+   * This application's role connection verification entry point URL
+   */
+  public roleConnectionsVerificationURL: string | null;
+
+  /**
    * The application's RPC origins, if enabled
    */
   public rpcOrigins: string[];
@@ -2852,6 +2918,19 @@ export class ClientApplication extends Application {
    * Obtains this application from Discord.
    */
   public fetch(): Promise<ClientApplication>;
+
+  /**
+   * Gets this application's role connection metadata records
+   */
+  public fetchRoleConnectionMetadataRecords(): Promise<ApplicationRoleConnectionMetadata[]>;
+
+  /**
+   * Updates this application's role connection metadata records
+   * @param records The new role connection metadata records
+   */
+  public editRoleConnectionMetadataRecords(
+    records: ApplicationRoleConnectionMetadataEditOptions[],
+  ): Promise<ApplicationRoleConnectionMetadata[]>;
 }
 
 /**
@@ -2898,9 +2977,9 @@ export class ClientUser extends User {
 
   /**
    * Edits the logged in client.
-   * @param data The new data
+   * @param options The options to provide
    */
-  public edit(data: ClientUserEditData): Promise<this>;
+  public edit(options: ClientUserEditOptions): Promise<this>;
 
   /**
    * Sets the activity the client user is playing.
@@ -3359,20 +3438,20 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   /**
    * Gets an option by name and property and checks its type.
    * @param name The name of the option.
-   * @param type The type of the option.
+   * @param allowedTypes The type of the option.
    * @param properties The properties to check for for `required`.
    * @param required Whether to throw an error if the option is not found.
    * @returns The option, if found.
    */
   private _getTypedOption(
     name: string,
-    type: ApplicationCommandOptionType,
+    allowedTypes: ApplicationCommandOptionType[],
     properties: (keyof ApplicationCommandOption)[],
     required: true,
   ): CommandInteractionOption<Cached>;
   private _getTypedOption(
     name: string,
-    type: ApplicationCommandOptionType,
+    allowedTypes: ApplicationCommandOptionType[],
     properties: (keyof ApplicationCommandOption)[],
     required: boolean,
   ): CommandInteractionOption<Cached> | null;
@@ -3415,10 +3494,39 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * Gets a channel option.
    * @param name The name of the option.
    * @param {} [required=false] Whether to throw an error if the option is not found.
+   * @param {} [channelTypes=[]] The allowed types of channels. If empty, all channel types are allowed.
    * @returns The value of the option, or null if not set and not required.
    */
-  public getChannel(name: string, required: true): NonNullable<CommandInteractionOption<Cached>['channel']>;
-  public getChannel(name: string, required?: boolean): NonNullable<CommandInteractionOption<Cached>['channel']> | null;
+  public getChannel<T extends ChannelType = ChannelType>(
+    name: string,
+    required: true,
+    channelTypes?: T[],
+  ): Extract<
+    NonNullable<CommandInteractionOption<Cached>['channel']>,
+    {
+      // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
+      // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
+      // Hence the need for this ternary
+      type: T extends ChannelType.PublicThread | ChannelType.AnnouncementThread
+        ? ChannelType.PublicThread | ChannelType.AnnouncementThread
+        : T;
+    }
+  >;
+  public getChannel<T extends ChannelType = ChannelType>(
+    name: string,
+    required?: boolean,
+    channelTypes?: T[],
+  ): Extract<
+    NonNullable<CommandInteractionOption<Cached>['channel']>,
+    {
+      // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
+      // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
+      // Hence the need for this ternary
+      type: T extends ChannelType.PublicThread | ChannelType.AnnouncementThread
+        ? ChannelType.PublicThread | ChannelType.AnnouncementThread
+        : T;
+    }
+  > | null;
 
   /**
    * Gets a string option.
@@ -4039,7 +4147,7 @@ export class Guild extends AnonymousGuild {
 
   /**
    * Updates the guild with new information - e.g. a new name.
-   * @param data The data to update the guild with
+   * @param options The options to provide
    * @example
    * // Set the guild name
    * guild.edit({
@@ -4048,11 +4156,11 @@ export class Guild extends AnonymousGuild {
    *   .then(updated => console.log(`New guild name ${updated}`))
    *   .catch(console.error);
    */
-  public edit(data: GuildEditData): Promise<Guild>;
+  public edit(options: GuildEditOptions): Promise<Guild>;
 
   /**
    * Updates the guild's welcome screen
-   * @param data Data to edit the welcome screen with
+   * @param options The options to provide
    * @example
    * guild.editWelcomeScreen({
    *   description: 'Hello World',
@@ -4065,7 +4173,7 @@ export class Guild extends AnonymousGuild {
    *   ],
    * })
    */
-  public editWelcomeScreen(data: WelcomeScreenEditData): Promise<WelcomeScreen>;
+  public editWelcomeScreen(options: WelcomeScreenEditOptions): Promise<WelcomeScreen>;
 
   /**
    * Whether this guild equals another guild. It compares all properties, so for most operations
@@ -4174,6 +4282,12 @@ export class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   public leave(): Promise<Guild>;
+
+  /**
+   * Sets whether this guild's invites are disabled.
+   * @param {} [disabled=true] Whether the invites are disabled
+   */
+  public disableInvites(disabled?: boolean): Promise<Guild>;
 
   /**
    * Edits the AFK channel of the guild.
@@ -4700,14 +4814,14 @@ export abstract class GuildChannel extends BaseChannel {
 
   /**
    * Edits the channel.
-   * @param data The new data for the channel
+   * @param options The options to provide
    * @example
    * // Edit a channel
    * channel.edit({ name: 'new-channel' })
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public edit(data: GuildChannelEditOptions): Promise<this>;
+  public edit(options: GuildChannelEditOptions): Promise<this>;
 
   /**
    * Checks if this channel has the same type, topic, position, name, overwrites, and id as another channel.
@@ -4831,14 +4945,14 @@ export class GuildEmoji extends BaseGuildEmoji {
 
   /**
    * Edits the emoji.
-   * @param data The new data for the emoji
+   * @param options The options to provide
    * @example
    * // Edit an emoji
    * emoji.edit({ name: 'newemoji' })
    *   .then(e => console.log(`Edited emoji ${e}`))
    *   .catch(console.error);
    */
-  public edit(data: GuildEmojiEditData): Promise<GuildEmoji>;
+  public edit(options: GuildEmojiEditOptions): Promise<GuildEmoji>;
 
   /**
    * Whether this emoji is the same as another one.
@@ -5065,9 +5179,9 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
 
   /**
    * Edits this member.
-   * @param data The data to edit the member with
+   * @param options The options to provide
    */
-  public edit(data: GuildMemberEditData): Promise<GuildMember>;
+  public edit(options: GuildMemberEditOptions): Promise<GuildMember>;
 
   /**
    * Whether this member is currently timed out
@@ -5360,7 +5474,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    * Creates an invite URL to this guild scheduled event.
    * @param options The options to create the invite
    */
-  public createInviteURL(options?: CreateGuildScheduledEventInviteURLOptions): Promise<string>;
+  public createInviteURL(options?: GuildScheduledEventInviteURLCreateOptions): Promise<string>;
 
   /**
    * Edits this guild scheduled event.
@@ -5436,7 +5550,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
   /**
    * Sets the new status of the guild scheduled event.
    * <info>If you're working with TypeScript, use this method in conjunction with status type-guards
-   * like {@link GuildScheduledEvent#isScheduled} to get only valid status as suggestion</info>
+   * like {@link GuildScheduledEvent.isScheduled} to get only valid status as suggestion</info>
    * @param status The status of the guild scheduled event
    * @param reason The reason for changing the status
    * @example
@@ -5598,7 +5712,7 @@ export class GuildTemplate extends Base {
    * Updates the metadata of this template.
    * @param {} [options={}] Options for editing the template
    */
-  public edit(options?: EditGuildTemplateOptions): Promise<GuildTemplate>;
+  public edit(options?: GuildTemplateEditOptions): Promise<GuildTemplate>;
 
   /**
    * Syncs this template to the current state of the guild.
@@ -6014,12 +6128,12 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public isRoleSelectMenu(): this is RoleSelectMenuInteraction<Cached>;
 
   /**
-   * Indicates whether this interaction is a {@link ChannelSelectMenuInteraction}
+   * Indicates whether this interaction is a {@link MentionableSelectMenuInteraction}
    */
   public isMentionableSelectMenu(): this is MentionableSelectMenuInteraction<Cached>;
 
   /**
-   * Indicates whether this interaction is a {@link MenionableSelectMenuInteraction}
+   * Indicates whether this interaction is a {@link ChannelSelectMenuInteraction}
    */
   public isChannelSelectMenu(): this is ChannelSelectMenuInteraction<Cached>;
 
@@ -6183,7 +6297,7 @@ export class InteractionWebhook extends PartialWebhookMixin() {
   public send(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
   public editMessage(
     message: MessageResolvable | '@original',
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<Message>;
   public fetchMessage(message: Snowflake | '@original'): Promise<Message>;
 }
@@ -6621,7 +6735,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   /**
    * All valid mentions that the message contains
    */
-  public mentions: MessageMentions;
+  public mentions: MessageMentions<InGuild>;
 
   /**
    * A random number or string used for checking message delivery
@@ -7376,7 +7490,7 @@ export class MessageFlagsBitField extends BitField<MessageFlagsString> {
 /**
  * Keeps track of mentions in a {@link Message}.
  */
-export class MessageMentions {
+export class MessageMentions<InGuild extends boolean = boolean> {
   public constructor(
     message: Message,
     users: APIUser[] | Collection<Snowflake, User>,
@@ -7424,7 +7538,7 @@ export class MessageMentions {
   /**
    * The guild the message is in
    */
-  public readonly guild: Guild;
+  public readonly guild: If<InGuild, Guild>;
 
   /**
    * Checks if a user, guild member, thread member, role, or channel is mentioned.
@@ -7439,7 +7553,7 @@ export class MessageMentions {
    * Any members that were mentioned (only in {@link Guild}s)
    * <info>Order as received from the API, not as they appear in the message content</info>
    */
-  public get members(): Collection<Snowflake, GuildMember> | null;
+  public get members(): If<InGuild, Collection<Snowflake, GuildMember>>;
 
   /**
    * Any user mentions that were included in the message content
@@ -7516,8 +7630,8 @@ export class MessageMentions {
 export type MessagePayloadOption =
   | MessageCreateOptions
   | MessageEditOptions
-  | WebhookCreateMessageOptions
-  | WebhookEditMessageOptions
+  | WebhookMessageCreateOptions
+  | WebhookMessageEditOptions
   | InteractionReplyOptions
   | InteractionUpdateOptions;
 
@@ -8201,25 +8315,30 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
   public defaultSortOrder: SortOrderType | null;
 
   /**
+   * The default layout type used to display posts
+   */
+  public defaultForumLayout: ForumLayoutType;
+
+  /**
    * Sets the available tags for this forum channel
    * @param availableTags The tags to set as available in this channel
    * @param reason Reason for changing the available tags
    */
-  public setAvailableTags(availableTags: GuildForumTagData[], reason?: string): Promise<this>;
+  public setAvailableTags(tags: GuildForumTagData[], reason?: string): Promise<this>;
 
   /**
    * Sets the default reaction emoji for this channel
    * @param defaultReactionEmoji The emoji to set as the default reaction emoji
    * @param reason Reason for changing the default reaction emoji
    */
-  public setDefaultReactionEmoji(defaultReactionEmoji: DefaultReactionEmoji | null, reason?: string): Promise<this>;
+  public setDefaultReactionEmoji(emojiId: DefaultReactionEmoji | null, reason?: string): Promise<this>;
 
   /**
    * Sets the default rate limit per user (slowmode) for new threads in this channel
    * @param defaultThreadRateLimitPerUser The rate limit to set on newly created threads in this channel
    * @param reason Reason for changing the default rate limit
    */
-  public setDefaultThreadRateLimitPerUser(defaultThreadRateLimitPerUser: number, reason?: string): Promise<this>;
+  public setDefaultThreadRateLimitPerUser(rateLimit: number, reason?: string): Promise<this>;
 
   /**
    * Creates an invite to this guild channel.
@@ -8230,7 +8349,7 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    *   .then(invite => console.log(`Created an invite with a code of ${invite.code}`))
    *   .catch(console.error);
    */
-  public createInvite(options?: CreateInviteOptions): Promise<Invite>;
+  public createInvite(options?: InviteCreateOptions): Promise<Invite>;
 
   /**
    * Fetches a collection of invites to this guild channel.
@@ -8267,6 +8386,13 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    * @param reason Reason for changing the default sort order
    */
   public setDefaultSortOrder(defaultSortOrder: SortOrderType | null, reason?: string): Promise<this>;
+
+  /**
+   * Sets the default forum layout type used to display posts
+   * @param defaultForumLayout The default forum layout type to set on this channel
+   * @param reason Reason for changing the default forum layout
+   */
+  public setDefaultForumLayout(defaultForumLayout: ForumLayoutType, reason?: string): Promise<this>;
 }
 
 /**
@@ -8775,14 +8901,14 @@ export class Role extends Base {
 
   /**
    * Edits the role.
-   * @param data The new data for the role
+   * @param options The options to provide
    * @example
    * // Edit a role
    * role.edit({ name: 'new role' })
    *   .then(updated => console.log(`Edited role name to ${updated.name}`))
    *   .catch(console.error);
    */
-  public edit(data: EditRoleOptions): Promise<Role>;
+  public edit(options: RoleEditOptions): Promise<Role>;
 
   /**
    * Whether this role equals another role. It compares all properties, so for most operations
@@ -9993,14 +10119,14 @@ export class Sticker extends Base {
 
   /**
    * Edits the sticker.
-   * @param data The new data for the sticker
+   * @param options The options to provide
    * @example
    * // Update the name of a sticker
    * sticker.edit({ name: 'new name' })
    *   .then(s => console.log(`Updated the name of the sticker to ${s.name}`))
    *   .catch(console.error);
    */
-  public edit(data?: GuildStickerEditData): Promise<Sticker>;
+  public edit(options?: GuildStickerEditOptions): Promise<Sticker>;
 
   /**
    * Deletes the sticker.
@@ -10593,7 +10719,7 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
   public appliedTags: Snowflake[];
 
   /**
-   * The number of messages ever sent in a thread, similar to {@link ThreadChannel#messageCount} except it
+   * The number of messages ever sent in a thread, similar to {@link ThreadChannel.messageCount} except it
    * will not decrement whenever a message is deleted
    */
   public totalMessageSent: number | null;
@@ -10651,14 +10777,14 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
 
   /**
    * Edits this thread.
-   * @param data The new data for this thread
+   * @param options The options to provide
    * @example
    * // Edit a thread
    * thread.edit({ name: 'new-thread' })
    *   .then(editedThread => console.log(editedThread))
    *   .catch(console.error);
    */
-  public edit(data: ThreadEditData): Promise<AnyThreadChannel>;
+  public edit(options: ThreadEditOptions): Promise<AnyThreadChannel>;
 
   /**
    * Makes the client user join the thread.
@@ -11158,85 +11284,6 @@ export function discordSort<K, V extends { rawPosition: number; id: Snowflake }>
 ): Collection<K, V>;
 
 /**
- * Escapes any Discord-flavour markdown in a string.
- * @param text Content to escape
- * @param {} [options={}] Options for escaping the markdown
- */
-export function escapeMarkdown(text: string, options?: EscapeMarkdownOptions): string;
-
-/**
- * Escapes code block markdown in a string.
- * @param text Content to escape
- */
-export function escapeCodeBlock(text: string): string;
-
-/**
- * Escapes inline code markdown in a string.
- * @param text Content to escape
- */
-export function escapeInlineCode(text: string): string;
-
-/**
- * Escapes bold markdown in a string.
- * @param text Content to escape
- */
-export function escapeBold(text: string): string;
-
-/**
- * Escapes italic markdown in a string.
- * @param text Content to escape
- */
-export function escapeItalic(text: string): string;
-
-/**
- * Escapes underline markdown in a string.
- * @param text Content to escape
- */
-export function escapeUnderline(text: string): string;
-
-/**
- * Escapes strikethrough markdown in a string.
- * @param text Content to escape
- */
-export function escapeStrikethrough(text: string): string;
-
-/**
- * Escapes spoiler markdown in a string.
- * @param text Content to escape
- */
-export function escapeSpoiler(text: string): string;
-
-/**
- * Escapes escape characters in a string.
- * @param text Content to escape
- */
-export function escapeEscape(text: string): string;
-
-/**
- * Escapes heading characters in a string.
- * @param text Content to escape
- */
-export function escapeHeading(text: string): string;
-
-/**
- * Escapes bulleted list characters in a string.
- * @param text Content to escape
- */
-export function escapeBulletedList(text: string): string;
-
-/**
- * Escapes numbered list characters in a string.
- * @param text Content to escape
- */
-export function escapeNumberedList(text: string): string;
-
-/**
- * Escapes masked link characters in a string.
- * @param text Content to escape
- */
-export function escapeMaskedLink(text: string): string;
-
-/**
  * The content to put in a code block with all code block fences replaced by the equivalent backticks.
  * @param text The string to be converted
  */
@@ -11374,7 +11421,7 @@ export interface MappedComponentTypes {
   [ComponentType.TextInput]: TextInputComponent;
 }
 
-export interface CreateChannelOptions {
+export interface ChannelCreateOptions {
   allowFromUnknownGuild?: boolean;
   fromInteraction?: boolean;
 }
@@ -11388,7 +11435,7 @@ export interface CreateChannelOptions {
  * @returns Any kind of channel.
  * @private
  */
-export function createChannel(client: Client<true>, data: APIChannel, options?: CreateChannelOptions): Channel;
+export function createChannel(client: Client<true>, data: APIChannel, options?: ChannelCreateOptions): Channel;
 
 /**
  * Transforms API data into a component
@@ -11707,9 +11754,9 @@ export class VoiceState extends Base {
 
   /**
    * Edits this voice state. Currently only available when in a stage channel
-   * @param data The data to edit the voice state with
+   * @param options The options to provide
    */
-  public edit(data: VoiceStateEditData): Promise<this>;
+  public edit(options: VoiceStateEditOptions): Promise<this>;
 }
 
 export class Webhook extends WebhookMixin() {
@@ -11727,7 +11774,7 @@ export class Webhook extends WebhookMixin() {
   public avatarURL(options?: ImageURLOptions): string | null;
 
   /**
-   * The channel the webhook belongs to
+   * The id of the channel the webhook belongs to
    */
   public channelId: Snowflake;
 
@@ -11777,6 +11824,11 @@ export class Webhook extends WebhookMixin() {
   public applicationId: Snowflake | null;
 
   /**
+   * The channel the webhook belongs to
+   */
+  public get channel(): TextChannel | VoiceChannel | NewsChannel | ForumChannel | null;
+
+  /**
    * Whether this webhook is created by a user.
    */
   public isUserCreated(): this is this & {
@@ -11816,10 +11868,10 @@ export class Webhook extends WebhookMixin() {
 
   public editMessage(
     message: MessageResolvable,
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<Message>;
   public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<Message>;
-  public send(options: string | MessagePayload | WebhookCreateMessageOptions): Promise<Message>;
+  public send(options: string | MessagePayload | WebhookMessageCreateOptions): Promise<Message>;
 }
 
 /**
@@ -11855,7 +11907,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    */
   public editMessage(
     message: MessageResolvable,
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<APIMessage>;
 
   /**
@@ -11870,7 +11922,7 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
    * Sends a message with this webhook.
    * @param options The content for the reply
    */
-  public send(options: string | MessagePayload | WebhookCreateMessageOptions): Promise<APIMessage>;
+  public send(options: string | MessagePayload | WebhookMessageCreateOptions): Promise<APIMessage>;
 }
 
 /**
@@ -12096,7 +12148,7 @@ export class WebSocketShard extends EventEmitter {
   private readyTimeout: NodeJS.Timeout | null;
 
   /**
-   * Used to prevent calling {@link WebSocketShard#event:close} twice while closing or terminating the WebSocket.
+   * Used to prevent calling {@link WebSocketShardEventTypes.close} twice while closing or terminating the WebSocket.
    */
   private closeEmitted: boolean;
 
@@ -12300,6 +12352,12 @@ export class Widget extends Base {
    * The id of the guild.
    */
   public id: Snowflake;
+
+  /**
+   * The name of the guild.
+   * @type {string}
+   */
+  public name: string;
 
   /**
    * The invite of the guild.
@@ -12523,6 +12581,15 @@ export const Constants: {
    * The types of components that are select menus.
    */
   SelectMenuTypes: SelectMenuType[];
+
+  /**
+   * A mapping between sticker formats and their respective image formats.
+   * * {@link StickerFormatType.PNG} -> {@link ImageFormat.PNG}
+   * * {@link StickerFormatType.APNG} -> {@link ImageFormat.PNG}
+   * * {@link StickerFormatType.Lottie} -> {@link ImageFormat.Lottie}
+   * * {@link StickerFormatType.GIF} -> {@link ImageFormat.GIF}
+   */
+  StickerFormatExtensionMap: Record<StickerFormatType, ImageFormat>;
 };
 
 export const version: string;
@@ -13441,14 +13508,14 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
   /**
    * Edits the channel.
    * @param channel The channel to edit
-   * @param data The new data for the channel
+   * @param options Options for editing the channel
    * @example
    * // Edit a channel
    * guild.channels.edit('222197033908436994', { name: 'new-channel' })
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public edit(channel: GuildChannelResolvable, data: GuildChannelEditOptions): Promise<GuildChannel>;
+  public edit(channel: GuildChannelResolvable, options: GuildChannelEditOptions): Promise<GuildChannel>;
 
   /**
    * Obtains one or more guild channels from Discord, or the channel cache if they're already available.
@@ -13597,9 +13664,9 @@ export class GuildEmojiManager extends BaseGuildEmojiManager {
   /**
    * Edits an emoji.
    * @param emoji The Emoji resolvable to edit
-   * @param data The new data for the emoji
+   * @param options The options to provide
    */
-  public edit(emoji: EmojiResolvable, data: GuildEmojiEditData): Promise<GuildEmoji>;
+  public edit(emoji: EmojiResolvable, options: GuildEmojiEditOptions): Promise<GuildEmoji>;
 }
 
 /**
@@ -13746,9 +13813,9 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
    * Edits a member of the guild.
    * <info>The user must be a member of the guild</info>
    * @param user The member to edit
-   * @param data The data to edit the member with
+   * @param options The options to provide
    */
-  public edit(user: UserResolvable, data: GuildMemberEditData): Promise<GuildMember>;
+  public edit(user: UserResolvable, options: GuildMemberEditOptions): Promise<GuildMember>;
 
   /**
    * Fetches member(s) from Discord, even if they're offline.
@@ -13966,7 +14033,7 @@ export class GuildInviteManager extends DataManager<string, Invite, InviteResolv
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public create(channel: GuildInvitableChannelResolvable, options?: CreateInviteOptions): Promise<Invite>;
+  public create(channel: GuildInvitableChannelResolvable, options?: InviteCreateOptions): Promise<Invite>;
 
   /**
    * Fetches invite(s) from Discord.
@@ -14101,9 +14168,9 @@ export class GuildStickerManager extends CachedManager<Snowflake, Sticker, Stick
   /**
    * Edits a sticker.
    * @param sticker The sticker to edit
-   * @param {} [data={}] The new data for the sticker
+   * @param {} [options={}] The new data for the sticker
    */
-  public edit(sticker: StickerResolvable, data?: GuildStickerEditData): Promise<Sticker>;
+  public edit(sticker: StickerResolvable, options?: GuildStickerEditOptions): Promise<Sticker>;
 
   /**
    * Deletes a sticker.
@@ -14524,19 +14591,19 @@ export class RoleManager extends CachedManager<Snowflake, Role, RoleResolvable> 
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public create(options?: CreateRoleOptions): Promise<Role>;
+  public create(options?: RoleCreateOptions): Promise<Role>;
 
   /**
    * Edits a role of the guild.
    * @param role The role to edit
-   * @param data The new data for the role
+   * @param options The options to provide
    * @example
    * // Edit a role
    * guild.roles.edit('222079219327434752', { name: 'buddies' })
    *   .then(updated => console.log(`Edited role name to ${updated.name}`))
    *   .catch(console.error);
    */
-  public edit(role: RoleResolvable, options: EditRoleOptions): Promise<Role>;
+  public edit(role: RoleResolvable, options: RoleEditOptions): Promise<Role>;
 
   /**
    * Deletes a role.
@@ -15098,7 +15165,7 @@ export interface PartialWebhookFields {
    */
   editMessage(
     message: MessageResolvable | '@original',
-    options: string | MessagePayload | WebhookEditMessageOptions,
+    options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<APIMessage | Message>;
 
   /**
@@ -15157,7 +15224,7 @@ export interface PartialWebhookFields {
    *   .catch(console.error);
    */
   send(
-    options: string | MessagePayload | InteractionReplyOptions | WebhookCreateMessageOptions,
+    options: string | MessagePayload | InteractionReplyOptions | WebhookMessageCreateOptions,
   ): Promise<APIMessage | Message>;
 }
 
@@ -15182,7 +15249,7 @@ export interface WebhookFields extends PartialWebhookFields {
    * Edits this webhook.
    * @param options Options for editing the webhook
    */
-  edit(options: WebhookEditData): Promise<Webhook>;
+  edit(options: WebhookEditOptions): Promise<Webhook>;
 
   /**
    * Sends a raw slack message with this webhook.
@@ -15317,6 +15384,11 @@ export interface BaseApplicationCommandData {
    * The bitfield used to determine the default permissions a member needs in order to run the command
    */
   defaultMemberPermissions?: PermissionResolvable | null;
+
+  /**
+   * Whether the command is age-restricted
+   */
+  nsfw?: boolean;
 }
 
 export interface AttachmentData {
@@ -15446,13 +15518,13 @@ export interface ApplicationCommandChannelOptionData extends BaseApplicationComm
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: ChannelType[];
+  channelTypes?: ApplicationCommandOptionAllowedChannelTypes[];
 
   /**
    * When the option type is channel, the API data for allowed types of channels that can be selected
    * <warn>This is provided for compatibility with something like `@discordjs/builders`
    */
-  channel_types?: ChannelType[];
+  channel_types?: ApplicationCommandOptionAllowedChannelTypes[];
 }
 
 export interface ApplicationCommandChannelOption extends BaseApplicationCommandOptionsData {
@@ -15464,7 +15536,7 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: ChannelType[];
+  channelTypes?: ApplicationCommandOptionAllowedChannelTypes[];
 }
 
 export interface ApplicationCommandRoleOptionData extends BaseApplicationCommandOptionsData {
@@ -15754,7 +15826,7 @@ export interface ApplicationCommandSubGroupData extends Omit<BaseApplicationComm
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: ApplicationCommandSubCommandData[];
+  options: ApplicationCommandSubCommandData[];
 }
 
 export interface ApplicationCommandSubGroup extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -15953,6 +16025,41 @@ export type ApplicationCommandPermissionIdResolvable =
 export type ApplicationCommandResolvable = ApplicationCommand | Snowflake;
 
 export type ApplicationFlagsString = keyof typeof ApplicationFlags;
+
+/**
+ * Data for creating or editing an application role connection metadata.
+ */
+export interface ApplicationRoleConnectionMetadataEditOptions {
+  /**
+   * The name of the metadata field
+   */
+  name: string;
+
+  /**
+   * The name localizations for the metadata field
+   */
+  nameLocalizations?: LocalizationMap | null;
+
+  /**
+   * The description of the metadata field
+   */
+  description: string;
+
+  /**
+   * The description localizations for the metadata field
+   */
+  descriptionLocalizations?: LocalizationMap | null;
+
+  /**
+   * The dictionary key of the metadata field
+   */
+  key: string;
+
+  /**
+   * The type of the metadata field
+   */
+  type: ApplicationRoleConnectionMetadataType;
+}
 
 /**
  * An entry in the audit log representing a specific change.
@@ -16288,8 +16395,8 @@ export type CacheConstructors = {
  */
 export type CacheFactory = (
   manager: CacheConstructors[keyof Caches],
-  holds: Caches[typeof manager['name']][1],
-) => typeof manager['prototype'] extends DataManager<infer K, infer V, any> ? Collection<K, V> : never;
+  holds: Caches[(typeof manager)['name']][1],
+) => (typeof manager)['prototype'] extends DataManager<infer K, infer V, any> ? Collection<K, V> : never;
 
 export type CacheWithLimitsOptions = {
   [K in keyof Caches]?: Caches[K][0]['prototype'] extends DataManager<infer K, infer V, any>
@@ -16376,6 +16483,11 @@ export interface CategoryCreateChannelOptions {
    * The default sort order mode used to order posts (forum only).
    */
   defaultSortOrder?: SortOrderType;
+
+  /**
+   * The default layout used to display posts (forum only).
+   */
+  defaultForumLayout?: ForumLayoutType;
 
   /**
    * Reason for creating the new channel
@@ -16629,7 +16741,27 @@ export interface ClientEvents {
   guildMembersChunk: [
     members: Collection<Snowflake, GuildMember>,
     guild: Guild,
-    data: { count: number; index: number; nonce: string | undefined },
+    data: {
+      /**
+       * Index of the received chunk
+       */
+      index: number;
+
+      /**
+       * Number of chunks the client should receive
+       */
+      count: number;
+
+      /**
+       * An array of whatever could not be found when using {@link GatewayOpcodes.RequestGuildMembers}
+       */
+      notFound: unknown[];
+
+      /**
+       * Nonce for this chunk
+       */
+      nonce: string | undefined;
+    },
   ];
 
   /**
@@ -17004,7 +17136,7 @@ export interface ClientOptions {
   partials?: Partials[];
 
   /**
-   * The default value for {@link MessageReplyOptions#failIfNotExists}
+   * The default value for {@link MessageReplyOptions.failIfNotExists}
    * @default true
    */
   failIfNotExists?: boolean;
@@ -17066,7 +17198,7 @@ export interface ClientPresenceStatusData {
 /**
  * Data used to edit the logged in client
  */
-export interface ClientUserEditData {
+export interface ClientUserEditOptions {
   /**
    * The new username
    */
@@ -17822,9 +17954,8 @@ export enum Status {
 
 /**
  * Options used to create an invite URL to a {@link GuildScheduledEvent}
- * @property channel
  */
-export interface CreateGuildScheduledEventInviteURLOptions extends CreateInviteOptions {
+export interface GuildScheduledEventInviteURLCreateOptions extends InviteCreateOptions {
   /**
    * The channel to create the invite in.
    * <warn>This is required when the `entityType` of `GuildScheduledEvent` is
@@ -17836,7 +17967,7 @@ export interface CreateGuildScheduledEventInviteURLOptions extends CreateInviteO
 /**
  * Options used to create a new role.
  */
-export interface CreateRoleOptions extends RoleData {
+export interface RoleCreateOptions extends RoleData {
   /**
    * The reason for creating this role
    */
@@ -17846,7 +17977,7 @@ export interface CreateRoleOptions extends RoleData {
 /**
  * Options for editing a role
  */
-export interface EditRoleOptions extends RoleData {
+export interface RoleEditOptions extends RoleData {
   /**
    * The reason for editing this role
    */
@@ -17909,7 +18040,7 @@ export type DateResolvable = Date | number | string;
 /**
  * Options used to edit a guild template.
  */
-export interface EditGuildTemplateOptions {
+export interface GuildTemplateEditOptions {
   /**
    * The name of this template
    */
@@ -17943,11 +18074,15 @@ export interface EmbedField {
 
 /**
  * Data that can be resolved to give an emoji identifier. This can be:
- * * The unicode representation of an emoji
- * * The `<a:name:id>`, `<:name:id>`, `a:name:id` or `name:id` emoji identifier string of an emoji
  * * An EmojiResolvable
+ * * The `<a:name:id>`, `<:name:id>`, `a:name:id` or `name:id` emoji identifier string of an emoji
+ * * The Unicode representation of an emoji
  */
-export type EmojiIdentifierResolvable = string | EmojiResolvable;
+export type EmojiIdentifierResolvable =
+  | EmojiResolvable
+  | `${'' | 'a:'}${string}:${Snowflake}`
+  | `<${'' | 'a'}:${string}:${Snowflake}>`
+  | string;
 
 /**
  * Data that can be resolved into a GuildEmoji object.
@@ -18620,9 +18755,14 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
  */
 export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> {
   /**
-   * Only return entries before this entry
+   * Consider only entries before this entry
    */
   before?: Snowflake | GuildAuditLogsEntry;
+
+  /**
+   * Consider only entries after this entry
+   */
+  after?: Snowflake | GuildAuditLogsEntry;
 
   /**
    * The number of entries to return
@@ -18688,7 +18828,7 @@ export interface AutoModerationRuleCreateOptions {
   /**
    * The actions that will execute when the auto moderation rule is triggered
    */
-  actions: AutoModerationActionOptions;
+  actions: AutoModerationActionOptions[];
 
   /**
    * Whether the auto moderation rule should be enabled
@@ -18881,6 +19021,11 @@ export interface GuildChannelEditOptions {
   defaultSortOrder?: SortOrderType | null;
 
   /**
+   * The default forum layout to set on the channel
+   */
+  defaultForumLayout?: ForumLayoutType;
+
+  /**
    * Reason for editing this channel
    */
   reason?: string;
@@ -18912,20 +19057,15 @@ export interface GuildCreateOptions {
   name: string;
 
   /**
-   * The AFK channel's id
+   * The icon for the guild
+   * @default null
    */
-  afkChannelId?: Snowflake | number;
+  icon?: BufferResolvable | Base64Resolvable | null;
 
   /**
-   * The AFK timeout in seconds
+   * The verification level for the guild
    */
-  afkTimeout?: number;
-
-  /**
-   * The channels for this guild
-   * @default []
-   */
-  channels?: PartialChannelData[];
+  verificationLevel?: GuildVerificationLevel;
 
   /**
    * The default message notifications for the guild
@@ -18938,21 +19078,24 @@ export interface GuildCreateOptions {
   explicitContentFilter?: GuildExplicitContentFilter;
 
   /**
-   * The icon for the guild
-   * @default null
-   */
-  icon?: BufferResolvable | Base64Resolvable | null;
-
-  /**
-   * The roles for this guild, the first element of this array is used to change properties of the guild's everyone role.
-   * @default []
+   * The roles for this guild
    */
   roles?: PartialRoleData[];
 
   /**
-   * The flags of the system channel
+   * The channels for this guild
    */
-  systemChannelFlags?: SystemChannelFlagsResolvable;
+  channels?: PartialChannelData[];
+
+  /**
+   * The AFK channel's id
+   */
+  afkChannelId?: Snowflake | number;
+
+  /**
+   * The AFK timeout in seconds the first element of this array is used to change properties of the guild's everyone role.
+   */
+  afkTimeout?: number;
 
   /**
    * The system channel's id
@@ -18960,9 +19103,9 @@ export interface GuildCreateOptions {
   systemChannelId?: Snowflake | number;
 
   /**
-   * The verification level for the guild
+   * The flags of the system channel
    */
-  verificationLevel?: GuildVerificationLevel;
+  systemChannelFlags?: SystemChannelFlagsResolvable;
 }
 
 /**
@@ -18983,7 +19126,7 @@ export interface GuildWidgetSettings {
 /**
  * The data for editing a guild.
  */
-export interface GuildEditData {
+export interface GuildEditOptions {
   /**
    * The name of the guild
    */
@@ -18995,34 +19138,24 @@ export interface GuildEditData {
   verificationLevel?: GuildVerificationLevel | null;
 
   /**
-   * The level of the explicit content filter
-   */
-  explicitContentFilter?: GuildExplicitContentFilter | null;
-
-  /**
    * The default message notification level of the guild
    */
   defaultMessageNotifications?: GuildDefaultMessageNotifications | null;
 
   /**
+   * The level of the explicit content filter
+   */
+  explicitContentFilter?: GuildExplicitContentFilter | null;
+
+  /**
    * The AFK channel of the guild
    */
-  afkChannel?: VoiceChannelResolvable | null;
-
-  /**
-   * The system channel of the guild
-   */
-  systemChannel?: TextChannelResolvable | null;
-
-  /**
-   * The system channel flags of the guild
-   */
-  systemChannelFlags?: SystemChannelFlagsResolvable;
+  afkTimeout?: number;
 
   /**
    * The AFK timeout of the guild
    */
-  afkTimeout?: number;
+  afkChannel?: VoiceChannelResolvable | null;
 
   /**
    * The icon of the guild
@@ -19050,6 +19183,16 @@ export interface GuildEditData {
   banner?: BufferResolvable | Base64Resolvable | null;
 
   /**
+   * The system channel of the guild
+   */
+  systemChannel?: TextChannelResolvable | null;
+
+  /**
+   * The system channel flags of the guild
+   */
+  systemChannelFlags?: SystemChannelFlagsResolvable;
+
+  /**
    * The rules channel of the guild
    */
   rulesChannel?: TextChannelResolvable | null;
@@ -19065,9 +19208,9 @@ export interface GuildEditData {
   preferredLocale?: Locale | null;
 
   /**
-   * Whether the guild's premium progress bar is enabled
+   * The features of the guild
    */
-  premiumProgressBarEnabled?: boolean;
+  features?: `${GuildFeature}`[];
 
   /**
    * The discovery description of the guild
@@ -19075,9 +19218,9 @@ export interface GuildEditData {
   description?: string | null;
 
   /**
-   * The features of the guild
+   * Whether the guild's premium progress bar is enabled
    */
-  features?: `${GuildFeature}`[];
+  premiumProgressBarEnabled?: boolean;
 
   /**
    * Reason for editing this guild
@@ -19113,7 +19256,7 @@ export interface GuildEmojiCreateOptions {
 /**
  * Data for editing an emoji.
  */
-export interface GuildEmojiEditData {
+export interface GuildEmojiEditOptions {
   /**
    * The name of the emoji
    */
@@ -19163,7 +19306,7 @@ export interface GuildStickerCreateOptions {
 /**
  * Data for editing a sticker.
  */
-export interface GuildStickerEditData {
+export interface GuildStickerEditOptions {
   /**
    * The name of the sticker
    */
@@ -19188,7 +19331,7 @@ export interface GuildStickerEditData {
 /**
  * The data for editing a guild member.
  */
-export interface GuildMemberEditData {
+export interface GuildMemberEditOptions {
   /**
    * The nickname to set for the member
    */
@@ -19505,7 +19648,7 @@ export interface IntegrationAccount {
 /**
  * The type of an {@link Integration}.
  */
-export type IntegrationType = 'twitch' | 'youtube' | 'discord';
+export type IntegrationType = 'twitch' | 'youtube' | 'discord' | 'guild_subscription';
 
 export type CollectedInteraction<Cached extends CacheType = CacheType> =
   | StringSelectMenuInteraction<Cached>
@@ -19657,7 +19800,7 @@ export type GuildInvitableChannelResolvable = TextChannel | VoiceChannel | NewsC
 /**
  * Options used to create an invite to a guild channel.
  */
-export interface CreateInviteOptions {
+export interface InviteCreateOptions {
   /**
    * Whether members that joined via the invite should be automatically
    * kicked after 24 hours if they have not yet received a role
@@ -20072,15 +20215,12 @@ export interface MessageEditOptions extends Omit<BaseMessageOptions, 'content'> 
 }
 
 /**
- * Data that can be resolved to a MessageReaction object.
+ * Data that can be resolved to a MessageReaction object. This can be:
+ * * A MessageReaction
+ * * A Snowflake
+ * * The Unicode representation of an emoji
  */
-export type MessageReactionResolvable =
-  | MessageReaction
-  | Snowflake
-  | `${string}:${Snowflake}`
-  | `<:${string}:${Snowflake}>`
-  | `<a:${string}:${Snowflake}>`
-  | string;
+export type MessageReactionResolvable = MessageReaction | Snowflake | string;
 
 /**
  * Reference data sent in a message that contains ids identifying the referenced message.
@@ -20448,8 +20588,8 @@ export type PresenceResolvable = Presence | UserResolvable | Snowflake;
  */
 export interface PartialChannelData {
   /**
-   * The channel's id, used to set its parent,
-   * this is a placeholder and will be replaced by the API after consumption
+   * The channel's id, used to set its parent.
+   * This is a placeholder and will be replaced by the API after consumption
    */
   id?: Snowflake | number;
 
@@ -20565,8 +20705,8 @@ export interface PartialOverwriteData {
  */
 export interface PartialRoleData extends RoleData {
   /**
-   * The role's id, used to set channel overrides,
-   * this is a placeholder and will be replaced by the API after consumption
+   * The role's id, used to set channel overrides.
+   * This is a placeholder and will be replaced by the API after consumption
    */
   id?: Snowflake | number;
 }
@@ -20663,7 +20803,7 @@ export interface RoleData {
   color?: ColorResolvable;
 
   /**
-   * Whether or not the role should be hoisted
+   * Whether the role should be hoisted
    */
   hoist?: boolean;
 
@@ -20678,7 +20818,7 @@ export interface RoleData {
   permissions?: PermissionResolvable;
 
   /**
-   * Whether or not the role should be mentionable
+   * Whether the role should be mentionable
    */
   mentionable?: boolean;
 
@@ -20731,6 +20871,16 @@ export interface RoleTagData {
    * Whether the role is the guild's premium subscription role
    */
   premiumSubscriberRole?: true;
+
+  /**
+   * The id of this role's subscription SKU and listing
+   */
+  subscriptionListingId?: Snowflake;
+
+  /**
+   * Whether this role is available for purchase
+   */
+  availableForPurchase?: true;
 }
 
 /**
@@ -21097,7 +21247,7 @@ export interface GuildForumThreadCreateOptions extends StartThreadOptions {
 /**
  * The options used to edit a thread channel
  */
-export interface ThreadEditData {
+export interface ThreadEditOptions {
   /**
    * The new name for the thread
    */
@@ -21185,7 +21335,7 @@ export type VoiceChannelResolvable = Snowflake | VoiceChannel;
 /**
  * Data to edit the logged in user's own voice state with, when in a stage channel
  */
-export interface VoiceStateEditData {
+export interface VoiceStateEditOptions {
   /**
    * Whether or not the client is requesting to become a speaker.
    * <info>Only available to the logged in user's own voice state.</info>
@@ -21236,7 +21386,7 @@ export type WebhookClientOptions = Pick<ClientOptions, 'allowedMentions' | 'rest
 /**
  * Options used to edit a {@link Webhook}.
  */
-export interface WebhookEditData {
+export interface WebhookEditOptions {
   /**
    * The new name for the webhook
    * @default this.name
@@ -21260,9 +21410,9 @@ export interface WebhookEditData {
 }
 
 /**
- * Options that can be passed into editMessage.
+ * Options that can be passed into editReply
  */
-export interface WebhookEditMessageOptions extends Omit<MessageEditOptions, 'flags'> {
+export interface WebhookMessageEditOptions extends Omit<MessageEditOptions, 'flags'> {
   /**
    * The id of the thread this message belongs to
    * <info>For interaction webhooks, this property is ignored</info>
@@ -21270,7 +21420,10 @@ export interface WebhookEditMessageOptions extends Omit<MessageEditOptions, 'fla
   threadId?: Snowflake;
 }
 
-export interface InteractionEditReplyOptions extends WebhookEditMessageOptions {
+/**
+ * Options that can be passed into {@link InteractionResponses.editReply}.
+ */
+export interface InteractionEditReplyOptions extends WebhookMessageEditOptions {
   /**
    * The response to edit
    */
@@ -21290,7 +21443,7 @@ export interface WebhookFetchMessageOptions {
 /**
  * Options that can be passed into send.
  */
-export interface WebhookCreateMessageOptions extends Omit<MessageCreateOptions, 'nonce' | 'reply' | 'stickers'> {
+export interface WebhookMessageCreateOptions extends Omit<MessageCreateOptions, 'nonce' | 'reply' | 'stickers'> {
   /**
    * Username override for the message
    * @default this.name
@@ -21387,7 +21540,7 @@ export interface WelcomeChannelData {
 /**
  * Welcome screen edit data
  */
-export interface WelcomeScreenEditData {
+export interface WelcomeScreenEditOptions {
   /**
    * Whether the welcome screen is enabled
    */
@@ -21461,5 +21614,6 @@ export type InternalDiscordGatewayAdapterCreator = (
 // External
 export * from 'discord-api-types/v10';
 export * from '@discordjs/builders';
+export * from '@discordjs/formatters';
 export * from '@discordjs/rest';
 export * from '@discordjs/util';

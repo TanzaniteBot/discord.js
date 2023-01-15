@@ -83,7 +83,7 @@ class GuildEmoji extends BaseGuildEmoji {
 
   /**
    * Data for editing an emoji.
-   * @typedef {Object} GuildEmojiEditData
+   * @typedef {Object} GuildEmojiEditOptions
    * @property {string} [name] The name of the emoji
    * @property {Collection<Snowflake, Role>|RoleResolvable[]} [roles] Roles to restrict emoji to
    * @property {string} [reason] Reason for editing this emoji
@@ -91,7 +91,7 @@ class GuildEmoji extends BaseGuildEmoji {
 
   /**
    * Edits the emoji.
-   * @param {GuildEmojiEditData} data The new data for the emoji
+   * @param {GuildEmojiEditOptions} options The options to provide
    * @returns {Promise<GuildEmoji>}
    * @example
    * // Edit an emoji
@@ -99,8 +99,8 @@ class GuildEmoji extends BaseGuildEmoji {
    *   .then(e => console.log(`Edited emoji ${e}`))
    *   .catch(console.error);
    */
-  edit(data) {
-    return this.guild.emojis.edit(this.id, data);
+  edit(options) {
+    return this.guild.emojis.edit(this.id, options);
   }
 
   /**

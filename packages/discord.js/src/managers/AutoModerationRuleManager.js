@@ -20,6 +20,30 @@ class AutoModerationRuleManager extends CachedManager {
     this.guild = guild;
   }
 
+  /**
+   * The cache of this manager
+   * @type {Collection<Snowflake, AutoModerationRule>}
+   * @name AutoModerationRuleManager#cache
+   */
+
+  /**
+   * Resolves an {@link AutoModerationRuleResolvable} to an {@link AutoModerationRule} object.
+   * @method resolve
+   * @memberof AutoModerationRuleManager
+   * @instance
+   * @param {AutoModerationRuleResolvable} autoModerationRule The AutoModerationRule resolvable to resolve
+   * @returns {?AutoModerationRule}
+   */
+
+  /**
+   * Resolves an {@link AutoModerationRuleResolvable} to a {@link AutoModerationRule} id.
+   * @method resolveId
+   * @memberof AutoModerationRuleManager
+   * @instance
+   * @param {AutoModerationRuleResolvable} autoModerationRule The AutoModerationRule resolvable to resolve
+   * @returns {?Snowflake}
+   */
+
   _add(data, cache) {
     return super._add(data, cache, { extras: [this.guild] });
   }
@@ -253,24 +277,6 @@ class AutoModerationRuleManager extends CachedManager {
     const autoModerationRuleId = this.resolveId(autoModerationRule);
     await this.client.rest.delete(Routes.guildAutoModerationRule(this.guild.id, autoModerationRuleId), { reason });
   }
-
-  /**
-   * Resolves an {@link AutoModerationRuleResolvable} to an {@link AutoModerationRule} object.
-   * @method resolve
-   * @memberof AutoModerationRuleManager
-   * @instance
-   * @param {AutoModerationRuleResolvable} autoModerationRule The AutoModerationRule resolvable to resolve
-   * @returns {?AutoModerationRule}
-   */
-
-  /**
-   * Resolves an {@link AutoModerationRuleResolvable} to a {@link AutoModerationRule} id.
-   * @method resolveId
-   * @memberof AutoModerationRuleManager
-   * @instance
-   * @param {AutoModerationRuleResolvable} autoModerationRule The AutoModerationRule resolvable to resolve
-   * @returns {?Snowflake}
-   */
 }
 
 module.exports = AutoModerationRuleManager;

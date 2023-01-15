@@ -9,7 +9,7 @@ import { FormData, type RequestInit, type BodyInit, type Dispatcher, type Agent 
 import type { RESTOptions, RestEvents, RequestOptions } from './REST.js';
 import type { IHandler } from './handlers/IHandler.js';
 import { SequentialHandler } from './handlers/SequentialHandler.js';
-import { DefaultRestOptions, DefaultUserAgent, RESTEvents } from './utils/constants.js';
+import { DefaultRestOptions, DefaultUserAgent, OverwrittenMimeTypes, RESTEvents } from './utils/constants.js';
 import { resolveBody } from './utils/utils.js';
 
 // Make this a lazy dynamic import as file-type is a pure ESM package
@@ -88,7 +88,7 @@ export interface RequestData {
 	/**
 	 * Reason to show in the audit logs
 	 */
-	reason?: string;
+	reason?: string | undefined;
 	/**
 	 * The signal to abort the queue entry or the REST call, where applicable
 	 */
@@ -419,7 +419,14 @@ export class RequestManager extends EventEmitter {
 				if (Buffer.isBuffer(file.data)) {
 					// Try to infer the content type from the buffer if one isn't passed
 					const { fileTypeFromBuffer } = await getFileType();
-					const contentType = file.contentType ?? (await fileTypeFromBuffer(file.data))?.mime;
+					let contentType = file.contentType;
+					if (!contentType) {
+						const parsedType = (await fileTypeFromBuffer(file.data))?.mime;
+						if (parsedType) {
+							contentType = OverwrittenMimeTypes[parsedType as keyof typeof OverwrittenMimeTypes] ?? parsedType;
+						}
+					}
+
 					formData.append(fileKey, new Blob([file.data], { type: contentType }), file.name);
 				} else {
 					formData.append(fileKey, new Blob([`${file.data}`], { type: file.contentType }), file.name);
@@ -499,7 +506,7 @@ export class RequestManager extends EventEmitter {
 
 		const baseRoute = endpoint
 			// Strip out all ids
-			.replace(/\d{16,19}/g, ':id')
+			.replaceAll(/\d{16,19}/g, ':id')
 			// Strip out reaction as they fall under the same bucket
 			.replace(/\/reactions\/(.*)/, '/reactions/:reaction');
 
