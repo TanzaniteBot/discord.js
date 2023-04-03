@@ -154,6 +154,7 @@ import {
   ApplicationRoleConnectionMetadataType,
   APIApplicationRoleConnectionMetadata,
   ImageFormat,
+  GuildMemberFlags,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -238,6 +239,11 @@ declare module 'node:events' {
  */
 export class Activity {
   public constructor(presence: Presence, data?: RawActivityData);
+
+  /**
+   * The presence of the Activity
+   */
+  public readonly presence: Presence;
 
   /**
    * The id of the application associated with this activity
@@ -533,14 +539,29 @@ export class AutoModerationActionExecution {
   public ruleTriggerType: AutoModerationRuleTriggerType;
 
   /**
+   * The user that triggered this action.
+   */
+  public get user(): User | null;
+
+  /**
    * The id of the user that triggered this action.
    */
   public userId: Snowflake;
 
   /**
+   * The channel where this action was triggered from.
+   */
+  public get channel(): TextBasedChannel | null;
+
+  /**
    * The id of the channel where this action was triggered from.
    */
   public channelId: Snowflake | null;
+
+  /**
+   * The guild member that triggered this action.
+   */
+  public get member(): GuildMember | null;
 
   /**
    * The id of the message that triggered this action.
@@ -1466,6 +1487,22 @@ export class InteractionResponse<Cached extends boolean = boolean> {
   public createMessageComponentCollector<T extends MessageComponentType>(
     options?: MessageCollectorOptionsParams<T, Cached>,
   ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
+
+  /**
+   * Deletes the response.
+   */
+  public delete(): Promise<void>;
+
+  /**
+   * Edits the response.
+   * @param options The new options for the response.
+   */
+  public edit(options: string | MessagePayload | WebhookMessageEditOptions): Promise<Message>;
+
+  /**
+   * Fetches the response as a {@link Message} object.
+   */
+  public fetch(): Promise<Message>;
 }
 
 /**
@@ -1648,8 +1685,8 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
    * @param reason Reason for changing the guild channel's topic
    * @example
    * // Set a new channel topic
-   * channel.setTopic('needs more rate limiting')
-   *   .then(newChannel => console.log(`Channel's new topic is ${newChannel.topic}`))
+   * stageChannel.setTopic('needs more rate limiting')
+   *   .then(channel => console.log(`Channel's new topic is ${channel.topic}`))
    *   .catch(console.error);
    */
   public setTopic(topic: string | null, reason?: string): Promise<this>;
@@ -1667,13 +1704,16 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
 /**
  * Represents a voice-based guild channel on Discord.
  */
-export class BaseGuildVoiceChannel extends GuildChannel {
+export class BaseGuildVoiceChannel extends TextBasedChannelMixin(GuildChannel, true, [
+  'lastPinTimestamp',
+  'lastPinAt',
+]) {
   public constructor(guild: Guild, data?: RawGuildChannelData);
 
   /**
-   * The members in this voice-based channel
+   * The bitrate of this voice-based channel
    */
-  public get members(): Collection<Snowflake, GuildMember>;
+  public bitrate: number;
 
   /**
    * Checks if the voice-based channel is full
@@ -1686,19 +1726,34 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   public get joinable(): boolean;
 
   /**
+   * The members in this voice-based channel
+   */
+  public get members(): Collection<Snowflake, GuildMember>;
+
+  /**
+   * If the guild considers this channel NSFW
+   */
+  public nsfw: boolean;
+
+  /**
+   * The rate limit per user (slowmode) for this channel in seconds
+   */
+  public rateLimitPerUser: number | null;
+
+  /**
    * The RTC region for this voice-based channel. This region is automatically selected if `null`.
    */
   public rtcRegion: string | null;
 
   /**
-   * The bitrate of this voice-based channel
-   */
-  public bitrate: number;
-
-  /**
    * The maximum amount of users allowed in this channel.
    */
   public userLimit: number;
+
+  /**
+   * The camera video quality mode of the channel.
+   */
+  public videoQualityMode: VideoQualityMode | null;
 
   /**
    * Creates an invite to this guild channel.
@@ -1712,10 +1767,28 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   public createInvite(options?: InviteCreateOptions): Promise<Invite>;
 
   /**
+   * Fetches a collection of invites to this guild channel.
+   * Resolves with a collection mapping invites by their codes.
+   * @param {} [cache=true] Whether or not to cache the fetched invites
+   */
+  public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
+
+  /**
+   * Sets the bitrate of the channel.
+   * @param bitrate The new bitrate
+   * @param reason Reason for changing the channel's bitrate
+   * @example
+   * // Set the bitrate of a voice channel
+   * channel.setBitrate(48_000)
+   *   .then(channel => console.log(`Set bitrate to ${channel.bitrate}bps for ${channel.name}`))
+   *   .catch(console.error);
+   */
+  public setBitrate(bitrate: number, reason?: string): Promise<this>;
+
+  /**
    * Sets the RTC region of the channel.
-   * @param {?string} rtcRegion The new region of the channel. Set to `null` to remove a specific region for the channel
-   * @param {string} [reason] The reason for modifying this region.
-   * @returns {Promise<StageChannel>}
+   * @param rtcRegion The new region of the channel. Set to `null` to remove a specific region for the channel
+   * @param reason The reason for modifying this region.
    * @example
    * // Set the RTC region to sydney
    * stageChannel.setRTCRegion('sydney');
@@ -1726,11 +1799,24 @@ export class BaseGuildVoiceChannel extends GuildChannel {
   public setRTCRegion(rtcRegion: string | null, reason?: string): Promise<this>;
 
   /**
-   * Fetches a collection of invites to this guild channel.
-   * Resolves with a collection mapping invites by their codes.
-   * @param {} [cache=true] Whether or not to cache the fetched invites
+   * Sets the user limit of the channel.
+   * @param userLimit The new user limit
+   * @param reason Reason for changing the user limit
+   * @returns {Promise<BaseGuildVoiceChannel>}
+   * @example
+   * // Set the user limit of a voice channel
+   * channel.setUserLimit(42)
+   *   .then(channel => console.log(`Set user limit to ${channel.userLimit} for ${channel.name}`))
+   *   .catch(console.error);
    */
-  public fetchInvites(cache?: boolean): Promise<Collection<string, Invite>>;
+  public setUserLimit(userLimit: number, reason?: string): Promise<this>;
+
+  /**
+   * Sets the camera video quality mode of the channel.
+   * @param videoQualityMode The new camera video quality mode.
+   * @param reason Reason for changing the camera video quality mode.
+   */
+  public setVideoQualityMode(videoQualityMode: VideoQualityMode, reason?: string): Promise<this>;
 }
 
 export type EnumLike<E, V> = Record<keyof E, V>;
@@ -3050,6 +3136,11 @@ export class Options extends null {
   private constructor();
 
   /**
+   * The default user agent appendix.
+   */
+  private static userAgentAppendix: string;
+
+  /**
    * The default settings passed to {@link Options.cacheWithLimits}.
    * The caches that this changes are:
    * * `MessageManager` - Limit to 200 messages
@@ -3172,6 +3263,16 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * The items collected by this collector
    */
   public collected: Collection<K, V>;
+
+  /**
+   * The timestamp at which this collector last collected an item
+   */
+  public lastCollectedTimestamp: number | null;
+
+  /**
+   * The Date at which this collector last collected an item
+   */
+  public get lastCollectedAt(): Date | null;
 
   /**
    * Whether this collector has finished collecting
@@ -3980,6 +4081,11 @@ export class Guild extends AnonymousGuild {
   public maximumPresences: number | null;
 
   /**
+   * The maximum amount of users allowed in a stage video channel.
+   */
+  public maxStageVideoChannelUsers: number | null;
+
+  /**
    * The full amount of members in this guild
    */
   public memberCount: number;
@@ -4278,7 +4384,7 @@ export class Guild extends AnonymousGuild {
    * @example
    * // Leave a guild
    * guild.leave()
-   *   .then(g => console.log(`Left the guild ${g}`))
+   *   .then(guild => console.log(`Left the guild: ${guild.name}`))
    *   .catch(console.error);
    */
   public leave(): Promise<Guild>;
@@ -4491,8 +4597,14 @@ export class Guild extends AnonymousGuild {
 
   /**
    * Sets the guild's MFA level
+   * <info>An elevated MFA level requires guild moderators to have 2FA enabled.</info>
    * @param level The MFA level
    * @param reason Reason for changing the guild's MFA level
+   * @example
+   * // Set the MFA level of the guild to Elevated
+   * guild.setMFALevel(GuildMFALevel.Elevated)
+   *   .then(guild => console.log("Set guild's MFA level to Elevated"))
+   *   .catch(console.error);
    */
   public setMFALevel(level: GuildMFALevel, reason?: string): Promise<Guild>;
 
@@ -4554,7 +4666,7 @@ export class GuildAuditLogsEntry<
     : GuildAuditLogsTargetType,
   TResolvedType = TAction extends null ? AuditLogEvent : TAction,
 > {
-  public constructor(logs: GuildAuditLogs, guild: Guild, data: RawGuildAuditLogEntryData);
+  public constructor(guild: Guild, data: RawGuildAuditLogEntryData, logs?: GuildAuditLogs);
 
   /**
    * Key mirror of all available audit log targets.
@@ -4587,6 +4699,12 @@ export class GuildAuditLogsEntry<
   public get createdTimestamp(): number;
 
   /**
+   * The id of the user that executed this entry
+   * @type {?Snowflake}
+   */
+  public executorId: Snowflake | null;
+
+  /**
    * The user that executed this entry
    */
   public executor: User | null;
@@ -4607,6 +4725,12 @@ export class GuildAuditLogsEntry<
    * The reason of this entry
    */
   public reason: string | null;
+
+  /**
+   * The id of the target of this entry
+   * @type {?Snowflake}
+   */
+  public targetId: Snowflake | null;
 
   /**
    * The target of this entry
@@ -4973,6 +5097,33 @@ export class GuildEmoji extends BaseGuildEmoji {
   public setName(name: string, reason?: string): Promise<GuildEmoji>;
 }
 
+export type GuildMemberFlagsString = keyof typeof GuildMemberFlags;
+
+/**
+ * Data that can be resolved to give a guild member flag bitfield. This can be:
+ * * A string (see {@link GuildMemberFlagsBitField.Flags})
+ * * A guild member flag
+ * * An instance of GuildMemberFlagsBitField
+ * * An Array of GuildMemberFlagsResolvable
+ */
+export type GuildMemberFlagsResolvable = BitFieldResolvable<GuildMemberFlagsString, number>;
+
+/**
+ * Data structure that makes it easy to interact with a {@link GuildMember.flags} bitfield.
+ */
+export class GuildMemberFlagsBitField extends BitField<GuildMemberFlagsString> {
+  /**
+   * Numeric guild guild member flags.
+   */
+  public static Flags: GuildMemberFlags;
+
+  /**
+   * Resolves bitfields to their numeric form.
+   * @param bit bit(s) to resolve
+   */
+  public static resolve(bit?: BitFieldResolvable<GuildMemberFlagsString, GuildMemberFlags>): number;
+}
+
 /**
  * Represents a member of a guild on Discord.
  */
@@ -4983,6 +5134,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * @param guild The guild the member is part of
    */
   public constructor(client: Client<true>, data: RawGuildMemberData, guild: Guild);
+
+  /**
+   * The role ids of the member
+   */
+  private _roles: Snowflake[];
 
   /**
    * The guild member's avatar hash
@@ -5038,6 +5194,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * The timestamp this member's timeout will be removed
    */
   public communicationDisabledUntilTimestamp: number | null;
+
+  /**
+   * The flags of this member
+   */
+  public flags: Readonly<GuildMemberFlagsBitField>;
 
   /**
    * The time this member joined the guild
@@ -5137,6 +5298,11 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
    * guildMember.disableCommunicationUntil(Date.now() + (5 * 60 * 1000), 'They deserved it')
    *   .then(console.log)
    *   .catch(console.error);
+   * @example
+   * // Remove the timeout of a guild member
+   * guildMember.disableCommunicationUntil(null)
+   *   .then(member => console.log(`Removed timeout for ${member.displayName}`))
+   *   .catch(console.error);
    */
   public disableCommunicationUntil(timeout: DateResolvable | null, reason?: string): Promise<GuildMember>;
 
@@ -5205,9 +5371,26 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public permissionsIn(channel: GuildChannelResolvable): Readonly<PermissionsBitField>;
 
   /**
+   * Sets the flags for this member.
+   * @param flags The flags to set
+   * @param reason Reason for setting the flags
+   */
+  public setFlags(flags: GuildMemberFlagsResolvable, reason?: string): Promise<GuildMember>;
+
+  /**
    * Sets the nickname for this member.
    * @param nick The nickname for the guild member, or `null` if you want to reset their nickname
    * @param reason Reason for setting the nickname
+   * @example
+   * // Set a nickname for a guild member
+   * guildMember.setNickname('cool nickname', 'Needed a new nickname')
+   *   .then(member => console.log(`Set nickname of ${member.user.username}`))
+   *   .catch(console.error);
+   * @example
+   * // Remove a nickname for a guild member
+   * guildMember.setNickname(null, 'No nicknames allowed!')
+   *   .then(member => console.log(`Removed nickname for ${member.user.username}`))
+   *   .catch(console.error);
    */
   public setNickname(nickname: string | null, reason?: string): Promise<GuildMember>;
 
@@ -6776,6 +6959,12 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   public position: number | null;
 
   /**
+   * The data of the role subscription purchase or renewal.
+   * <info>This is present on {@link MessageType.RoleSubscriptionPurchase} messages.</info>
+   */
+  public roleSubscriptionData: RoleSubscriptionData | null;
+
+  /**
    * Whether or not this message was sent by Discord, not actually a user (e.g. pin notifications)
    */
   public system: boolean;
@@ -7100,7 +7289,7 @@ export class Attachment {
   /**
    * The file
    */
-  public attachment: BufferResolvable | Stream;
+  private attachment: BufferResolvable | Stream;
 
   /**
    * This media type of this attachment
@@ -7130,7 +7319,7 @@ export class Attachment {
   /**
    * The name of this attachment
    */
-  public name: string | null;
+  public name: string;
 
   /**
    * The Proxy URL to this attachment
@@ -7798,6 +7987,8 @@ export class MessageReaction {
    * Transforms the message reaction to a plain object.
    */
   public toJSON(): unknown;
+
+  public valueOf(): Snowflake | string;
 }
 
 export interface ModalComponentData {
@@ -8747,6 +8938,11 @@ export class RichPresenceAssets {
   public constructor(activity: Activity, assets: RawRichPresenceAssets);
 
   /**
+   * The activity of the RichPresenceAssets
+   */
+  public readonly activity: Activity;
+
+  /**
    * The large image asset's id
    */
   public largeImage: Snowflake | null;
@@ -8875,6 +9071,10 @@ export class Role extends Base {
    * @param role Role to compare to this one
    * @returns Negative number if this role's position is lower (other role's is higher),
    * positive number if this one is higher (other's is lower), 0 if equal
+   * @example
+   * // Compare the position of a role to another
+   * const roleCompare = role.comparePositionTo(otherRole);
+   * if (roleCompare >= 1) console.log(`${role.name} is higher than ${otherRole.name}`);
    */
   public comparePositionTo(role: RoleResolvable): number;
 
@@ -9807,6 +10007,11 @@ export {
  */
 export class StageChannel extends BaseGuildVoiceChannel {
   /**
+   * The stage instance of this stage channel, if it exists
+   */
+  public get stageInstance(): StageInstance | null;
+
+  /**
    * The topic of the stage channel
    */
   public topic: string | null;
@@ -9815,11 +10020,6 @@ export class StageChannel extends BaseGuildVoiceChannel {
    * The type of the channel
    */
   public type: ChannelType.GuildStageVoice;
-
-  /**
-   * The stage instance of this stage channel, if it exists
-   */
-  public get stageInstance(): StageInstance | null;
 
   /**
    * Creates a stage instance associated with this stage channel.
@@ -10919,12 +11119,12 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
 /**
  * Represents a Member for a Thread.
  */
-export class ThreadMember extends Base {
+export class ThreadMember<HasMemberData extends boolean = boolean> extends Base {
   /**
    * @param thread The thread that this member is associated with
    * @param data The data for the thread member
    */
-  public constructor(thread: ThreadChannel, data?: RawThreadMemberData);
+  public constructor(thread: ThreadChannel, data: RawThreadMemberData, extra?: unknown);
 
   /**
    * The flags for this thread member
@@ -10932,9 +11132,14 @@ export class ThreadMember extends Base {
   public flags: ThreadMemberFlagsBitField;
 
   /**
+   * The guild member associated with this thread member.
+   */
+  private member: If<HasMemberData, GuildMember>;
+
+  /**
    * The guild member associated with this thread member
    */
-  public get guildMember(): GuildMember | null;
+  public get guildMember(): HasMemberData extends true ? GuildMember : GuildMember | null;
 
   /**
    * The id of the thread member
@@ -11503,15 +11708,7 @@ export type ComponentData =
 /**
  * Represents a guild voice channel on Discord.
  */
-export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, true, [
-  'lastPinTimestamp',
-  'lastPinAt',
-]) {
-  /**
-   * The camera video quality mode of the channel
-   */
-  public videoQualityMode: VideoQualityMode | null;
-
+export class VoiceChannel extends BaseGuildVoiceChannel {
   /**
    * Checks if the client has permission to send audio to the voice channel
    */
@@ -11521,49 +11718,6 @@ export class VoiceChannel extends TextBasedChannelMixin(BaseGuildVoiceChannel, t
    * The type of the channel
    */
   public type: ChannelType.GuildVoice;
-
-  /**
-   * If the guild considers this channel NSFW
-   * @type {boolean}
-   */
-  public nsfw: boolean;
-
-  /**
-   * The rate limit per user (slowmode) for this channel in seconds
-   * @type {number}
-   */
-  public rateLimitPerUser: number | null;
-
-  /**
-   * Sets the bitrate of the channel.
-   * @param bitrate The new bitrate
-   * @param reason Reason for changing the channel's bitrate
-   * @example
-   * // Set the bitrate of a voice channel
-   * voiceChannel.setBitrate(48_000)
-   *   .then(vc => console.log(`Set bitrate to ${vc.bitrate}bps for ${vc.name}`))
-   *   .catch(console.error);
-   */
-  public setBitrate(bitrate: number, reason?: string): Promise<VoiceChannel>;
-
-  /**
-   * Sets the user limit of the channel.
-   * @param userLimit The new user limit
-   * @param reason Reason for changing the user limit
-   * @example
-   * // Set the user limit of a voice channel
-   * voiceChannel.setUserLimit(42)
-   *   .then(vc => console.log(`Set user limit to ${vc.userLimit} for ${vc.name}`))
-   *   .catch(console.error);
-   */
-  public setUserLimit(userLimit: number, reason?: string): Promise<VoiceChannel>;
-
-  /**
-   * Sets the camera video quality mode of the channel.
-   * @param videoQualityMode The new camera video quality mode.
-   * @param reason Reason for changing the camera video quality mode.
-   */
-  public setVideoQualityMode(videoQualityMode: VideoQualityMode, reason?: string): Promise<VoiceChannel>;
 }
 
 /**
@@ -11826,7 +11980,7 @@ export class Webhook extends WebhookMixin() {
   /**
    * The channel the webhook belongs to
    */
-  public get channel(): TextChannel | VoiceChannel | NewsChannel | ForumChannel | null;
+  public get channel(): TextChannel | VoiceChannel | NewsChannel | ForumChannel | StageChannel | null;
 
   /**
    * Whether this webhook is created by a user.
@@ -11866,11 +12020,72 @@ export class Webhook extends WebhookMixin() {
     owner: User | APIUser;
   };
 
+  /**
+   * Edits a message that was sent by this webhook.
+   * @param message The message to edit
+   * @param options The options to provide
+   * @returns Returns the message edited by this webhook
+   */
   public editMessage(
     message: MessageResolvable,
     options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<Message>;
-  public fetchMessage(message: Snowflake, options?: WebhookFetchMessageOptions): Promise<Message>;
+
+  /**
+   * Gets a message that was sent by this webhook.
+   * @param message The id of the message to fetch
+   * @param {} [options={}] The options to provide to fetch the message.
+   * @returns Returns the message sent by this webhook
+   */
+  public fetchMessage(message: Snowflake | '@original', options?: WebhookFetchMessageOptions): Promise<Message>;
+
+  /**
+   * Sends a message with this webhook.
+   * @param options The options to provide
+   * @example
+   * // Send a basic message
+   * webhook.send('hello!')
+   *   .then(message => console.log(`Sent message: ${message.content}`))
+   *   .catch(console.error);
+   * @example
+   * // Send a basic message in a thread
+   * webhook.send({ content: 'hello!', threadId: '836856309672348295' })
+   *   .then(message => console.log(`Sent message: ${message.content}`))
+   *   .catch(console.error);
+   * @example
+   * // Send a remote file
+   * webhook.send({
+   *   files: ['https://cdn.discordapp.com/icons/222078108977594368/6e1019b3179d71046e463a75915e7244.png?size=2048']
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Send a local file
+   * webhook.send({
+   *   files: [{
+   *     attachment: 'entire/path/to/file.jpg',
+   *     name: 'file.jpg'
+   *   }]
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   * @example
+   * // Send an embed with a local image inside
+   * webhook.send({
+   *   content: 'This is an embed',
+   *   embeds: [{
+   *     thumbnail: {
+   *          url: 'attachment://file.jpg'
+   *       }
+   *    }],
+   *    files: [{
+   *       attachment: 'entire/path/to/file.jpg',
+   *       name: 'file.jpg'
+   *    }]
+   * })
+   *   .then(console.log)
+   *   .catch(console.error);
+   */
   public send(options: string | MessagePayload | WebhookMessageCreateOptions): Promise<Message>;
 }
 
@@ -12525,11 +12740,40 @@ export class WelcomeScreen extends Base {
 
 //#region Constants
 
+/**
+ * The types of messages that are not deemed a system type
+ */
 export type NonSystemMessageType =
   | MessageType.Default
   | MessageType.Reply
   | MessageType.ChatInputCommand
   | MessageType.ContextMenuCommand;
+
+/**
+ * The types of messages that can be deleted.
+ */
+export type DeletableMessageType =
+  | MessageType.AutoModerationAction
+  | MessageType.ChannelFollowAdd
+  | MessageType.ChannelPinnedMessage
+  | MessageType.ChatInputCommand
+  | MessageType.ContextMenuCommand
+  | MessageType.Default
+  | MessageType.GuildBoost
+  | MessageType.GuildBoostTier1
+  | MessageType.GuildBoostTier2
+  | MessageType.GuildBoostTier3
+  | MessageType.GuildInviteReminder
+  | MessageType.InteractionPremiumUpsell
+  | MessageType.Reply
+  | MessageType.RoleSubscriptionPurchase
+  | MessageType.StageEnd
+  | MessageType.StageRaiseHand
+  | MessageType.StageSpeaker
+  | MessageType.StageStart
+  | MessageType.StageTopic
+  | MessageType.ThreadCreated
+  | MessageType.UserJoin;
 
 export const Constants: {
   /**
@@ -12568,7 +12812,12 @@ export const Constants: {
   TextBasedChannelTypes: TextBasedChannelTypes[];
 
   /**
-   * The types of channels that are threads.
+   * The types of guild channels that are text-based. The available types are:
+   */
+  GuildTextBasedChannelTypes: GuildTextBasedChannelTypes[];
+
+  /**
+   * The types of channels that are threads. The available types are:
    */
   ThreadChannelTypes: ThreadChannelType[];
 
@@ -12581,6 +12830,32 @@ export const Constants: {
    * The types of components that are select menus.
    */
   SelectMenuTypes: SelectMenuType[];
+
+  /**
+   * The types of messages that can be deleted. The available types are:
+   * * {@link MessageType.AutoModerationAction}
+   * * {@link MessageType.ChannelFollowAdd}
+   * * {@link MessageType.ChannelPinnedMessage}
+   * * {@link MessageType.ChatInputCommand}
+   * * {@link MessageType.ContextMenuCommand}
+   * * {@link MessageType.Default}
+   * * {@link MessageType.GuildBoost}
+   * * {@link MessageType.GuildBoostTier1}
+   * * {@link MessageType.GuildBoostTier2}
+   * * {@link MessageType.GuildBoostTier3}
+   * * {@link MessageType.GuildInviteReminder}
+   * * {@link MessageType.InteractionPremiumUpsell}
+   * * {@link MessageType.Reply}
+   * * {@link MessageType.RoleSubscriptionPurchase}
+   * * {@link MessageType.StageEnd}
+   * * {@link MessageType.StageRaiseHand}
+   * * {@link MessageType.StageSpeaker}
+   * * {@link MessageType.StageStart}
+   * * {@link MessageType.StageTopic}
+   * * {@link MessageType.ThreadCreated}
+   * * {@link MessageType.UserJoin}
+   */
+  DeletableMessageTypes: DeletableMessageType[];
 
   /**
    * A mapping between sticker formats and their respective image formats.
@@ -12818,6 +13093,12 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
  */
 export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R> {
   public constructor(client: Client<true>, holds: Constructable<Holds>);
+
+  /**
+   * The private cache of items for this manager.
+   */
+  private readonly _cache: Collection<K, Holds>;
+
   private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
 }
 
@@ -13818,10 +14099,9 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
   public edit(user: UserResolvable, options: GuildMemberEditOptions): Promise<GuildMember>;
 
   /**
-   * Fetches member(s) from Discord, even if they're offline.
-   * @param options If a UserResolvable, the user to fetch.
-   * If undefined, fetches all members.
-   * If a query, it limits the results to users with similar usernames.
+   * Fetches member(s) from a guild.
+   * @param options Options for fetching member(s).
+   * Omitting the parameter or providing `undefined` will fetch all members.
    * @example
    * // Fetch all members from a guild
    * guild.members.fetch()
@@ -13942,7 +14222,7 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
 }
 
 /**
- * Manages API methods for GuildBans and stores their cache.
+ * Manages API methods for guild bans and stores their cache.
  */
 export class GuildBanManager extends CachedManager<Snowflake, GuildBan, GuildBanResolvable> {
   public constructor(guild: Guild, iterable?: Iterable<RawGuildBanData>);
@@ -14728,6 +15008,7 @@ export class ThreadManager<Forum extends boolean = boolean> extends CachedManage
    * ThreadChannelResolvable then the specified thread will be fetched. Fetches all active threads if `undefined`
    * @param cacheOptions Additional options for this fetch. <warn>The `force` field gets ignored
    * if `options` is not a {@link ThreadChannelResolvable}</warn>
+   * @returns {} {@link FetchedThreads} if active & {@link FetchedThreadsMore} if archived.
    * @example
    * // Fetch a thread by its id
    * channel.threads.fetch('831955138126104859')
@@ -14735,6 +15016,10 @@ export class ThreadManager<Forum extends boolean = boolean> extends CachedManage
    *   .catch(console.error);
    */
   public fetch(options: ThreadChannelResolvable, cacheOptions?: BaseFetchOptions): Promise<AnyThreadChannel | null>;
+  public fetch(
+    options: FetchThreadsOptions & { archived: FetchArchivedThreadOptions },
+    cacheOptions?: { cache?: boolean },
+  ): Promise<FetchedThreadsMore>;
   public fetch(options?: FetchThreadsOptions, cacheOptions?: { cache?: boolean }): Promise<FetchedThreads>;
 
   /**
@@ -14744,13 +15029,12 @@ export class ThreadManager<Forum extends boolean = boolean> extends CachedManage
    * @param options The options to fetch archived threads
    * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
    */
-  public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreads>;
+  public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreadsMore>;
 
   /**
-   * Obtains the accessible active threads from Discord.
-   * <info>This method requires the {@link PermissionFlagsBits.ReadMessageHistory} permission
-   * in the parent channel.</info>
-   * @param {} [cache=true] Whether to cache the new thread objects if they aren't already
+   * Obtains all active thread channels in the guild.
+   * This internally calls {@link GuildChannelManager#fetchActiveThreads}.
+   * @param {} [cache=true] Whether to cache the fetched data
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
 }
@@ -14839,8 +15123,14 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
    * <info>This method requires the {@link GatewayIntentBits.GuildMembers} privileged gateway intent.</info>
    * @param options Options for fetching thread member(s)
    */
+  public fetch(
+    options: ThreadMember<true> | ((FetchThreadMemberOptions & { withMember: true }) | { member: ThreadMember<true> }),
+  ): Promise<ThreadMember<true>>;
   public fetch(options: ThreadMemberResolvable | FetchThreadMemberOptions): Promise<ThreadMember>;
-  public fetch(options?: FetchThreadMembersOptions): Promise<Collection<Snowflake, ThreadMember>>;
+  public fetch(
+    options: FetchThreadMembersWithGuildMemberDataOptions,
+  ): Promise<Collection<Snowflake, ThreadMember<true>>>;
+  public fetch(options?: FetchThreadMembersWithoutGuildMemberDataOptions): Promise<Collection<Snowflake, ThreadMember>>;
 
   /**
    * Fetches the client user as a ThreadMember of the thread.
@@ -14958,25 +15248,6 @@ export interface PartialTextBasedChannelFields<InGuild extends boolean = boolean
    * @example
    * // Send a local file
    * channel.send({
-   *   files: [{
-   *     attachment: 'entire/path/to/file.jpg',
-   *     name: 'file.jpg',
-   *     description: 'A description of the file'
-   *   }]
-   * })
-   *   .then(console.log)
-   *   .catch(console.error);
-   * @example
-   * // Send an embed with a local image inside
-   * channel.send({
-   *   content: 'This is an embed',
-   *   embeds: [
-   *     {
-   *       thumbnail: {
-   *         url: 'attachment://file.jpg'
-   *       }
-   *     }
-   *   ],
    *   files: [{
    *     attachment: 'entire/path/to/file.jpg',
    *     name: 'file.jpg',
@@ -15203,22 +15474,6 @@ export interface PartialWebhookFields {
    *     attachment: 'entire/path/to/file.jpg',
    *     name: 'file.jpg'
    *   }]
-   * })
-   *   .then(console.log)
-   *   .catch(console.error);
-   * @example
-   * // Send an embed with a local image inside
-   * webhook.send({
-   *   content: 'This is an embed',
-   *   embeds: [{
-   *     thumbnail: {
-   *          url: 'attachment://file.jpg'
-   *       }
-   *    }],
-   *    files: [{
-   *       attachment: 'entire/path/to/file.jpg',
-   *       name: 'file.jpg'
-   *    }]
    * })
    *   .then(console.log)
    *   .catch(console.error);
@@ -16111,6 +16366,11 @@ export interface AutoModerationActionMetadata {
    * The timeout duration in seconds
    */
   durationSeconds: number | null;
+
+  /**
+   * The custom message that is shown whenever a message is blocked
+   */
+  customMessage: string | null;
 }
 
 /**
@@ -16539,7 +16799,7 @@ export type GuildTextChannelResolvable = TextChannel | NewsChannel | Snowflake;
 export type ChannelResolvable = Channel | Snowflake;
 
 /**
- * Options used to create a {@link Webhook} in a {@link TextChannel} or a {@link NewsChannel}.
+ * Options used to create a {@link Webhook}.
  */
 export interface ChannelWebhookCreateOptions {
   /**
@@ -16562,7 +16822,7 @@ export interface WebhookCreateOptions extends ChannelWebhookCreateOptions {
   /**
    * The channel to create the webhook for
    */
-  channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel | Snowflake;
+  channel: TextChannel | NewsChannel | VoiceChannel | StageChannel | ForumChannel | Snowflake;
 }
 
 export interface ClientEvents {
@@ -16677,6 +16937,13 @@ export interface ClientEvents {
    * [Node.js docs](https://nodejs.org/api/events.html#capture-rejections-of-promises) for details.</warn>
    */
   error: [error: Error];
+
+  /**
+   * Emitted whenever a guild audit log entry is created.
+   * @param auditLogEntry The entry that was created
+   * @param guild The guild where the entry was created
+   */
+  guildAuditLogEntryCreate: [auditLogEntry: GuildAuditLogsEntry, guild: Guild];
 
   /**
    * Emitted whenever a member is banned from a guild.
@@ -17580,6 +17847,11 @@ export enum Events {
   ClientReady = 'ready',
 
   /**
+   * Emitted whenever a guild audit log entry is created.
+   */
+  GuildAuditLogEntryCreate = 'guildAuditLogEntryCreate',
+
+  /**
    * Emitted whenever the client joins a guild.
    */
   GuildCreate = 'guildCreate',
@@ -18101,135 +18373,6 @@ export interface ErrorEvent {
 }
 
 /**
- * Options used to escape markdown.
- */
-export interface EscapeMarkdownOptions {
-  /**
-   * Whether to escape code blocks
-   * @default true
-   */
-  codeBlock?: boolean;
-
-  /**
-   * Whether to escape inline code
-   * @default true
-   */
-  inlineCode?: boolean;
-
-  /**
-   * Whether to escape bolds
-   * @default true
-   */
-  bold?: boolean;
-
-  /**
-   * Whether to escape italics
-   * @default true
-   */
-  italic?: boolean;
-
-  /**
-   * Whether to escape underlines
-   * @default true
-   */
-  underline?: boolean;
-
-  /**
-   * Whether to escape strikethroughs
-   * @default true
-   */
-  strikethrough?: boolean;
-
-  /**
-   * Whether to escape spoilers
-   * @default true
-   */
-  spoiler?: boolean;
-
-  /**
-   * Whether to escape text inside code blocks
-   * @default true
-   */
-  codeBlockContent?: boolean;
-
-  /**
-   * Whether to escape text inside inline code
-   * @default true
-   */
-  inlineCodeContent?: boolean;
-
-  /**
-   * Whether to escape escape characters
-   * @default true
-   */
-  escape?: boolean;
-
-  /**
-   * Whether to escape headings
-   * @default false
-   */
-  heading?: boolean;
-
-  /**
-   * Whether to escape bulleted lists
-   * @default false
-   */
-  bulletedList?: boolean;
-
-  /**
-   * Whether to escape numbered lists
-   * @default false
-   */
-  numberedList?: boolean;
-
-  /**
-   * Whether to escape masked links
-   * @default false
-   */
-  maskedLink?: boolean;
-}
-
-/**
- * An extendable structure:
- */
-interface Extendable {
-  GuildEmoji: typeof GuildEmoji;
-  DMChannel: typeof DMChannel;
-  TextChannel: typeof TextChannel;
-  VoiceChannel: typeof VoiceChannel;
-  CategoryChannel: typeof CategoryChannel;
-  NewsChannel: typeof NewsChannel;
-  StageChannel: typeof StageChannel;
-  ThreadChannel: typeof ThreadChannel;
-  GuildMember: typeof GuildMember;
-  ThreadMember: typeof ThreadMember;
-  Guild: typeof Guild;
-  Message: typeof Message;
-  MessageReaction: typeof MessageReaction;
-  Presence: typeof Presence;
-  ClientPresence: typeof ClientPresence;
-  VoiceState: typeof VoiceState;
-  Role: typeof Role;
-  User: typeof User;
-  StageInstance: typeof StageInstance;
-  ChatInputCommandInteraction: typeof ChatInputCommandInteraction;
-  ButtonInteraction: typeof ButtonInteraction;
-  SelectMenuInteraction: typeof StringSelectMenuInteraction;
-  ChannelSelectMenuInteraction: typeof ChannelSelectMenuInteraction;
-  MentionableSelectMenuInteraction: typeof MentionableSelectMenuInteraction;
-  RoleSelectMenuInteraction: typeof RoleSelectMenuInteraction;
-  StringSelectMenuInteraction: typeof StringSelectMenuInteraction;
-  UserSelectMenuInteraction: typeof UserSelectMenuInteraction;
-  MessageContextMenuCommandInteraction: typeof MessageContextMenuCommandInteraction;
-  AutocompleteInteraction: typeof AutocompleteInteraction;
-  UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;
-  ModalSubmitInteraction: typeof ModalSubmitInteraction;
-  DirectoryChannel: typeof DirectoryChannel;
-  PartialGroupDMChannel: typeof PartialGroupDMChannel;
-  ForumChannel: typeof ForumChannel;
-}
-
-/**
  * Options used to fetch Application Commands from Discord
  */
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {
@@ -18267,7 +18410,7 @@ export interface FetchArchivedThreadOptions {
   fetchAll?: boolean;
 
   /**
-   * Only return threads that were created before this Date or Snowflake.
+   * Only return threads that were archived before this Date or Snowflake
    * <warn>Must be a {@link ThreadChannelResolvable} when `type` is `private` and `fetchAll` is `false`.</warn>
    */
   before?: ThreadChannelResolvable | DateResolvable;
@@ -18347,18 +18490,29 @@ export interface FetchChannelOptions extends BaseFetchOptions {
 }
 
 /**
- * The data returned from a thread fetch that returns multiple threads.
+ * Data returned from fetching threads.
  */
 export interface FetchedThreads {
   /**
-   * The threads that were fetched, with any members returned
+   * The threads that were fetched
    */
+
   threads: Collection<Snowflake, AnyThreadChannel>;
 
   /**
+   * The thread members in the received threads
+   */
+  members: Collection<Snowflake, ThreadMember>;
+}
+
+/**
+ * Data returned from fetching multiple threads.
+ */
+export interface FetchedThreadsMore extends FetchedThreads {
+  /**
    * Whether there are potentially additional threads that require a subsequent call
    */
-  hasMore?: boolean;
+  hasMore: boolean;
 }
 
 /**
@@ -18502,7 +18656,7 @@ export interface FetchMembersOptions {
   limit?: number;
 
   /**
-   * Whether or not to include the presences
+   * Whether to include the presences
    * @default false
    */
   withPresences?: boolean;
@@ -18517,12 +18671,6 @@ export interface FetchMembersOptions {
    * Nonce for this request (32 characters max - default to base 16 now timestamp)
    */
   nonce?: string;
-
-  /**
-   * Whether to skip the cache check and request the API
-   * @default false
-   */
-  force?: boolean;
 }
 
 /**
@@ -18537,6 +18685,7 @@ export interface FetchMessageOptions extends BaseFetchOptions {
 
 /**
  * Options used to fetch multiple messages.
+ * <info>The `before`, `after`, and `around` parameters are mutually exclusive.</info>
  */
 export interface FetchMessagesOptions {
   /**
@@ -18581,14 +18730,57 @@ export interface FetchReactionUsersOptions {
   after?: Snowflake;
 }
 
+/**
+ * Options used to fetch a thread member.
+ */
 export interface FetchThreadMemberOptions extends BaseFetchOptions {
   /**
    * The thread member to fetch
    */
   member: ThreadMemberResolvable;
+
+  /**
+   * Whether to also return the guild member associated with this thread member
+   */
+  withMember?: boolean;
 }
 
-export interface FetchThreadMembersOptions {
+/**
+ * Options used to fetch multiple thread members with guild member data.
+ * <info>With `withMember` set to `true`, pagination is enabled.</info>
+ */
+export interface FetchThreadMembersWithGuildMemberDataOptions {
+  /**
+   * Whether to also return the guild member data
+   */
+  withMember: true;
+
+  /**
+   * Consider only thread members after this id
+   */
+  after?: Snowflake;
+
+  /**
+   * The maximum number of thread members to return
+   */
+  limit?: number;
+
+  /**
+   * Whether to cache the fetched thread members and guild members
+   */
+  cache?: boolean;
+}
+
+/**
+ *  Options used to fetch multiple thread members without guild member data.
+ */
+export interface FetchThreadMembersWithoutGuildMemberDataOptions {
+  /**
+   * Whether to also return the guild member data
+   */
+
+  withMember?: false;
+
   /**
    * Whether to cache the fetched thread members
    */
@@ -18596,18 +18788,20 @@ export interface FetchThreadMembersOptions {
 }
 
 /**
- * The options for fetching multiple threads, the properties are mutually exclusive
+ * Options used to fetch multiple thread members.
+ */
+export type FetchThreadMembersOptions =
+  | FetchThreadMembersWithGuildMemberDataOptions
+  | FetchThreadMembersWithoutGuildMemberDataOptions;
+
+/**
+ * Options for fetching multiple threads.
  */
 export interface FetchThreadsOptions {
   /**
-   * The options used to fetch archived threads
+   * Options used to fetch archived threads
    */
   archived?: FetchArchivedThreadOptions;
-
-  /**
-   * When true, fetches active threads. <warn>If `archived` is set, this is ignored!</warn>
-   */
-  active?: boolean;
 }
 
 export interface AttachmentPayload {
@@ -18746,7 +18940,7 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
   StageInstance: StageInstance;
   Sticker: Sticker;
   GuildScheduledEvent: GuildScheduledEvent;
-  ApplicationCommand: ApplicationCommand;
+  ApplicationCommand: ApplicationCommand | { id: Snowflake };
   AutoModerationRule: AutoModerationRule;
 }
 
@@ -19362,6 +19556,11 @@ export interface GuildMemberEditOptions {
    * Provide `null` to enable communication again.
    */
   communicationDisabledUntil?: DateResolvable | null;
+
+  /**
+   * The flags to set for the member
+   */
+  flags?: GuildMemberFlagsResolvable;
 
   /**
    * Reason for editing this user
@@ -20185,8 +20384,12 @@ export interface MessageCreateOptions extends BaseMessageOptions {
 
   /**
    * The flags to send with the message
+   * <info>Only `MessageFlags.SuppressEmbeds` and `MessageFlags.SuppressNotifications` can be set.</info>
    */
-  flags?: BitFieldResolvable<Extract<MessageFlagsString, 'SuppressEmbeds'>, MessageFlags.SuppressEmbeds>;
+  flags?: BitFieldResolvable<
+    Extract<MessageFlagsString, 'SuppressEmbeds' | 'SuppressNotifications'>,
+    MessageFlags.SuppressEmbeds | MessageFlags.SuppressNotifications
+  >;
 }
 
 export type GuildForumThreadMessageCreateOptions = BaseMessageOptions &
@@ -20856,6 +21059,31 @@ export interface RolePosition {
  */
 export type RoleResolvable = Role | Snowflake;
 
+/**
+ * Role subscription data found on {@link MessageType.RoleSubscriptionPurchase} messages.
+ */
+export interface RoleSubscriptionData {
+  /**
+   * The id of the SKU and listing the user is subscribed to
+   */
+  roleSubscriptionListingId: Snowflake;
+
+  /**
+   * The name of the tier the user is subscribed to
+   */
+  tierName: string;
+
+  /**
+   * The total number of months the user has been subscribed for
+   */
+  totalMonthsSubscribed: number;
+
+  /**
+   * Whether this notification is a renewal
+   */
+  isRenewal: boolean;
+}
+
 export interface RoleTagData {
   /**
    * The id of the bot the role belongs to
@@ -21171,6 +21399,11 @@ export type TextBasedChannel = Exclude<
 export type TextBasedChannelTypes = TextBasedChannel['type'];
 
 /**
+ * The types of guild channels that are text-based.
+ */
+export type GuildTextBasedChannelTypes = Exclude<TextBasedChannelTypes, ChannelType.DM>;
+
+/**
  * The types of channels that are voice-based.
  */
 export type VoiceBasedChannel = Extract<Channel, { bitrate: number }>;
@@ -21401,7 +21634,7 @@ export interface WebhookEditOptions {
   /**
    * The new channel for the webhook
    */
-  channel?: GuildTextChannelResolvable;
+  channel?: GuildTextChannelResolvable | VoiceChannel | ForumChannel | StageChannel;
 
   /**
    * Reason for editing the webhook

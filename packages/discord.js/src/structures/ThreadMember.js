@@ -12,7 +12,7 @@ class ThreadMember extends Base {
    * @param {ThreadChannel} thread The thread that this member is associated with
    * @param {APIThreadMember} data The data for the thread member
    */
-  constructor(thread, data) {
+  constructor(thread, data, extra = {}) {
     super(thread.client);
 
     /**
@@ -39,12 +39,23 @@ class ThreadMember extends Base {
      */
     this.id = data.user_id;
 
-    this._patch(data);
+    this._patch(data, extra);
   }
 
-  _patch(data) {
+  _patch(data, extra = {}) {
     if ('join_timestamp' in data) this.joinedTimestamp = Date.parse(data.join_timestamp);
     if ('flags' in data) this.flags = new ThreadMemberFlagsBitField(data.flags).freeze();
+
+    if ('member' in data) {
+      /**
+       * The guild member associated with this thread member.
+       * @type {?GuildMember}
+       * @private
+       */
+      this.member = this.thread.guild.members._add(data.member, extra.cache);
+    } else {
+      this.member ??= null;
+    }
   }
 
   /**
@@ -62,7 +73,7 @@ class ThreadMember extends Base {
    * @readonly
    */
   get guildMember() {
-    return this.thread.guild.members.resolve(this.id);
+    return this.member ?? this.thread.guild.members.resolve(this.id);
   }
 
   /**

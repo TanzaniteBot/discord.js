@@ -72,7 +72,7 @@ class DMChannel extends BaseChannel {
    * @readonly
    */
   get partial() {
-    return typeof this.lastMessageId === 'undefined';
+    return this.lastMessageId === undefined;
   }
 
   /**
