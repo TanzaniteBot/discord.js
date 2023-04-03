@@ -8,6 +8,7 @@ const ThreadMemberFlagsBitField = require('../util/ThreadMemberFlagsBitField');
  * @extends {Base}
  */
 class ThreadMember extends Base {
+  // eslint-disable-next-line valid-jsdoc
   /**
    * @param {ThreadChannel} thread The thread that this member is associated with
    * @param {APIThreadMember} data The data for the thread member

@@ -18373,6 +18373,46 @@ export interface ErrorEvent {
 }
 
 /**
+ * An extendable structure:
+ */
+interface Extendable {
+  GuildEmoji: typeof GuildEmoji;
+  DMChannel: typeof DMChannel;
+  TextChannel: typeof TextChannel;
+  VoiceChannel: typeof VoiceChannel;
+  CategoryChannel: typeof CategoryChannel;
+  NewsChannel: typeof NewsChannel;
+  StageChannel: typeof StageChannel;
+  ThreadChannel: typeof ThreadChannel;
+  GuildMember: typeof GuildMember;
+  ThreadMember: typeof ThreadMember;
+  Guild: typeof Guild;
+  Message: typeof Message;
+  MessageReaction: typeof MessageReaction;
+  Presence: typeof Presence;
+  ClientPresence: typeof ClientPresence;
+  VoiceState: typeof VoiceState;
+  Role: typeof Role;
+  User: typeof User;
+  StageInstance: typeof StageInstance;
+  ChatInputCommandInteraction: typeof ChatInputCommandInteraction;
+  ButtonInteraction: typeof ButtonInteraction;
+  SelectMenuInteraction: typeof StringSelectMenuInteraction;
+  ChannelSelectMenuInteraction: typeof ChannelSelectMenuInteraction;
+  MentionableSelectMenuInteraction: typeof MentionableSelectMenuInteraction;
+  RoleSelectMenuInteraction: typeof RoleSelectMenuInteraction;
+  StringSelectMenuInteraction: typeof StringSelectMenuInteraction;
+  UserSelectMenuInteraction: typeof UserSelectMenuInteraction;
+  MessageContextMenuCommandInteraction: typeof MessageContextMenuCommandInteraction;
+  AutocompleteInteraction: typeof AutocompleteInteraction;
+  UserContextMenuCommandInteraction: typeof UserContextMenuCommandInteraction;
+  ModalSubmitInteraction: typeof ModalSubmitInteraction;
+  DirectoryChannel: typeof DirectoryChannel;
+  PartialGroupDMChannel: typeof PartialGroupDMChannel;
+  ForumChannel: typeof ForumChannel;
+}
+
+/**
  * Options used to fetch Application Commands from Discord
  */
 export interface FetchApplicationCommandOptions extends BaseFetchOptions {
