@@ -55,7 +55,7 @@
 	},
 	"devDependencies": {
 		"@types/fs-extra": "^11.0.1",
-		"@types/node": "16.18.23",
+		"@types/node": "18.15.11",
 		"@vitest/coverage-c8": "^0.29.8",
 		"cross-env": "^7.0.3",
 		"eslint": "^8.37.0",

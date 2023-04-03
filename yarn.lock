@@ -1890,7 +1890,7 @@ __metadata:
     "@actions/core": ^1.10.0
     "@actions/glob": ^0.4.0
     "@planetscale/database": ^1.6.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     eslint: ^8.37.0
@@ -1911,7 +1911,7 @@ __metadata:
   dependencies:
     "@microsoft/api-extractor-model": 7.26.4
     "@microsoft/tsdoc": 0.14.2
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     cross-env: ^7.0.3
     eslint: ^8.37.0
     eslint-config-neon: ^0.1.41
@@ -1929,7 +1929,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
     "@msgpack/msgpack": ^3.0.0-beta2
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     "@vladfrangu/async_event_emitter": ^2.1.4
     cross-env: ^7.0.3
@@ -1953,7 +1953,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
     "@sapphire/shapeshift": ^3.8.1
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     discord-api-types: ^0.37.37
@@ -1978,7 +1978,7 @@ __metadata:
   dependencies:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     esbuild-plugin-version-injector: ^1.1.0
@@ -2002,7 +2002,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
     "@sapphire/snowflake": ^3.4.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     "@vladfrangu/async_event_emitter": ^2.1.4
     cross-env: ^7.0.3
@@ -2024,7 +2024,7 @@ __metadata:
   dependencies:
     "@favware/cliff-jumper": ^2.0.0
     "@types/jsdoc-to-markdown": ^7.0.3
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     commander: ^10.0.0
     cross-env: ^7.0.3
     eslint: ^8.37.0
@@ -2047,7 +2047,7 @@ __metadata:
   dependencies:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     discord-api-types: ^0.37.37
@@ -2152,7 +2152,7 @@ __metadata:
   dependencies:
     "@discordjs/proxy": "workspace:^"
     "@discordjs/rest": "workspace:^"
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     cross-env: ^7.0.3
     eslint: ^8.37.0
     eslint-config-neon: ^0.1.41
@@ -2172,7 +2172,7 @@ __metadata:
     "@discordjs/util": "workspace:^"
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@types/supertest": ^2.0.12
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
@@ -2199,7 +2199,7 @@ __metadata:
     "@microsoft/api-extractor": ^7.34.4
     "@sapphire/async-queue": ^1.5.0
     "@sapphire/snowflake": ^3.4.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     discord-api-types: ^0.37.37
@@ -2226,7 +2226,7 @@ __metadata:
     "@microsoft/tsdoc": 0.14.2
     "@microsoft/tsdoc-config": 0.16.2
     "@types/fs-extra": ^11.0.1
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     commander: ^10.0.0
     cross-env: ^7.0.3
@@ -2251,7 +2251,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@ladle/react": ^2.10.2
     "@react-icons/all-files": ^4.1.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@types/react": ^18.0.32
     "@types/react-dom": ^18.0.11
     "@unocss/reset": ^0.50.6
@@ -2279,7 +2279,7 @@ __metadata:
   dependencies:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@vitest/coverage-c8": ^0.29.8
     cross-env: ^7.0.3
     eslint: ^8.37.0
@@ -2303,7 +2303,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
     "@types/jest": ^29.5.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@types/ws": ^8.5.4
     cross-env: ^7.0.3
     discord-api-types: ^0.37.37
@@ -2393,7 +2393,7 @@ __metadata:
     "@favware/cliff-jumper": ^2.0.0
     "@microsoft/api-extractor": ^7.34.4
     "@sapphire/async-queue": ^1.5.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@types/ws": ^8.5.4
     "@vitest/coverage-c8": ^0.29.8
     "@vladfrangu/async_event_emitter": ^2.1.4
@@ -3988,7 +3988,7 @@ __metadata:
     "@discordjs/util": "workspace:^"
     "@favware/cliff-jumper": ^2.0.0
     "@sapphire/snowflake": ^3.4.0
-    "@types/node": 16.18.23
+    "@types/node": 18.15.11
     "@types/ws": ^8.5.4
     discord-api-types: ^0.37.37
     dtslint: ^4.2.1
@@ -5540,13 +5540,6 @@ __metadata:
   version: 14.18.33
   resolution: "@types/node@npm:14.18.33"
   checksum: 4e23f95186d8ae1d38c999bc6b46fe94e790da88744b0a3bfeedcbd0d9ffe2cb0ff39e85f43014f6739e5270292c1a1f6f97a1fc606fd573a0c17fda9a1d42de
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:16.18.23":
-  version: 16.18.23
-  resolution: "@types/node@npm:16.18.23"
-  checksum: 00e51db28fc7a182747f37215b3f25400b1c7a8525e09fa14e55be5798891a118ebf636a49d3197335a3580fcb8222fd4ecc20c2ccff69f1c0d233fc5697465d
   languageName: node
   linkType: hard
 
