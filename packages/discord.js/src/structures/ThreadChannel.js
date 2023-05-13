@@ -18,9 +18,8 @@ class ThreadChannel extends BaseChannel {
    * @param {Guild} guild The guild the thread channel is part of
    * @param {APIChannel} data The data for the thread channel
    * @param {Client} [client] A safety parameter for the client that instantiated this
-   * @param {boolean} [fromInteraction=false] Whether the data was from an interaction (partial)
    */
-  constructor(guild, data, client, fromInteraction = false) {
+  constructor(guild, data, client) {
     super(guild?.client ?? client, data, false);
 
     /**
@@ -46,10 +45,10 @@ class ThreadChannel extends BaseChannel {
      * @type {ThreadMemberManager}
      */
     this.members = new ThreadMemberManager(this);
-    if (data) this._patch(data, fromInteraction);
+    if (data) this._patch(data);
   }
 
-  _patch(data, partial = false) {
+  _patch(data) {
     super._patch(data);
 
     if ('message' in data) this.messages._add(data.message);
@@ -155,7 +154,7 @@ class ThreadChannel extends BaseChannel {
       this.lastPinTimestamp ??= null;
     }
 
-    if ('rate_limit_per_user' in data || !partial) {
+    if ('rate_limit_per_user' in data) {
       /**
        * The rate limit per user (slowmode) for this thread in seconds
        * @type {?number}

@@ -1,3 +1,5 @@
+/* eslint-disable jsdoc/check-param-names */
+
 import { makeURLSearchParams, type REST, type RawFile, type RequestData } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v10';
 import type {
@@ -98,7 +100,7 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild
 	 * @param options - The options for fetching the guild
 	 */
-	public async get(guildId: string, { signal }: Pick<RequestData, 'signal'>) {
+	public async get(guildId: string, { signal }: Pick<RequestData, 'signal'> = {}) {
 		return this.rest.get(Routes.guild(guildId), { signal }) as Promise<RESTGetAPIGuildResult>;
 	}
 
@@ -109,7 +111,7 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the preview from
 	 * @param options - The options for fetching the guild preview
 	 */
-	public async getPreview(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'>) {
+	public async getPreview(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
 		return this.rest.get(Routes.guildPreview(guildId), {
 			signal,
 		}) as Promise<RESTGetAPIGuildPreviewResult>;
@@ -122,7 +124,7 @@ export class GuildsAPI {
 	 * @param body - The guild to create
 	 * @param options - The options for creating the guild
 	 */
-	public async create(body: RESTPostAPIGuildsJSONBody, { signal }: Pick<RequestData, 'signal'>) {
+	public async create(body: RESTPostAPIGuildsJSONBody, { signal }: Pick<RequestData, 'signal'> = {}) {
 		return this.rest.post(Routes.guilds(), { body, signal }) as Promise<RESTPostAPIGuildsResult>;
 	}
 
@@ -361,7 +363,7 @@ export class GuildsAPI {
 	public async deleteRole(
 		guildId: Snowflake,
 		roleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'>,
+		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
 	) {
 		await this.rest.delete(Routes.guildRole(guildId, roleId), { reason, signal });
 	}
@@ -1035,6 +1037,7 @@ export class GuildsAPI {
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/auto-moderation#delete-auto-moderation-rule}
 	 * @param guildId - The id of the guild to delete the auto moderation rule from
+	 * @param ruleId - The id of the auto moderation rule to delete
 	 * @param options - The options for deleting the auto moderation rule
 	 */
 	public async deleteAutoModerationRule(
@@ -1129,7 +1132,7 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		userId: Snowflake,
 		roleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'>,
+		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
 	) {
 		await this.rest.delete(Routes.guildMemberRole(guildId, userId, roleId), { reason, signal });
 	}

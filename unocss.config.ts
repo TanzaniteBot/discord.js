@@ -21,21 +21,6 @@ export default defineConfig({
 			mono: 'var(--font-mono)',
 		},
 	},
-	// safelist: [
-	// 	'sr-only',
-	// 	'relative',
-	// 	'inline-flex',
-	// 	'w-6',
-	// 	'h-6',
-	// 	'place-items-center',
-	// 	'place-content-center',
-	// 	'outline-0',
-	// 	'text-black',
-	// 	'dark:text-white',
-	// 	'ml-2',
-	// 	'inline-block',
-	// 	'm-0',
-	// ],
 	presets: [
 		presetUno({ dark: 'class' }),
 		presetTypography({
@@ -62,32 +47,31 @@ export default defineConfig({
 				'a > img': {
 					display: 'inline-block',
 				},
-				h1: {
-					'scroll-margin-top': '6.5rem',
+				'a > img[height="44"]': {
+					height: '44px',
 				},
-				'.level-h1': {
-					margin: '1rem 0',
+				h1: {
+					display: 'flex',
+					'place-items': 'center',
+					'scroll-margin-top': '6.5rem',
 				},
 				h2: {
+					display: 'flex',
+					'place-items': 'center',
 					'margin-top': '1.25em',
 					'scroll-margin-top': '6.5rem',
-				},
-				'.level-h2': {
-					margin: '1.25em 0',
 				},
 				h3: {
+					display: 'flex',
+					'place-items': 'center',
 					'margin-top': '1.25em',
 					'scroll-margin-top': '6.5rem',
-				},
-				'.level-h3': {
-					margin: '1.25em 0',
 				},
 				h4: {
+					display: 'flex',
+					'place-items': 'center',
 					'margin-top': '1.25em',
 					'scroll-margin-top': '6.5rem',
-				},
-				'.level-h4': {
-					margin: '1.25em 0',
 				},
 				// eslint-disable-next-line id-length
 				p: {
@@ -95,19 +79,5 @@ export default defineConfig({
 				},
 			},
 		}),
-	],
-	include: [
-		/.vue$/,
-		/.vue?vue/,
-		/.svelte$/,
-		/.[jt]sx$/,
-		/.mdx?$/,
-		/.astro$/,
-		/.elm$/,
-		/.html$/,
-		// eslint-disable-next-line prefer-named-capture-group, unicorn/no-unsafe-regex
-		/.*\/ui\.js(.*)?$/,
-		// eslint-disable-next-line prefer-named-capture-group, unicorn/no-unsafe-regex
-		/.*\/ui\.mjs(.*)?$/,
 	],
 });

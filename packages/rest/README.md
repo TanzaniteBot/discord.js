@@ -13,16 +13,17 @@
 	</p>
 	<p>
 		<a href="https://vercel.com/?utm_source=discordjs&utm_campaign=oss"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-vercel.svg" alt="Vercel" /></a>
+		<a href="https://www.cloudflare.com"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-workers.png" alt="Cloudflare Workers" height="44" /></a>
 	</p>
 </div>
 
 ## About
 
-`@discord.js/rest` is a module that allows you to easily make REST requests to the Discord API.
+`@discordjs/rest` is a module that allows you to easily make REST requests to the Discord API.
 
 ## Installation
 
-**Node.js 16.9.0 or newer is required.**
+**Node.js 18.12.0 or newer is required.**
 
 ```sh
 npm install @discordjs/rest
@@ -72,6 +73,25 @@ try {
 		body: {
 			name: 'Thread',
 			auto_archive_duration: 60,
+		},
+	});
+} catch (error) {
+	console.error(error);
+}
+```
+
+Send a basic message in an edge environment:
+
+```js
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v10';
+
+const rest = new REST({ version: '10', makeRequest: fetch }).setToken(TOKEN);
+
+try {
+	await rest.post(Routes.channelMessages(CHANNEL_ID), {
+		body: {
+			content: 'A message via REST from the edge!',
 		},
 	});
 } catch (error) {

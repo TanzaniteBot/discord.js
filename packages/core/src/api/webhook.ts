@@ -1,6 +1,8 @@
+/* eslint-disable jsdoc/check-param-names */
+
 import { makeURLSearchParams, type RequestData, type RawFile, type REST } from '@discordjs/rest';
-import { Routes } from 'discord-api-types/v10';
 import {
+	Routes,
 	type RESTGetAPIWebhookWithTokenMessageQuery,
 	type RESTGetAPIChannelMessageResult,
 	type RESTGetAPIWebhookResult,
@@ -103,7 +105,7 @@ export class WebhooksAPI {
 		id: Snowflake,
 		token: string,
 		body: RESTPostAPIWebhookWithTokenJSONBody & RESTPostAPIWebhookWithTokenQuery & { files?: RawFile[]; wait: true },
-		{ signal }: Pick<RequestData, 'signal'>,
+		options?: Pick<RequestData, 'signal'>,
 	): Promise<RESTPostAPIWebhookWithTokenWaitResult>;
 
 	/**
@@ -119,7 +121,7 @@ export class WebhooksAPI {
 		id: Snowflake,
 		token: string,
 		body: RESTPostAPIWebhookWithTokenJSONBody & RESTPostAPIWebhookWithTokenQuery & { files?: RawFile[]; wait?: false },
-		{ signal }: Pick<RequestData, 'signal'>,
+		options?: Pick<RequestData, 'signal'>,
 	): Promise<void>;
 
 	/**
@@ -158,6 +160,7 @@ export class WebhooksAPI {
 	 * @see {@link https://discord.com/developers/docs/resources/webhook#execute-slackcompatible-webhook}
 	 * @param id - The id of the webhook
 	 * @param token - The token of the webhook
+	 * @param body - The data to use when executing the webhook
 	 * @param query - The query options to use when executing the webhook
 	 * @param options - The options to use when executing the webhook
 	 */
@@ -182,6 +185,7 @@ export class WebhooksAPI {
 	 * @see {@link https://discord.com/developers/docs/resources/webhook#execute-githubcompatible-webhook}
 	 * @param id - The id of the webhook
 	 * @param token - The token of the webhook
+	 * @param body - The data to use when executing the webhook
 	 * @param query - The options to use when executing the webhook
 	 * @param options - The options to use when executing the webhook
 	 */
@@ -238,7 +242,11 @@ export class WebhooksAPI {
 		id: Snowflake,
 		token: string,
 		messageId: Snowflake,
-		{ thread_id, ...body }: RESTPatchAPIWebhookWithTokenMessageJSONBody & { thread_id?: string },
+		{
+			thread_id,
+			files,
+			...body
+		}: RESTPatchAPIWebhookWithTokenMessageJSONBody & { files?: RawFile[]; thread_id?: string },
 		{ signal }: Pick<RequestData, 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.webhookMessage(id, token, messageId), {
@@ -246,6 +254,7 @@ export class WebhooksAPI {
 			auth: false,
 			body,
 			signal,
+			files,
 		}) as Promise<RESTPatchAPIWebhookWithTokenMessageResult>;
 	}
 

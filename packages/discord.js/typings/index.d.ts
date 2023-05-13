@@ -37,6 +37,7 @@ import {
 import { Awaitable, JSONEncodable } from '@discordjs/util';
 import { Collection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
+import { WebSocketManager as WSWebSocketManager, IShardingStrategy, SessionInfo } from '@discordjs/ws';
 import {
   APIActionRowComponent,
   APIApplicationCommandInteractionData,
@@ -157,7 +158,7 @@ import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Stream } from 'node:stream';
 import { MessagePort, Worker } from 'node:worker_threads';
-import * as WebSocket from 'ws';
+import * as WebSocketMod from 'ws';
 import {
   RawActivityData,
   RawAnonymousGuildData,
@@ -214,6 +215,80 @@ import {
   RawWidgetData,
   RawWidgetMemberData,
 } from './rawDataTypes';
+
+/* copied dom typings to prevent dom global pollution */
+type BinaryType = 'arraybuffer' | 'blob';
+interface WebSocketEventMap {
+  close: CloseEvent;
+  error: Event;
+  message: MessageEvent;
+  open: Event;
+}
+interface EventListenerOptions {
+  capture?: boolean;
+}
+interface AddEventListenerOptions extends EventListenerOptions {
+  once?: boolean;
+  passive?: boolean;
+  signal?: AbortSignal;
+}
+interface EventListener {
+  (evt: Event): void;
+}
+interface EventListenerObject {
+  handleEvent(object: Event): void;
+}
+type EventListenerOrEventListenerObject = EventListener | EventListenerObject;
+interface WebSocketDom extends EventTarget {
+  binaryType: BinaryType;
+  readonly bufferedAmount: number;
+  readonly extensions: string;
+  onclose: ((this: WebSocketDom, ev: CloseEvent) => any) | null;
+  onerror: ((this: WebSocketDom, ev: Event) => any) | null;
+  onmessage: ((this: WebSocketDom, ev: MessageEvent) => any) | null;
+  onopen: ((this: WebSocketDom, ev: Event) => any) | null;
+  readonly protocol: string;
+  readonly readyState: number;
+  readonly url: string;
+  close(code?: number, reason?: string): void;
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void;
+  readonly CONNECTING: 0;
+  readonly OPEN: 1;
+  readonly CLOSING: 2;
+  readonly CLOSED: 3;
+  addEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    listener: (this: WebSocketDom, ev: WebSocketEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ): void;
+  removeEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    listener: (this: WebSocketDom, ev: WebSocketEventMap[K]) => any,
+    options?: boolean | EventListenerOptions,
+  ): void;
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | EventListenerOptions,
+  ): void;
+}
+
+declare var WebSocketDom: {
+  prototype: WebSocketDom;
+  new (url: string | URL, protocols?: string | string[]): WebSocketDom;
+  readonly CONNECTING: 0;
+  readonly OPEN: 1;
+  readonly CLOSING: 2;
+  readonly CLOSED: 3;
+};
+/* end dom types */
+
+type WebSocket = WebSocketDom & typeof WebSocketMod;
 
 declare module 'node:events' {
   class EventEmitter {
@@ -715,6 +790,16 @@ export class AutoModerationRule extends Base {
    * @param reason The reason for changing the mention total limit of this auto moderation rule
    */
   public setMentionTotalLimit(mentionTotalLimit: number, reason?: string): Promise<AutoModerationRule>;
+
+  /**
+   * Sets whether to enable mention raid protection for this auto moderation rule.
+   * @param mentionRaidProtectionEnabled Whether to enable mention raid protection for this auto moderation rule
+   * @param reason The reason for changing the mention raid protection of this auto moderation rule
+   */
+  public setMentionRaidProtectionEnabled(
+    mentionRaidProtectionEnabled: boolean,
+    reason?: string,
+  ): Promise<AutoModerationRule>;
 
   /**
    * Sets the actions for this auto moderation rule.
@@ -2122,7 +2207,7 @@ export class UserSelectMenuBuilder extends BuilderUserSelectMenuComponent {
   public constructor(data?: Partial<UserSelectMenuComponentData | APIUserSelectComponent>);
 
   /**
-   * Creates a new select menu builder from json data
+   * Creates a new select menu builder from JSON data
    * @param other The other data
    */
   public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): UserSelectMenuBuilder;
@@ -2135,7 +2220,7 @@ export class RoleSelectMenuBuilder extends BuilderRoleSelectMenuComponent {
   public constructor(data?: Partial<RoleSelectMenuComponentData | APIRoleSelectComponent>);
 
   /**
-   * Creates a new select menu builder from json data
+   * Creates a new select menu builder from JSON data
    * @param other The other data
    */
   public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): RoleSelectMenuBuilder;
@@ -2148,7 +2233,7 @@ export class MentionableSelectMenuBuilder extends BuilderMentionableSelectMenuCo
   public constructor(data?: Partial<MentionableSelectMenuComponentData | APIMentionableSelectComponent>);
 
   /**
-   * Creates a new select menu builder from json data
+   * Creates a new select menu builder from JSON data
    * @param other The other data
    */
   public static from(
@@ -2163,7 +2248,7 @@ export class ChannelSelectMenuBuilder extends BuilderChannelSelectMenuComponent 
   public constructor(data?: Partial<ChannelSelectMenuComponentData | APIChannelSelectComponent>);
 
   /**
-   * Creates a new select menu builder from json data
+   * Creates a new select menu builder from JSON data
    * @param other The other data
    */
   public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): ChannelSelectMenuBuilder;
@@ -2208,7 +2293,7 @@ export class TextInputBuilder extends BuilderTextInputComponent {
   public constructor(data?: Partial<TextInputComponentData | APITextInputComponent>);
 
   /**
-   * Creates a new text input builder from json data
+   * Creates a new text input builder from JSON data
    * @param other The other data
    */
   public static from(other: JSONEncodable<APITextInputComponent> | APITextInputComponent): TextInputBuilder;
@@ -2543,6 +2628,16 @@ export class CategoryChannel extends GuildChannel {
    * The type of the channel
    */
   public type: ChannelType.GuildCategory;
+
+  /**
+   * The parent of this channel.
+   */
+  public get parent(): null;
+
+  /**
+   * The id of the parent of this channel.
+   */
+  public parentId: null;
 }
 
 /**
@@ -3138,7 +3233,7 @@ export class Options extends null {
   private static userAgentAppendix: string;
 
   /**
-   * The default settings passed to {@link Options.cacheWithLimits}.
+   * The default settings passed to {@link ClientOptions.makeCache}.
    * The caches that this changes are:
    * * `MessageManager` - Limit to 200 messages
    * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
@@ -3147,11 +3242,11 @@ export class Options extends null {
   public static get DefaultMakeCacheSettings(): CacheWithLimitsOptions;
 
   /**
-   * The default settings passed to {@link Options.sweepers} (for v14).
+   * The default settings passed to {@link ClientOptions.sweepers}.
    * The sweepers that this changes are:
    * * `threads` - Sweep archived threads every hour, removing those archived more than 4 hours ago
    * <info>If you want to keep default behavior and add on top of it you can use this object and add on to it, e.g.
-   * `sweepers: { ...Options.defaultSweeperSettings, messages: { interval: 300, lifetime: 600 } })`</info>
+   * `sweepers: { ...Options.DefaultSweeperSettings, messages: { interval: 300, lifetime: 600 } }`</info>
    */
   public static get DefaultSweeperSettings(): SweeperOptions;
 
@@ -4148,6 +4243,16 @@ export class Guild extends AnonymousGuild {
   public rulesChannelId: Snowflake | null;
 
   /**
+   * Safety alerts channel for this guild
+   */
+  public get safetyAlertsChannel(): TextChannel | null;
+
+  /**
+   * The safety alerts channel's id for the guild
+   */
+  public safetyAlertsChannelId: Snowflake | null;
+
+  /**
    * A manager of the scheduled events of this guild
    */
   public scheduledEvents: GuildScheduledEventManager;
@@ -4534,6 +4639,18 @@ export class Guild extends AnonymousGuild {
    *  .catch(console.error);
    */
   public setRulesChannel(rulesChannel: TextChannelResolvable | null, reason?: string): Promise<Guild>;
+
+  /**
+   * Edits the safety alerts channel of the guild.
+   * @param safetyAlertsChannel The new safety alerts channel
+   * @param reason Reason for changing the guild's safety alerts channel
+   * @example
+   * // Edit the guild safety alerts channel
+   * guild.setSafetyAlertsChannel(channel)
+   *  .then(updated => console.log(`Updated guild safety alerts channel to ${updated.safetyAlertsChannel.name}`))
+   *  .catch(console.error);
+   */
+  public setSafetyAlertsChannel(safetyAlertsChannel: TextChannelResolvable | null, reason?: string): Promise<Guild>;
 
   /**
    * Sets a new guild invite splash image.
@@ -7299,6 +7416,12 @@ export class Attachment {
   public description: string | null;
 
   /**
+   * The duration of this attachment in seconds
+   * <info>This will only be available if the attachment is an audio file.</info>
+   */
+  public duration: number | null;
+
+  /**
    * Whether this attachment is ephemeral
    */
   public ephemeral: boolean;
@@ -7337,6 +7460,12 @@ export class Attachment {
    * The URL to this attachment
    */
   public url: string;
+
+  /**
+   * The base64 encoded byte array representing a sampled waveform
+   * <info>This will only be available if the attachment is an audio file.</info>
+   */
+  public waveform: string | null;
 
   /**
    * The width of this attachment (if an image or video)
@@ -10793,9 +10922,8 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
    * @param guild The guild the thread channel is part of
    * @param data The data for the thread channel
    * @param client A safety parameter for the client that instantiated this
-   * @param fromInteraction Whether the data was from an interaction (partial)
    */
-  public constructor(guild: Guild, data?: RawThreadChannelData, client?: Client<true>, fromInteraction?: boolean);
+  public constructor(guild: Guild, data?: RawThreadChannelData, client?: Client<true>);
 
   /**
    * Whether the thread is archived
@@ -11625,7 +11753,6 @@ export interface MappedComponentTypes {
 
 export interface ChannelCreateOptions {
   allowFromUnknownGuild?: boolean;
-  fromInteraction?: boolean;
 }
 
 /**
@@ -12145,15 +12272,14 @@ export class WebhookClient extends WebhookMixin(BaseClient) {
 export class WebSocketManager extends EventEmitter {
   public constructor(client: Client);
 
-  /**
-   * The amount of shards this manager handles
-   */
-  private totalShards: number | string;
+  /* start added by tanzanite fork */
 
   /**
-   * An array of shards to be connected or that need to reconnect
+   * The internal WebSocketManager from `@discordjs/ws`.
    */
-  private shardQueue: Set<WebSocketShard>;
+  private _ws: WSWebSocketManager | null;
+
+  /* end added by tanzanite fork */
 
   /**
    * An array of queued events before this WebSocketManager became ready
@@ -12164,11 +12290,6 @@ export class WebSocketManager extends EventEmitter {
    * If this manager was destroyed. It will prevent shards from reconnecting
    */
   private destroyed: boolean;
-
-  /**
-   * If this manager is currently reconnecting one or multiple shards
-   */
-  private reconnecting: boolean;
 
   /**
    * The client that instantiated this WebSocketManager
@@ -12202,24 +12323,23 @@ export class WebSocketManager extends EventEmitter {
   /**
    * Emits a debug message.
    * @param message The debug message
-   * @param shard The shard that emitted this message, if any
+   * @param shardId The id of the shard that emitted this message, if any
    */
-  private debug(message: string, shard?: WebSocketShard): void;
+  private debug(message: string, shardId?: number): void;
 
   /**
    * Connects this manager to the gateway.
    */
   private connect(): Promise<void>;
 
-  /**
-   * Handles the creation of a shard.
-   */
-  private createShards(): Promise<void>;
+  /* start added by tanzanite fork */
 
   /**
-   * Handles reconnects for this manager.
+   * Attaches event handlers to the internal WebSocketShardManager from `@discordjs/ws`.
    */
-  private reconnect(): Promise<void>;
+  private attachEvents(): void;
+
+  /* end added by tanzanite fork */
 
   /**
    * Broadcasts a packet to every shard this manager handles.
@@ -12294,60 +12414,20 @@ export class WebSocketShard extends EventEmitter {
   public constructor(manager: WebSocketManager, id: number);
 
   /**
-   * The current sequence of the shard
-   */
-  private sequence: number;
-
-  /**
    * The sequence of the shard after close
    */
   private closeSequence: number;
 
   /**
-   * The current session id of the shard
+   * The session info used by `@discordjs/ws` package.
    */
-  private sessionId: string | null;
-
-  /**
-   * The resume url for this shard
-   */
-  private resumeURL: string | null;
+  private sessionInfo: SessionInfo | null;
 
   /**
    * The last time a ping was sent (a timestamp)
+   * @type {number}
    */
   public lastPingTimestamp: number;
-
-  /**
-   * If we received a heartbeat ack back. Used to identify zombie connections
-   */
-  private lastHeartbeatAcked: boolean;
-
-  /**
-   * Contains the rate limit queue and metadata
-   */
-  private readonly ratelimit: {
-    queue: unknown[];
-    total: number;
-    remaining: number;
-    time: 60e3;
-    timer: NodeJS.Timeout | null;
-  };
-
-  /**
-   * The WebSocket connection for the current shard
-   */
-  private connection: WebSocket | null;
-
-  /**
-   * The HELLO timeout
-   */
-  private helloTimeout: NodeJS.Timeout | null;
-
-  /**
-   * If the manager attached its event handlers on the shard
-   */
-  private eventsAttached: boolean;
 
   /**
    * A set of guild ids this shard expects to receive
@@ -12358,16 +12438,6 @@ export class WebSocketShard extends EventEmitter {
    * The ready timeout
    */
   private readyTimeout: NodeJS.Timeout | null;
-
-  /**
-   * Used to prevent calling {@link WebSocketShardEventTypes.close} twice while closing or terminating the WebSocket.
-   */
-  private closeEmitted: boolean;
-
-  /**
-   * The WebSocket timeout.
-   */
-  private wsCloseTimeout: NodeJS.Timeout | null;
 
   /**
    * The WebSocketManager of the shard
@@ -12396,40 +12466,17 @@ export class WebSocketShard extends EventEmitter {
   private debug(message: string): void;
 
   /**
-   * Connects the shard to the gateway.
-   * @returns A promise that will resolve if the shard turns ready successfully,
-   * or reject if we couldn't connect
-   */
-  private connect(): Promise<void>;
-
-  /**
-   * Called whenever a connection is opened to the gateway.
-   */
-  private onOpen(): void;
-
-  /**
-   * Called whenever a message is received.
-   * @param event Event received
-   */
-  private onMessage(event: MessageEvent): void;
-
-  /**
-   * Called whenever an error occurs with the WebSocket.
-   * @param error The error that occurred
-   */
-  private onError(error: ErrorEvent | unknown): void;
-
-  /**
-   * Called whenever a connection to the gateway is closed.
-   * @param event Close event that was received
-   */
-  private onClose(event: CloseEvent): void;
-
-  /**
-   * Called whenever a packet is received.
+   * Called when the shard receives the READY payload.
    * @param packet The received packet
    */
-  private onPacket(packet: unknown): void;
+  private onReadyPacket(packet: unknown): void;
+
+  /**
+   * Called when a GuildCreate or GuildDelete for this shard was sent after READY payload was received,
+   * but before we emitted the READY event.
+   * @param guildId the id of the Guild sent in the payload
+   */
+  private gotGuild(guildId: Snowflake): void;
 
   /**
    * Checks if the shard can be marked as ready
@@ -12437,85 +12484,12 @@ export class WebSocketShard extends EventEmitter {
   private checkReady(): void;
 
   /**
-   * Sets the HELLO packet timeout.
-   * @param time If set to -1, it will clear the hello timeout
-   */
-  private setHelloTimeout(time?: number): void;
-
-  /**
-   * Sets the WebSocket Close timeout.
-   * This method is responsible for detecting any zombie connections if the WebSocket fails to close properly.
-   * @param time If set to -1, it will clear the timeout
-   */
-  private setWsCloseTimeout(time?: number): void;
-
-  /**
-   * Sets the heartbeat timer for this shard.
-   * @param time If -1, clears the interval, any other number sets an interval
-   */
-  private setHeartbeatTimer(time: number): void;
-
-  /**
-   * Sends a heartbeat to the WebSocket.
-   * If this shard didn't receive a heartbeat last time, it will destroy it and reconnect
-   * @param tag What caused this heartbeat to be sent
-   * @param ignoreHeartbeatAck If we should send the heartbeat forcefully.
-   */
-  private sendHeartbeat(): void;
-
-  /**
-   * Acknowledges a heartbeat.
-   */
-  private ackHeartbeat(): void;
-
-  /**
-   * Identifies the client on the connection.
-   */
-  private identify(): void;
-
-  /**
-   * Identifies as a new connection on the gateway.
-   */
-  private identifyNew(): void;
-
-  /**
-   * Resumes a session on the gateway.
-   */
-  private identifyResume(): void;
-
-  /**
-   * Sends data, bypassing the queue.
-   * @param data Packet to send
-   */
-  private _send(data: unknown): void;
-
-  /**
-   * Processes the current WebSocket queue.
-   */
-  private processQueue(): void;
-
-  /**
-   * Destroys this shard and closes its WebSocket connection.
-   * @param {} [destroyOptions={ closeCode: 1000, reset: false, emit: true, log: true }] Options for destroying the shard
-   */
-  private destroy(destroyOptions?: { closeCode?: number; reset?: boolean; emit?: boolean; log?: boolean }): void;
-
-  /**
    * This method is responsible to emit close event for this shard.
    * This method helps the shard reconnect.
    * @param event Close event that was received
+   * @deprecated
    */
   private emitClose(event?: CloseEvent): void;
-
-  /**
-   * Cleans up the WebSocket connection listeners.
-   */
-  private _cleanupConnection(): void;
-
-  /**
-   * Emits the DESTROYED event on the shard
-   */
-  private _emitDestroyed(): void;
 
   /**
    * Adds a packet to the queue to be sent to the gateway.
@@ -12879,16 +12853,23 @@ export enum DiscordjsErrorCodes {
   TokenMissing = 'TokenMissing',
   ApplicationCommandPermissionsTokenMissing = 'ApplicationCommandPermissionsTokenMissing',
 
+  /** @deprecated */
   WSCloseRequested = 'WSCloseRequested',
+  /** @deprecated */
   WSConnectionExists = 'WSConnectionExists',
+  /** @deprecated */
   WSNotOpen = 'WSNotOpen',
   ManagerDestroyed = 'ManagerDestroyed',
 
   BitFieldInvalid = 'BitFieldInvalid',
 
+  /** @deprecated */
   ShardingInvalid = 'ShardingInvalid',
+  /** @deprecated */
   ShardingRequired = 'ShardingRequired',
+  /** @deprecated */
   InvalidIntents = 'InvalidIntents',
+  /** @deprecated */
   DisallowedIntents = 'DisallowedIntents',
   ShardingNoShards = 'ShardingNoShards',
   ShardingInProcess = 'ShardingInProcess',
@@ -12973,7 +12954,10 @@ export enum DiscordjsErrorCodes {
 
   EmojiType = 'EmojiType',
   EmojiManaged = 'EmojiManaged',
+  MissingManageGuildExpressionsPermission = 'MissingManageGuildExpressionsPermission',
+  /** @deprecated Use {@link MissingManageGuildExpressionsPermission} instead. */
   MissingManageEmojisAndStickersPermission = 'MissingManageEmojisAndStickersPermission',
+
   NotGuildSticker = 'NotGuildSticker',
 
   ReactionResolveUser = 'ReactionResolveUser',
@@ -13008,6 +12992,7 @@ export enum DiscordjsErrorCodes {
   ModalSubmitInteractionFieldType = 'ModalSubmitInteractionFieldType',
 
   InvalidMissingScopes = 'InvalidMissingScopes',
+  InvalidScopesWithPermissions = 'InvalidScopesWithPermissions',
 
   NotImplemented = 'NotImplemented',
 
@@ -16400,6 +16385,11 @@ export interface AutoModerationTriggerMetadata {
    * The total number of role & user mentions allowed per message
    */
   mentionTotalLimit: number | null;
+
+  /**
+   * Whether to automatically detect mention raids
+   */
+  mentionRaidProtectionEnabled: boolean;
 }
 
 /**
@@ -17478,10 +17468,11 @@ export interface ClientUserEditOptions {
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
  */
 export interface CloseEvent {
+  /** @deprecated */
   wasClean: boolean;
   code: number;
+  /** @deprecated */
   reason: string;
-  target: WebSocket;
 }
 
 /**
@@ -18954,14 +18945,17 @@ export interface GuildAuditLogsEntryExtraField {
   [AuditLogEvent.AutoModerationBlockMessage]: {
     autoModerationRuleName: string;
     autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+    channel: GuildTextBasedChannel | { id: Snowflake };
   };
   [AuditLogEvent.AutoModerationFlagToChannel]: {
     autoModerationRuleName: string;
     autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+    channel: GuildTextBasedChannel | { id: Snowflake };
   };
   [AuditLogEvent.AutoModerationUserCommunicationDisabled]: {
     autoModerationRuleName: string;
     autoModerationRuleTriggerType: AuditLogRuleTriggerType;
+    channel: GuildTextBasedChannel | { id: Snowflake };
   };
 }
 
@@ -19116,7 +19110,7 @@ export interface AutoModerationActionMetadataOptions extends Partial<Omit<AutoMo
   /**
    * The channel to which content will be logged
    */
-  channel: GuildTextChannelResolvable | ThreadChannel;
+  channel?: GuildTextChannelResolvable | ThreadChannel;
 }
 
 /**
@@ -19432,6 +19426,11 @@ export interface GuildEditOptions {
    * The community updates channel of the guild
    */
   publicUpdatesChannel?: TextChannelResolvable | null;
+
+  /**
+   * The safety alerts channel of the guild
+   */
+  safetyAlertsChannel?: TextChannelResolvable | null;
 
   /**
    * The preferred locale of the guild
@@ -20260,7 +20259,7 @@ export type MessageChannelComponentCollectorOptions<T extends CollectedMessageIn
  * @see {@link [MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)}
  */
 export interface MessageEvent {
-  data: WebSocket.Data;
+  data: import('ws').Data;
   type: string;
   target: WebSocket;
 }
@@ -20409,7 +20408,7 @@ export interface MessageCreateOptions extends BaseMessageOptions {
   nonce?: string | number;
 
   /**
-   * Options provided when sending a message.
+   * The options for replying to a message
    */
   reply?: ReplyOptions;
 
@@ -20530,8 +20529,7 @@ export interface StringSelectMenuComponentData extends BaseSelectMenuComponentDa
   /**
    * Options for the select menu
    */
-
-  options?: SelectMenuComponentOptionData[];
+  options: SelectMenuComponentOptionData[];
 }
 
 export interface UserSelectMenuComponentData extends BaseSelectMenuComponentData {
@@ -21146,6 +21144,11 @@ export interface RoleTagData {
    * Whether this role is available for purchase
    */
   availableForPurchase?: true;
+
+  /**
+   * Whether this role is a guild's linked role
+   */
+  guildConnections?: true;
 }
 
 /**
@@ -21454,7 +21457,7 @@ export type NonThreadGuildBasedChannel = Exclude<GuildBasedChannel, AnyThreadCha
 /**
  * The guild channels that are text-based.
  */
-export type GuildTextBasedChannel = Exclude<Extract<GuildBasedChannel, TextBasedChannel>, ForumChannel>;
+export type GuildTextBasedChannel = Extract<GuildBasedChannel, TextBasedChannel>;
 
 /**
  * Data that can be resolved to a Thread Channel object. This can be:
@@ -21746,15 +21749,25 @@ export interface WebSocketOptions {
    * @default 50
    */
   large_threshold?: number;
-  compress?: boolean;
-  properties?: WebSocketProperties;
-  version?: number;
-}
 
-export interface WebSocketProperties {
-  os?: string;
-  browser?: string;
-  device?: string;
+  /**
+   * The Discord gateway version to use <warn>Changing this can break the library;
+   * only set this if you know what you are doing</warn>
+   */
+  version?: number;
+
+  /**
+   * Builds the strategy to use for sharding
+   *
+   * A function to determine what strategy to use for sharding internally.
+   * ```js
+   * (manager) => new WorkerShardingStrategy(manager, { shardsPerWorker: 2 })
+   * ```
+   * @typedef {Function} BuildStrategyFunction
+   * @param {WSWebSocketManager} manager The WebSocketManager that is going to initiate the sharding
+   * @returns {IShardingStrategy} The strategy to use for sharding
+   */
+  buildStrategy?(manager: WSWebSocketManager): IShardingStrategy;
 }
 
 /**
@@ -21887,3 +21900,4 @@ export * from '@discordjs/builders';
 export * from '@discordjs/formatters';
 export * from '@discordjs/rest';
 export * from '@discordjs/util';
+export * from '@discordjs/ws';

@@ -10,7 +10,7 @@
 		"prepack": "yarn lint && yarn build"
 	},
 	"type": "module",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"directories": {
 		"lib": "src"
 	},
@@ -36,7 +36,8 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/discordjs/discord.js.git"
+		"url": "https://github.com/discordjs/discord.js.git",
+		"directory": "packages/proxy-container"
 	},
 	"bugs": {
 		"url": "https://github.com/discordjs/discord.js/issues"
@@ -48,17 +49,18 @@
 		"tslib": "^2.5.0"
 	},
 	"devDependencies": {
-		"@types/node": "18.15.11",
+		"@types/node": "20.1.4",
 		"cross-env": "^7.0.3",
-		"eslint": "^8.37.0",
-		"eslint-config-neon": "^0.1.41",
+		"eslint": "^8.40.0",
+		"eslint-config-neon": "^0.1.47",
 		"eslint-formatter-pretty": "^5.0.0",
-		"prettier": "^2.8.7",
+		"prettier": "^2.8.8",
 		"tsup": "^6.7.0",
-		"typescript": "^5.0.3"
+		"turbo": "^1.9.4",
+		"typescript": "^5.0.4"
 	},
 	"engines": {
-		"node": ">=16.9.0"
+		"node": ">=18.12.0"
 	},
 	"publishConfig": {
 		"access": "public"

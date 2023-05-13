@@ -12,6 +12,7 @@
 	</p>
 	<p>
 		<a href="https://vercel.com/?utm_source=discordjs&utm_campaign=oss"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-vercel.svg" alt="Vercel" /></a>
+		<a href="https://www.cloudflare.com"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-workers.png" alt="Cloudflare Workers" height="44" /></a>
 	</p>
 </div>
 
@@ -23,7 +24,7 @@
 
 Quickly spin up an instance:
 
-`docker run -d --restart unless-stopped --name proxy -p 127.0.0.1:8080:8080 -e DISCORD_TOKEN=abc discordjs/proxy`
+`docker run -d --restart unless-stopped --name proxy -p 127.0.0.1:8080:8080 discordjs/proxy`
 
 Use it:
 
@@ -47,6 +48,9 @@ const rest = new REST({
 	api: 'http://localhost:8080/api',
 });
 ```
+
+**Do note that you should not use the same proxy with multiple bots. We cannot guarantee you won't hit rate limits.
+Webhooks with tokens or other requests that don't include the Authorization header are okay, though!**
 
 ## Links
 

@@ -1,3 +1,5 @@
+/* eslint-disable jsdoc/check-param-names */
+
 import type { RawFile, RequestData, REST } from '@discordjs/rest';
 import { InteractionResponseType, Routes } from 'discord-api-types/v10';
 import type {
@@ -51,7 +53,7 @@ export class InteractionsAPI {
 	public async defer(
 		interactionId: Snowflake,
 		interactionToken: string,
-		data: APIInteractionResponseDeferredChannelMessageWithSource['data'],
+		data?: APIInteractionResponseDeferredChannelMessageWithSource['data'],
 		{ signal }: Pick<RequestData, 'signal'> = {},
 	) {
 		await this.rest.post(Routes.interactionCallback(interactionId, interactionToken), {
@@ -138,7 +140,7 @@ export class InteractionsAPI {
 	public async getOriginalReply(
 		applicationId: Snowflake,
 		interactionToken: string,
-		{ signal }: Pick<RequestData, 'signal'>,
+		{ signal }: Pick<RequestData, 'signal'> = {},
 	) {
 		return this.webhooks.getMessage(
 			applicationId,
