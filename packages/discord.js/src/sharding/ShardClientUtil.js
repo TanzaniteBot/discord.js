@@ -46,6 +46,9 @@ class ShardClientUtil {
         client.on(Events.ShardReconnecting, () => {
           process.send({ _reconnecting: true });
         });
+        client.on(Events.ShardResume, () => {
+          process.send({ _resume: true });
+        });
         break;
       case 'worker':
         this.parentPort = require('node:worker_threads').parentPort;
@@ -58,6 +61,9 @@ class ShardClientUtil {
         });
         client.on(Events.ShardReconnecting, () => {
           this.parentPort.postMessage({ _reconnecting: true });
+        });
+        client.on(Events.ShardResume, () => {
+          this.parentPort.postMessage({ _resume: true });
         });
         break;
     }

@@ -153,6 +153,7 @@ import {
   APIApplicationRoleConnectionMetadata,
   ImageFormat,
   GuildMemberFlags,
+  RESTGetAPIGuildThreadsResult,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -623,7 +624,7 @@ export class AutoModerationActionExecution {
   /**
    * The channel where this action was triggered from.
    */
-  public get channel(): TextBasedChannel | null;
+  public get channel(): GuildTextBasedChannel | ForumChannel | null;
 
   /**
    * The id of the channel where this action was triggered from.
@@ -2886,7 +2887,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   /**
    * Logs out, terminates the connection to Discord, and destroys the client.
    */
-  public destroy(): void;
+  public destroy(): Promise<void>;
 
   /**
    * Obtains a guild preview from Discord, available for all guilds the bot is in and all Discoverable guilds.
@@ -3690,10 +3691,10 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * @param {} [channelTypes=[]] The allowed types of channels. If empty, all channel types are allowed.
    * @returns The value of the option, or null if not set and not required.
    */
-  public getChannel<T extends ChannelType = ChannelType>(
+  public getChannel<const T extends ChannelType = ChannelType>(
     name: string,
     required: true,
-    channelTypes?: T[],
+    channelTypes?: readonly T[],
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
@@ -3705,10 +3706,10 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
         : T;
     }
   >;
-  public getChannel<T extends ChannelType = ChannelType>(
+  public getChannel<const T extends ChannelType = ChannelType>(
     name: string,
     required?: boolean,
-    channelTypes?: T[],
+    channelTypes?: readonly T[],
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
@@ -5280,7 +5281,7 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public get displayHexColor(): HexColorString;
 
   /**
-   * The nickname of this member, or their username if they don't have one
+   * The nickname of this member, or their user display name if they don't have one
    */
   public get displayName(): string;
 
@@ -6320,7 +6321,7 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   /**
    * Set of permissions the application or bot has within the channel the interaction was sent from
    */
-  public appPermissions: Readonly<PermissionsBitField> | null;
+  public appPermissions: CacheTypeReducer<Cached, Readonly<PermissionsBitField>>;
 
   /**
    * The permissions of the member, if one exists, in the channel this interaction was executed in
@@ -8170,10 +8171,8 @@ export interface ActionRowModalData {
   /**
    * The components of this action row
    */
-  components: ModalData[];
+  components: TextInputModalData[];
 }
-
-export type ModalData = TextInputModalData | ActionRowModalData;
 
 /**
  * Represents the serialized fields from a modal submit interaction
@@ -8185,7 +8184,7 @@ export class ModalSubmitFields {
    * The components within the modal
    * @type The components in the modal
    */
-  public components: ActionRow<ModalActionRowComponent>;
+  public components: ActionRowModalData[];
 
   /**
    * The extracted fields from the modal
@@ -8198,8 +8197,8 @@ export class ModalSubmitFields {
    * @param customId The custom id of the component
    * @param type The type of the component
    */
-  public getField<T extends ComponentType>(customId: string, type: T): { type: T } & ModalData;
-  public getField(customId: string, type?: ComponentType): ModalData;
+  public getField<T extends ComponentType>(customId: string, type: T): { type: T } & TextInputModalData;
+  public getField(customId: string, type?: ComponentType): TextInputModalData;
 
   /**
    * Gets the value of a text input component given a custom id
@@ -11425,9 +11424,15 @@ export class User extends PartialTextBasedChannel(Base) {
   public get createdTimestamp(): number;
 
   /**
-   * A discriminator based on username for the user
+   * The discriminator of this user
+   * <info>`'0'`, or a 4-digit stringified number if they're using the legacy username system</info>
    */
   public discriminator: string;
+
+  /**
+   * The global name of this user, or their username if they don't have one
+   */
+  public get displayName(): string;
 
   /**
    * A link to the user's default avatar
@@ -11443,6 +11448,12 @@ export class User extends PartialTextBasedChannel(Base) {
    * The flags for this user
    */
   public flags: Readonly<UserFlagsBitField> | null;
+
+  /**
+   * The global name of this user
+   * @type {?string}
+   */
+  public globalName: string | null;
 
   /**
    * The hexadecimal version of the user accent color, with a leading hash
@@ -11466,7 +11477,10 @@ export class User extends PartialTextBasedChannel(Base) {
   public system: boolean;
 
   /**
-   * The Discord "tag" (e.g. `hydrabolt#0001`) for this user
+   * The tag of this user
+   * <info>This user's username, or their legacy tag (e.g. `hydrabolt#0001`)
+   * if they're using the legacy username system</info>
+   * @deprecated Use {@link User.username} instead.
    */
   public get tag(): string;
 
@@ -12350,7 +12364,7 @@ export class WebSocketManager extends EventEmitter {
   /**
    * Destroys this manager and all its shards.
    */
-  private destroy(): void;
+  private destroy(): Promise<void>;
 
   /**
    * Processes a packet and queues it if this WebSocketManager is not ready.
@@ -13219,9 +13233,11 @@ export class ApplicationCommandManager<
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public set(commands: ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommandScope>>;
   public set(
-    commands: ApplicationCommandDataResolvable[],
+    commands: readonly ApplicationCommandDataResolvable[],
+  ): Promise<Collection<Snowflake, ApplicationCommandScope>>;
+  public set(
+    commands: readonly ApplicationCommandDataResolvable[],
     guildId: Snowflake,
   ): Promise<Collection<Snowflake, ApplicationCommand>>;
 
@@ -13361,17 +13377,37 @@ export class ApplicationCommandPermissionsManager<
           /**
            * The channel(s) to remove
            */
-          channels?: (GuildChannelResolvable | ChannelPermissionConstant)[];
+          channels?: readonly (GuildChannelResolvable | ChannelPermissionConstant)[];
 
           /**
            * The role(s) to remove
            */
-          roles?: (RoleResolvable | RolePermissionConstant)[];
+          roles?: readonly (RoleResolvable | RolePermissionConstant)[];
 
           /**
            * The user(s) to remove
            */
-          users: UserResolvable[];
+          users: readonly UserResolvable[];
+        })
+      | (FetchSingleOptions & {
+          /**
+           * The bearer token to use that authorizes the permission removal
+           */
+          token: string;
+          /**
+           * The channel(s) to remove
+           */
+          channels?: readonly (GuildChannelResolvable | ChannelPermissionConstant)[];
+
+          /**
+           * The role(s) to remove
+           */
+          roles: readonly (RoleResolvable | RolePermissionConstant)[];
+
+          /**
+           * The user(s) to remove
+           */
+          users?: readonly UserResolvable[];
         })
       | (FetchSingleOptions & {
           /**
@@ -13382,38 +13418,17 @@ export class ApplicationCommandPermissionsManager<
           /**
            * The channel(s) to remove
            */
-          channels?: (GuildChannelResolvable | ChannelPermissionConstant)[];
+          channels: readonly (GuildChannelResolvable | ChannelPermissionConstant)[];
 
           /**
            * The role(s) to remove
            */
-          roles: (RoleResolvable | RolePermissionConstant)[];
+          roles?: readonly (RoleResolvable | RolePermissionConstant)[];
 
           /**
            * The user(s) to remove
            */
-          users?: UserResolvable[];
-        })
-      | (FetchSingleOptions & {
-          /**
-           * The bearer token to use that authorizes the permission removal
-           */
-          token: string;
-
-          /**
-           * The channel(s) to remove
-           */
-          channels: (GuildChannelResolvable | ChannelPermissionConstant)[];
-
-          /**
-           * The role(s) to remove
-           */
-          roles?: (RoleResolvable | RolePermissionConstant)[];
-
-          /**
-           * The user(s) to remove
-           */
-          users?: UserResolvable[];
+          users?: readonly UserResolvable[];
         }),
   ): Promise<ApplicationCommandPermissions[]>;
 
@@ -13850,6 +13865,12 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .catch(console.error);
    */
   public fetchActiveThreads(cache?: boolean): Promise<FetchedThreads>;
+
+  /**
+   * `GET /guilds/{guild.id}/threads/active`
+   * @private
+   */
+  private rawFetchGuildActiveThreads(): Promise<RESTGetAPIGuildThreadsResult>;
 
   /**
    * Deletes the channel.
@@ -15014,8 +15035,7 @@ export class ThreadManager<Forum extends boolean = boolean> extends CachedManage
   public fetchArchived(options?: FetchArchivedThreadOptions, cache?: boolean): Promise<FetchedThreadsMore>;
 
   /**
-   * Obtains all active thread channels in the guild.
-   * This internally calls {@link GuildChannelManager#fetchActiveThreads}.
+   * Obtains all active threads in the channel.
    * @param {} [cache=true] Whether to cache the fetched data
    */
   public fetchActive(cache?: boolean): Promise<FetchedThreads>;
@@ -15735,7 +15755,7 @@ export interface ChatInputApplicationCommandData extends BaseApplicationCommandD
   /**
    * Options for the command
    */
-  options?: ApplicationCommandOptionData[];
+  options?: readonly ApplicationCommandOptionData[];
 }
 
 /**
@@ -15755,13 +15775,13 @@ export interface ApplicationCommandChannelOptionData extends BaseApplicationComm
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: ApplicationCommandOptionAllowedChannelTypes[];
+  channelTypes?: readonly ApplicationCommandOptionAllowedChannelTypes[];
 
   /**
    * When the option type is channel, the API data for allowed types of channels that can be selected
    * <warn>This is provided for compatibility with something like `@discordjs/builders`
    */
-  channel_types?: ApplicationCommandOptionAllowedChannelTypes[];
+  channel_types?: readonly ApplicationCommandOptionAllowedChannelTypes[];
 }
 
 export interface ApplicationCommandChannelOption extends BaseApplicationCommandOptionsData {
@@ -15773,7 +15793,7 @@ export interface ApplicationCommandChannelOption extends BaseApplicationCommandO
   /**
    * When the option type is channel, the allowed types of channels that can be selected
    */
-  channelTypes?: ApplicationCommandOptionAllowedChannelTypes[];
+  channelTypes?: readonly ApplicationCommandOptionAllowedChannelTypes[];
 }
 
 export interface ApplicationCommandRoleOptionData extends BaseApplicationCommandOptionsData {
@@ -15929,7 +15949,7 @@ export interface ApplicationCommandChoicesData<Type extends string | number = st
   /**
    * The choices of the option for the user to pick from
    */
-  choices?: ApplicationCommandOptionChoiceData<Type>[];
+  choices?: readonly ApplicationCommandOptionChoiceData<Type>[];
 
   /**
    * Whether the option is an autocomplete option
@@ -15947,7 +15967,7 @@ export interface ApplicationCommandChoicesOption<Type extends string | number = 
   /**
    * The choices of the option for the user to pick from
    */
-  choices?: ApplicationCommandOptionChoiceData<Type>[];
+  choices?: readonly ApplicationCommandOptionChoiceData<Type>[];
 
   /**
    * Whether the option is an autocomplete option
@@ -16063,7 +16083,7 @@ export interface ApplicationCommandSubGroupData extends Omit<BaseApplicationComm
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options: ApplicationCommandSubCommandData[];
+  options: readonly ApplicationCommandSubCommandData[];
 }
 
 export interface ApplicationCommandSubGroup extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -16075,7 +16095,7 @@ export interface ApplicationCommandSubGroup extends Omit<BaseApplicationCommandO
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: ApplicationCommandSubCommand[];
+  options?: readonly ApplicationCommandSubCommand[];
 }
 
 export interface ApplicationCommandSubCommandData extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -16087,7 +16107,10 @@ export interface ApplicationCommandSubCommandData extends Omit<BaseApplicationCo
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: Exclude<ApplicationCommandOptionData, ApplicationCommandSubGroupData | ApplicationCommandSubCommandData>[];
+  options?: readonly Exclude<
+    ApplicationCommandOptionData,
+    ApplicationCommandSubGroupData | ApplicationCommandSubCommandData
+  >[];
 }
 
 export interface ApplicationCommandSubCommand extends Omit<BaseApplicationCommandOptionsData, 'required'> {
@@ -16099,7 +16122,7 @@ export interface ApplicationCommandSubCommand extends Omit<BaseApplicationComman
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: Exclude<ApplicationCommandOption, ApplicationCommandSubGroup | ApplicationCommandSubCommand>[];
+  options?: readonly Exclude<ApplicationCommandOption, ApplicationCommandSubGroup | ApplicationCommandSubCommand>[];
 }
 
 export interface ApplicationCommandNonOptionsData extends BaseApplicationCommandOptionsData {
@@ -16214,7 +16237,7 @@ export interface ApplicationCommandPermissionsUpdateData {
   /**
    * The updated permissions
    */
-  permissions: ApplicationCommandPermissions[];
+  permissions: readonly ApplicationCommandPermissions[];
 }
 
 /**
@@ -16226,7 +16249,7 @@ export interface EditApplicationCommandPermissionsMixin {
   /**
    * The new permissions for the guild or overwrite
    */
-  permissions: ApplicationCommandPermissions[];
+  permissions: readonly ApplicationCommandPermissions[];
 
   /**
    * The bearer token to use that authorizes the permission edit
@@ -17034,16 +17057,14 @@ export interface ClientEvents {
 
   /**
    * Emitted when an invite is created.
-   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
-   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * <info>This event requires the {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was created
    */
   inviteCreate: [invite: Invite];
 
   /**
    * Emitted when an invite is deleted.
-   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
-   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * <info>This event requires the {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was deleted
    */
   inviteDelete: [invite: Invite];
@@ -17415,7 +17436,7 @@ export interface ClientOptions {
 
   /**
    * Options for cache sweeping
-   * @default {}
+   * @default this.DefaultSweeperSettings
    */
   sweepers?: SweeperOptions;
 
@@ -17901,16 +17922,14 @@ export enum Events {
 
   /**
    * Emitted when an invite is created.
-   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
-   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * <info>This event requires the {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was created
    */
   InviteCreate = 'inviteCreate',
 
   /**
    * Emitted when an invite is deleted.
-   * <info>This event requires either the {@link PermissionFlagsBits.ManageGuild} permission or the
-   * {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
+   * <info>This event requires the {@link PermissionFlagsBits.ManageChannels} permission for the channel.</info>
    * @param invite The invite that was deleted
    */
   InviteDelete = 'inviteDelete',
