@@ -20,7 +20,7 @@ jobs:
           #   folder: 'core'
           # - package: '@discordjs/formatters'
           #   folder: 'formatters'
-          - package: '@notenoughupdates/discord.js'
+          - package: '@tanzanite/discord.js'
             folder: 'discord.js'
           # - package: '@discordjs/next'
           #   folder: 'next'

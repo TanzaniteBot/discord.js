@@ -1,5 +1,5 @@
 {
-  "name": "@notenoughupdates/discord.js",
+  "name": "@tanzanite/discord.js",
   "version": "14.11.0",
   "description": "A powerful library for interacting with the Discord API",
   "scripts": {
@@ -42,11 +42,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/discordjs/discord.js.git",
+    "url": "https://github.com/TanzaniteBot/discord.js.git",
     "directory": "packages/discord.js"
   },
   "bugs": {
-    "url": "https://github.com/discordjs/discord.js/issues"
+    "url": "https://github.com/TanzaniteBot/discord.js/issues"
   },
   "homepage": "https://discord.js.org",
   "dependencies": {
