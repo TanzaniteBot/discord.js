@@ -17691,7 +17691,7 @@ export interface ClientOptions {
 
   /**
    * The amount of time in milliseconds to wait for the close frame to be received
-   * from the WebSocket. Don't have this too high/low. Its best to have it between 2_000-6_000 ms.
+   * from the WebSocket. Don't have this too high/low. It's best to have it between 2_000-6_000 ms.
    * @default 5_000
    */
   closeTimeout?: number;
