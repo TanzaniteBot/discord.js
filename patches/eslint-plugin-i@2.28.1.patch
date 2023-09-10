@@ -1,5 +1,5 @@
 diff --git a/lib/rules/extensions.js b/lib/rules/extensions.js
-index 3bd6529d40ae428e6efbda0fd6d48de10e7ea110..52bbef8fb8335a81239e145f304a0d8ddfff6323 100644
+index 3bd6529d40ae428e6efbda0fd6d48de10e7ea110..5394bf3fa5bba575d883165df4ecba84b977bff7 100644
 --- a/lib/rules/extensions.js
 +++ b/lib/rules/extensions.js
 @@ -3,7 +3,8 @@
@@ -66,7 +66,7 @@ index 3bd6529d40ae428e6efbda0fd6d48de10e7ea110..52bbef8fb8335a81239e145f304a0d8d
  
        return (0, _moduleVisitor2['default'])(checkFileExtension, { commonjs: true });
      }return create;}() };
-+    
++ 
 +/**
 + * Taken from `eslint-import-resolver-typescript`.
 + * This could be imported from current versions of that plugin,
