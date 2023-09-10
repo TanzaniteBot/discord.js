@@ -214,12 +214,6 @@ class Activity {
       : null;
 
     /**
-     * The Spotify song's id
-     * @type {?string}
-     */
-    this.syncId = data.sync_id ?? null;
-
-    /**
      * The platform the game is being played on
      * @type {?string}
      */

@@ -401,7 +401,6 @@ export class Activity {
    * State of the activity
    */
   public state: string | null;
-<<<<<<< HEAD
 
   /**
    * The Spotify song's id
@@ -411,9 +410,6 @@ export class Activity {
   /**
    * Timestamps for the activity
    */
-=======
-  public syncId: string | null;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public timestamps: {
     start: Date | null;
     end: Date | null;
@@ -2513,6 +2509,10 @@ export class EmbedBuilder extends BuildersEmbed {
    * @param other The other data
    */
   public static from(other: JSONEncodable<APIEmbed> | APIEmbed): EmbedBuilder;
+
+  /**
+   * The accumulated length for the embed title, description, fields, footer text, and author name.
+   */
   public get length(): number;
 }
 
@@ -2819,6 +2819,7 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Partially censored client token for debug logging purposes.
    */
   private get _censoredToken(): string | null;
+
   // This a technique used to brand the ready state. Or else we'll get `never` errors on typeguard checks.
   private readonly _ready: Ready;
 
@@ -2908,15 +2909,18 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Logs out, terminates the connection to Discord, and destroys the client.
    */
   public destroy(): Promise<void>;
-<<<<<<< HEAD
+
+  /**
+   * Deletes a webhook.
+   * @param id The webhook's id
+   * @param options Options for deleting the webhook
+   */
+  public deleteWebhook(id: Snowflake, options?: WebhookDeleteOptions): Promise<void>;
 
   /**
    * Obtains a guild preview from Discord, available for all guilds the bot is in and all Discoverable guilds.
    * @param guild The guild to fetch the preview for
    */
-=======
-  public deleteWebhook(id: Snowflake, options?: WebhookDeleteOptions): Promise<void>;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public fetchGuildPreview(guild: GuildResolvable): Promise<GuildPreview>;
 
   /**
@@ -3071,29 +3075,35 @@ export class ClientApplication extends Application {
    * The application command manager for this application
    */
   public commands: ApplicationCommandManager;
-<<<<<<< HEAD
+
+  /**
+   * The id of the guild associated with this application.
+   */
+  public guildId: Snowflake | null;
+
+  /**
+   * The guild associated with this application.
+   */
+  public get guild(): Guild | null;
 
   /**
    * The hash of the application's cover image
    */
-=======
-  public guildId: Snowflake | null;
-  public get guild(): Guild | null;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public cover: string | null;
 
   /**
    * The flags this application has
    */
   public flags: Readonly<ApplicationFlagsBitField>;
-<<<<<<< HEAD
+
+  /**
+   * An approximate amount of guilds this application is in.
+   */
+  public approximateGuildCount: number | null;
 
   /**
    * The tags this application has (max of 5)
    */
-=======
-  public approximateGuildCount: number | null;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public tags: string[];
 
   /**
@@ -3202,17 +3212,13 @@ export class ClientUser extends User {
    * client.user.setActivity('discord.js', { type: ActivityType.Watching });
    */
   public setActivity(options?: ActivityOptions): ClientPresence;
-<<<<<<< HEAD
-  public setActivity(name: string, options?: ActivityOptions): ClientPresence;
+  public setActivity(name: string, options?: Omit<ActivityOptions, 'name'>): ClientPresence;
 
   /**
    * Sets/removes the AFK flag for the client user.
    * @param {} [afk=true] Whether or not the user is AFK
    * @param shardId Shard Id(s) to have the AFK flag set on
    */
-=======
-  public setActivity(name: string, options?: Omit<ActivityOptions, 'name'>): ClientPresence;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public setAFK(afk?: boolean, shardId?: number | number[]): ClientPresence;
 
   /**
@@ -4452,16 +4458,17 @@ export class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   public fetchIntegrations(): Promise<Collection<Snowflake | string, Integration>>;
-<<<<<<< HEAD
+
+  /**
+   * Fetches the guild onboarding data for this guild.
+   */
+  public fetchOnboarding(): Promise<GuildOnboarding>;
 
   /**
    * Fetches the owner of the guild.
    * If the member object isn't needed, use {@link Guild.ownerId} instead.
    * @param options The options for fetching the member
    */
-=======
-  public fetchOnboarding(): Promise<GuildOnboarding>;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public fetchOwner(options?: BaseFetchOptions): Promise<GuildMember>;
 
   /**
@@ -5464,8 +5471,8 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
 
   /**
    * Times this guild member out.
-   * @param timeout The time in milliseconds
-   * for the member's communication to be disabled until. Provide `null` to remove the timeout.
+   * @param timeout The duration in milliseconds for the member's communication to be disabled.
+   * Provide `null` to remove the timeout.
    * @param reason The reason for this timeout.
    * @example
    * // Time a guild member out for 5 minutes
@@ -5569,46 +5576,142 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public valueOf(): string;
 }
 
-<<<<<<< HEAD
 /**
- * Represents the data about the guild any bot can preview, connected to the specified guild.
+ * Represents the onboarding data of a guild.
  */
-=======
 export class GuildOnboarding extends Base {
   private constructor(client: Client, data: RESTGetAPIGuildOnboardingResult);
+
+  /**
+   * The guild this onboarding is from
+   */
   public get guild(): Guild;
+
+  /**
+   * The id of the guild this onboarding data is for
+   */
   public guildId: Snowflake;
+
+  /**
+   * The prompts shown during onboarding and in customize community
+   */
   public prompts: Collection<Snowflake, GuildOnboardingPrompt>;
+
+  /**
+   * The ids of the channels that new members get opted into automatically
+   */
   public defaultChannels: Collection<Snowflake, GuildChannel>;
+
+  /**
+   * Whether onboarding is enabled
+   */
   public enabled: boolean;
 }
 
+/**
+ * Represents the data of a prompt of a guilds onboarding.
+ * @extends {Base}
+ */
 export class GuildOnboardingPrompt extends Base {
   private constructor(client: Client, data: APIGuildOnboardingPrompt, guildId: Snowflake);
+
+  /**
+   * The id of the prompt
+   */
   public id: Snowflake;
+
+  /**
+   * The guild this onboarding prompt is from
+   */
   public get guild(): Guild;
+
+  /**
+   * The id of the guild this onboarding prompt is from
+   */
   public guildId: Snowflake;
+
+  /**
+   * The options available within the prompt
+   */
   public options: Collection<Snowflake, GuildOnboardingPromptOption>;
+
+  /**
+   * The title of the prompt
+   */
   public title: string;
+
+  /**
+   * Whether users are limited to selecting one option for the prompt
+   */
   public singleSelect: boolean;
+
+  /**
+   * Whether the prompt is required before a user completes the onboarding flow
+   */
   public required: boolean;
+
+  /**
+   * Whether the prompt is present in the onboarding flow.
+   * If `false`, the prompt will only appear in the Channels & Roles tab
+   */
   public inOnboarding: boolean;
+
+  /**
+   * The type of the prompt
+   */
   public type: GuildOnboardingPromptType;
 }
 
+/**
+ * Represents the data of an option from a prompt of a guilds onboarding.
+ */
 export class GuildOnboardingPromptOption extends Base {
   private constructor(client: Client, data: APIGuildOnboardingPromptOption, guildId: Snowflake);
+
+  /**
+   * The id of the option
+   */
   public id: Snowflake;
+
+  /**
+   * The guild this onboarding prompt option is from
+   */
   public get guild(): Guild;
+
+  /**
+   * The id of the guild this onboarding prompt option is from
+   */
   public guildId: Snowflake;
+
+  /**
+   * The channels a member is added to when the option is selected
+   */
   public channels: Collection<Snowflake, GuildChannel>;
+
+  /**
+   * The roles assigned to a member when the option is selected
+   */
   public roles: Collection<Snowflake, Role>;
+
+  /**
+   * The emoji of the option
+   */
   public emoji: GuildOnboardingPromptOptionEmoji | null;
+
+  /**
+   * The title of the option
+   */
   public title: string;
+
+  /**
+   * The description of the option
+   */
   public description: string | null;
 }
 
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
+/**
+ * Represents the data about the guild any bot can preview, connected to the specified guild.
+ */
 export class GuildPreview extends Base {
   public constructor(client: Client<true>, data: RawGuildPreviewData);
 
@@ -7500,14 +7603,15 @@ export class Attachment {
    * Whether this attachment is ephemeral
    */
   public ephemeral: boolean;
-<<<<<<< HEAD
+
+  /**
+   * The flags of this attachment
+   */
+  public flags: AttachmentFlagsBitField;
 
   /**
    * The height of this attachment (if an image or video)
    */
-=======
-  public flags: AttachmentFlagsBitField;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public height: number | null;
 
   /**
@@ -7557,22 +7661,30 @@ export class Attachment {
   public toJSON(): unknown;
 }
 
-<<<<<<< HEAD
+export type AttachmentFlagsString = keyof typeof AttachmentFlags;
+
+/**
+ * Data structure that makes it easy to interact with an {@link Attachment.flags} bitfield.
+ */
+export class AttachmentFlagsBitField extends BitField<AttachmentFlagsString> {
+  /**
+   * Numeric attachment flags.
+   */
+  public static Flags: Record<AttachmentFlagsString, number>;
+
+  /**
+   * Resolves bitfields to their numeric form.
+   * @param bit bit(s) to resolve
+   */
+  public static resolve(bit?: BitFieldResolvable<AttachmentFlagsString, number>): number;
+}
+
 /**
  * Collects messages on a channel.
  * Will automatically stop if the channel ({@link ClientEvents.channelDelete channelDelete}),
  * thread ({@link ClientEvents.threadDelete threadDelete}), or
  * guild ({@link ClientEvents.guildDelete guildDelete}) is deleted.
  */
-=======
-export type AttachmentFlagsString = keyof typeof AttachmentFlags;
-
-export class AttachmentFlagsBitField extends BitField<AttachmentFlagsString> {
-  public static Flags: Record<AttachmentFlagsString, number>;
-  public static resolve(bit?: BitFieldResolvable<AttachmentFlagsString, number>): number;
-}
-
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
 export class MessageCollector extends Collector<Snowflake, Message, [Collection<Snowflake, Message>]> {
   /**
    * @param channel The channel
@@ -9218,14 +9330,15 @@ export class Role extends Base {
    * Whether the role is editable by the client user
    */
   public get editable(): boolean;
-<<<<<<< HEAD
+
+  /**
+   * The flags of this role
+   */
+  public flags: RoleFlagsBitField;
 
   /**
    * The guild that the role belongs to
    */
-=======
-  public flags: RoleFlagsBitField;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public guild: Guild;
 
   /**
@@ -9464,19 +9577,27 @@ export class Role extends Base {
   public toString(): RoleMention;
 }
 
-<<<<<<< HEAD
-/**
- * Represents a {@link ComponentType.StringSelect} select menu interaction.
- */
-=======
 export type RoleFlagsString = keyof typeof RoleFlags;
 
+/**
+ * Data structure that makes it easy to interact with a {@link Role#flags} bitfield.
+ */
 export class RoleFlagsBitField extends BitField<RoleFlagsString> {
+  /**
+   * Numeric role flags.
+   */
   public static Flags: typeof RoleFlags;
+
+  /**
+   * Resolves bitfields to their numeric form.
+   * @param bit bit(s) to resolve
+   */
   public static resolve(bit?: BitFieldResolvable<RoleFlagsString, number>): number;
 }
 
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
+/**
+ * Represents a {@link ComponentType.StringSelect} select menu interaction.
+ */
 export class StringSelectMenuInteraction<
   Cached extends CacheType = CacheType,
 > extends MessageComponentInteraction<Cached> {
@@ -9796,15 +9917,16 @@ export interface ShardEventTypes {
    * Emitted upon the shard's {@link ClientEvents.shardReconnecting} event.
    */
   reconnecting: [];
-<<<<<<< HEAD
+
+  /**
+   * Emitted upon the shard's {@link ClientEvents.shardResume} event.
+   */
+  resume: [];
 
   /**
    * Emitted upon the creation of the shard's child process/worker.
    * @param process Child process/worker that was created/exited.
    */
-=======
-  resume: [];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   spawn: [process: ChildProcess | Worker];
 }
 
@@ -9896,14 +10018,15 @@ export class Shard extends EventEmitter {
    * Whether the shard's {@link Client} is ready
    */
   public ready: boolean;
-<<<<<<< HEAD
+
+  /**
+   * Whether to pass silent flag to the shard's process (only when {@link ShardingManager.mode} is `process`)
+   */
+  public silent: boolean;
 
   /**
    * Worker of the shard (if {@link ShardingManager.mode} is `worker`)
    */
-=======
-  public silent: boolean;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public worker: Worker | null;
 
   /**
@@ -10122,14 +10245,15 @@ export class ShardingManager extends EventEmitter {
    * Whether shards should automatically respawn upon exiting
    */
   public respawn: boolean;
-<<<<<<< HEAD
+
+  /**
+   * Whether to pass the silent flag to child process (only when {@link ShardingManager.mode} is `process`)
+   */
+  public silent: boolean;
 
   /**
    * An array of arguments to pass to shards (only when {@link ShardingManager.mode} is `process`)
    */
-=======
-  public silent: boolean;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public shardArgs: string[];
 
   /**
@@ -11515,15 +11639,16 @@ export class User extends PartialTextBasedChannel(Base) {
    * The user avatar's hash
    */
   public avatar: string | null;
-<<<<<<< HEAD
+
+  /**
+   * The user avatar decoration's hash
+   */
+  public avatarDecoration: string | null;
 
   /**
    * The user banner's hash
    * <info>The user must be force fetched for this property to be present or be updated</info>
    */
-=======
-  public avatarDecoration: string | null;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public banner: string | null | undefined;
 
   /**
@@ -11593,7 +11718,6 @@ export class User extends PartialTextBasedChannel(Base) {
    * Whether the user is an Official Discord System user (part of the urgent message system)
    */
   public system: boolean;
-<<<<<<< HEAD
 
   /**
    * The tag of this user
@@ -11601,8 +11725,6 @@ export class User extends PartialTextBasedChannel(Base) {
    * if they're using the legacy username system</info>
    * @deprecated Use {@link User.username} instead.
    */
-=======
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public get tag(): string;
 
   /**
@@ -11615,15 +11737,17 @@ export class User extends PartialTextBasedChannel(Base) {
    * @param {} [options={}] Options for the image URL
    */
   public avatarURL(options?: ImageURLOptions): string | null;
-<<<<<<< HEAD
+
+  /**
+   * A link to the user's avatar decoration.
+   * @param {} [options={}] Options for the image URL
+   */
+  public avatarDecorationURL(options?: BaseImageURLOptions): string | null;
 
   /**
    * A link to the user's banner. See {@link User.banner} for more info
    * @param {} [options={}] Options for the image URL
    */
-=======
-  public avatarDecorationURL(options?: BaseImageURLOptions): string | null;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public bannerURL(options?: ImageURLOptions): string | null | undefined;
 
   /**
@@ -13213,15 +13337,11 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
  * Manages the API methods of a data model with a mutable cache of instances.
  */
 export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R> {
-<<<<<<< HEAD
-  public constructor(client: Client<true>, holds: Constructable<Holds>);
+  public constructor(client: Client<true>, holds: Constructable<Holds>, iterable?: Iterable<Holds>);
 
   /**
    * The private cache of items for this manager.
    */
-=======
-  protected constructor(client: Client<true>, holds: Constructable<Holds>, iterable?: Iterable<Holds>);
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   private readonly _cache: Collection<K, Holds>;
 
   private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
@@ -14701,40 +14821,25 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
   ): Promise<GuildMember>;
 }
 
-<<<<<<< HEAD
 /**
  * Manages API methods for Messages and holds their cache.
  */
-export class MessageManager<InGuild extends boolean = boolean> extends CachedManager<
-=======
 export abstract class MessageManager<InGuild extends boolean = boolean> extends CachedManager<
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   Snowflake,
   Message<InGuild>,
   MessageResolvable
 > {
-<<<<<<< HEAD
   public constructor(channel: TextBasedChannel, iterable?: Iterable<RawMessageData>);
 
   /**
    * The channel that the messages belong to
    */
-  public channel: If<InGuild, GuildTextBasedChannel, TextBasedChannel>;
-
-  /**
-   * Publishes a message in an announcement channel to all channels following it, even if it's not cached.
-   * @param message The message to publish
-   */
-  public crosspost(message: MessageResolvable): Promise<Message<InGuild>>;
+  public channel: TextBasedChannel;
 
   /**
    * Deletes a message, even if it's not cached.
    * @param message The message to delete
    */
-=======
-  protected constructor(channel: TextBasedChannel, iterable?: Iterable<RawMessageData>);
-  public channel: TextBasedChannel;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   public delete(message: MessageResolvable): Promise<void>;
 
   /**
@@ -14806,21 +14911,35 @@ export abstract class MessageManager<InGuild extends boolean = boolean> extends 
   public unpin(message: MessageResolvable, reason?: string): Promise<void>;
 }
 
-<<<<<<< HEAD
 /**
- * Manages API methods for guild channel permission overwrites and stores their cache.
+ * Manages API methods for messages in direct message channels and holds their cache.
  */
-=======
 export class DMMessageManager extends MessageManager {
+  /**
+   * The channel that the messages belong to
+   */
   public channel: DMChannel;
 }
 
+/**
+ * Manages API methods for messages in a guild and holds their cache.
+ */
 export class GuildMessageManager extends MessageManager<true> {
+  /**
+   * The channel that the messages belong to
+   */
   public channel: GuildTextBasedChannel;
+
+  /**
+   * Publishes a message in an announcement channel to all channels following it, even if it's not cached.
+   * @param message The message to publish
+   */
   public crosspost(message: MessageResolvable): Promise<Message<true>>;
 }
 
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
+/**
+ * Manages API methods for guild channel permission overwrites and stores their cache.
+ */
 export class PermissionOverwriteManager extends CachedManager<
   Snowflake,
   PermissionOverwrites,
@@ -15433,12 +15552,11 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    * The date when the last pinned message was pinned, if there was one
    */
   get lastPinAt(): Date | null;
-<<<<<<< HEAD
 
   /**
    * A manager of the messages sent to this channel
    */
-  messages: MessageManager<InGuild>;
+  messages: If<InGuild, GuildMessageManager, DMMessageManager>;
 
   /**
    * Collects a single component interaction that passes the filter.
@@ -15451,9 +15569,6 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-=======
-  messages: If<InGuild, GuildMessageManager, DMMessageManager>;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   awaitMessageComponent<T extends MessageComponentType>(
     options?: AwaitMessageCollectorOptionsParams<T, true>,
   ): Promise<MappedInteractionTypes[T]>;
@@ -15686,17 +15801,24 @@ export interface WebhookFields extends PartialWebhookFields {
 
 //#region Typedefs
 
+/**
+ * Options for setting activities
+ */
 export type ActivitiesOptions = Omit<ActivityOptions, 'shardId'>;
 
 /**
  * Options for setting activities
  */
 export interface ActivityOptions {
-<<<<<<< HEAD
   /**
    * Name of the activity
    */
-  name?: string;
+  name: string;
+
+  /**
+   * State of the activity
+   */
+  state?: string;
 
   /**
    * Twitch / YouTube stream URL
@@ -15706,17 +15828,11 @@ export interface ActivityOptions {
   /**
    * Type of the activity
    */
-  type?: Exclude<ActivityType, ActivityType.Custom>;
+  type?: ActivityType;
 
   /**
    * Shard Id(s) to have the activity set on
    */
-=======
-  name: string;
-  state?: string;
-  url?: string;
-  type?: ActivityType;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   shardId?: number | readonly number[];
 }
 
@@ -16701,14 +16817,15 @@ export interface Caches {
    * Holds methods to resolve GuildEmojis and stores their cache.
    */
   BaseGuildEmojiManager: [manager: typeof BaseGuildEmojiManager, holds: typeof GuildEmoji];
-<<<<<<< HEAD
+
+  /**
+   * Manages API methods for messages in direct message channels and holds their cache.
+   */
+  DMMessageManager: [manager: typeof DMMessageManager, holds: typeof Message<false>];
 
   /**
    * Manages API methods for GuildEmojis and stores their cache.
    */
-=======
-  DMMessageManager: [manager: typeof MessageManager, holds: typeof Message<false>];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   GuildEmojiManager: [manager: typeof GuildEmojiManager, holds: typeof GuildEmoji];
 
   // /**
@@ -16735,12 +16852,11 @@ export interface Caches {
    * Manages API methods for GuildBans and stores their cache.
    */
   GuildBanManager: [manager: typeof GuildBanManager, holds: typeof GuildBan];
-<<<<<<< HEAD
 
   /**
    * Manages API methods for threads in forum channels and stores their cache.
    */
-  GuildForumThreadManager: [manager: typeof GuildForumThreadManager, holds: typeof ThreadChannel];
+  GuildForumThreadManager: [manager: typeof GuildForumThreadManager, holds: typeof ThreadChannel<true>];
 
   /**
    * Manages API methods for GuildInvites and stores their cache.
@@ -16748,32 +16864,28 @@ export interface Caches {
   GuildInviteManager: [manager: typeof GuildInviteManager, holds: typeof Invite];
 
   /**
+   * Manages API methods for messages in a guild and holds their cache.
+   */
+  GuildMessageManager: [manager: typeof GuildMessageManager, holds: typeof Message<true>];
+
+  /**
    * Represents a scheduled event in a {@link Guild}.
    */
-=======
-  GuildForumThreadManager: [manager: typeof GuildForumThreadManager, holds: typeof ThreadChannel<true>];
-  GuildInviteManager: [manager: typeof GuildInviteManager, holds: typeof Invite];
-  GuildMessageManager: [manager: typeof GuildMessageManager, holds: typeof Message<true>];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   GuildScheduledEventManager: [manager: typeof GuildScheduledEventManager, holds: typeof GuildScheduledEvent];
 
   /**
    * Manages API methods for Guild Stickers and stores their cache.
    */
   GuildStickerManager: [manager: typeof GuildStickerManager, holds: typeof Sticker];
-<<<<<<< HEAD
 
   /**
    * Manages API methods for {@link ThreadChannel} objects and stores their cache.
    */
-  GuildTextThreadManager: [manager: typeof GuildTextThreadManager, holds: typeof ThreadChannel];
+  GuildTextThreadManager: [manager: typeof GuildTextThreadManager, holds: typeof ThreadChannel<false>];
 
   /**
    * Manages API methods for Messages and holds their cache.
    */
-=======
-  GuildTextThreadManager: [manager: typeof GuildTextThreadManager, holds: typeof ThreadChannel<false>];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   MessageManager: [manager: typeof MessageManager, holds: typeof Message];
 
   /**
@@ -17136,15 +17248,17 @@ export interface ClientEvents {
    * @param guild The guild where the entry was created
    */
   guildAuditLogEntryCreate: [auditLogEntry: GuildAuditLogsEntry, guild: Guild];
-<<<<<<< HEAD
+
+  /**
+   * Emitted whenever a guild becomes available.
+   * @param guild The guild that became available
+   */
+  guildAvailable: [guild: Guild];
 
   /**
    * Emitted whenever a member is banned from a guild.
    * @param ban The ban that occurred
    */
-=======
-  guildAvailable: [guild: Guild];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   guildBanAdd: [ban: GuildBan];
 
   /**
@@ -17418,23 +17532,24 @@ export interface ClientEvents {
    * @param newState The voice state after the update
    */
   voiceStateUpdate: [oldState: VoiceState, newState: VoiceState];
-<<<<<<< HEAD
+
+  /**
+   * Emitted whenever a channel has its webhooks changed.
+   * @param channel The channel that had a webhook update
+   * @deprecated Use {@link webhooksUpdate} instead.
+   */
+  webhookUpdate: ClientEvents['webhooksUpdate'];
 
   /**
    * Emitted whenever a channel has its webhooks changed.
    * @param channel The channel that had a webhook update
    */
-  webhookUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel];
+  webhooksUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel];
 
   /**
    * Emitted when an interaction is created.
    * @param interaction The interaction which was created
    */
-=======
-  /** @deprecated Use {@link webhooksUpdate} instead. */
-  webhookUpdate: ClientEvents['webhooksUpdate'];
-  webhooksUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel];
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   interactionCreate: [interaction: Interaction];
 
   /**
@@ -18051,14 +18166,15 @@ export enum Events {
    * Emitted whenever a guild audit log entry is created.
    */
   GuildAuditLogEntryCreate = 'guildAuditLogEntryCreate',
-<<<<<<< HEAD
+
+  /**
+   * Emitted whenever a guild becomes available.
+   */
+  GuildAvailable = 'guildAvailable',
 
   /**
    * Emitted whenever the client joins a guild.
    */
-=======
-  GuildAvailable = 'guildAvailable',
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   GuildCreate = 'guildCreate',
 
   /**
@@ -18279,7 +18395,7 @@ export enum Events {
   /**
    * Emitted whenever a channel has its webhooks changed.
    */
-  WebhooksUpdate = 'webhookUpdate',
+  WebhooksUpdate = 'webhooksUpdate',
 
   /**
    * Emitted when an interaction is created.
@@ -20079,9 +20195,23 @@ export type GuildTemplateResolvable = string;
  */
 export type GuildVoiceChannelResolvable = VoiceBasedChannel | Snowflake;
 
+/**
+ * The data for an emoji of a guilds onboarding prompt option
+ */
 export interface GuildOnboardingPromptOptionEmoji {
+  /**
+   * The id of the emoji
+   */
   id: Snowflake | null;
+
+  /**
+   * The name of the emoji
+   */
   name: string;
+
+  /**
+   * Whether the emoji is animated
+   */
   animated: boolean;
 }
 
@@ -20249,12 +20379,9 @@ export interface InviteGenerationOptions {
   scopes: OAuth2Scopes[];
 }
 
-<<<<<<< HEAD
 /**
  * Data that can be resolved to a channel that an invite can be created on.
  */
-export type GuildInvitableChannelResolvable = TextChannel | VoiceChannel | NewsChannel | StageChannel | Snowflake;
-=======
 export type GuildInvitableChannelResolvable =
   | TextChannel
   | VoiceChannel
@@ -20262,7 +20389,6 @@ export type GuildInvitableChannelResolvable =
   | StageChannel
   | ForumChannel
   | Snowflake;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
 
 /**
  * Options used to create an invite to a guild channel.
@@ -20398,13 +20524,14 @@ export interface MessageActivity {
 }
 
 export interface BaseButtonComponentData extends BaseComponentData {
-<<<<<<< HEAD
+  /**
+   * The type of component
+   */
+  type: ComponentType.Button;
+
   /**
    * The style of the button
    */
-=======
-  type: ComponentType.Button;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   style: ButtonStyle;
 
   /**
@@ -21469,15 +21596,17 @@ export interface ShardingManagerOptions {
    * @default true
    */
   respawn?: boolean;
-<<<<<<< HEAD
+
+  /**
+   * Whether to pass the silent flag to child process (only available when mode is set to 'process')
+   * @default false
+   */
+  silent?: boolean;
 
   /**
    * Arguments to pass to the shard script when spawning (only available when mode is set to 'process')
    * @default []
    */
-=======
-  silent?: boolean;
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
   shardArgs?: string[];
 
   /**
@@ -21896,17 +22025,24 @@ export interface WebhookClientDataURL {
  */
 export type WebhookClientOptions = Pick<ClientOptions, 'allowedMentions' | 'rest'>;
 
-<<<<<<< HEAD
 /**
- * Options used to edit a {@link Webhook}.
+ * Options used for deleting a webhook.
  */
-=======
 export interface WebhookDeleteOptions {
+  /**
+   * Token of the webhook
+   */
   token?: string;
+
+  /**
+   * The reason for deleting the webhook
+   */
   reason?: string;
 }
 
->>>>>>> 8d97e2d2c551fcb1eb57a9550a5984135cdf2e67
+/**
+ * Options used to edit a {@link Webhook}.
+ */
 export interface WebhookEditOptions {
   /**
    * The new name for the webhook
@@ -22011,11 +22147,21 @@ export interface WebSocketOptions {
    * ```js
    * (manager) => new WorkerShardingStrategy(manager, { shardsPerWorker: 2 })
    * ```
-   * @typedef {Function} BuildStrategyFunction
-   * @param {WSWebSocketManager} manager The WebSocketManager that is going to initiate the sharding
-   * @returns {IShardingStrategy} The strategy to use for sharding
+   * @param manager The WebSocketManager that is going to initiate the sharding
+   * @returns The strategy to use for sharding
    */
   buildStrategy?(manager: WSWebSocketManager): IShardingStrategy;
+
+  /**
+   * Builds the identify throttler to use for sharding
+   *
+   * A function to determine what strategy to use for sharding internally.
+   * ```js
+   * (manager) => new WorkerShardingStrategy(manager, { shardsPerWorker: 2 })
+   * ```
+   * @param manager The WebSocketManager that is going to initiate the sharding
+   * @returns The strategy to use for sharding
+   */
   buildIdentifyThrottler?(manager: WSWebSocketManager): Awaitable<IIdentifyThrottler>;
 }
 
