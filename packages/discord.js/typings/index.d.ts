@@ -2819,6 +2819,8 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Partially censored client token for debug logging purposes.
    */
   private get _censoredToken(): string | null;
+  // This a technique used to brand the ready state. Or else we'll get `never` errors on typeguard checks.
+  private readonly _ready: Ready;
 
   /**
    * The action manager of the client
