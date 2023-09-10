@@ -17,9 +17,9 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        uses: ./packages/actions/src/yarnCache
+        uses: ./packages/actions/src/pnpmCache
 
       - name: Deprecate versions
-        run: 'yarn npm-deprecate --name "*dev*" --package @tanzanite/discord.js'
+        run: 'pnpm exec npm-deprecate --name "*dev*" --package @tanzanite/discord.js'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
