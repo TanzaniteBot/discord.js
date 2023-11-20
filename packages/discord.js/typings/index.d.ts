@@ -6791,7 +6791,6 @@ export class InteractionCollector<Interaction extends CollectedInteraction> exte
     event: 'end',
     listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<void>,
   ): this;
-
   public once(event: string, listener: (...args: any[]) => Awaitable<void>): this;
 }
 
@@ -11199,6 +11198,7 @@ export class TeamMember extends Base {
    * The user for this Team Member
    */
   public user: User;
+  public role: TeamMemberRole;
 
   /**
    * The role of this Team Member
@@ -12084,6 +12084,10 @@ export function setPosition<Item extends Channel | Role>(
  * @returns Null if the URL is invalid, otherwise the id and the token
  */
 export function parseWebhookURL(url: string): WebhookClientDataIdWithToken | null;
+export function transformResolved<Cached extends CacheType>(
+  supportingData: SupportingInteractionResolvedData,
+  data?: APIApplicationCommandInteractionData['resolved'],
+): CommandInteractionResolvedData<Cached>;
 
 /**
  * Transforms the resolved data received from the API.
