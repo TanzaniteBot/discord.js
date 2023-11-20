@@ -1,19 +1,8 @@
 import {
   ActionRowBuilder as BuilderActionRow,
   MessageActionRowComponentBuilder,
-  blockQuote,
-  bold,
   ButtonBuilder as BuilderButtonComponent,
-  channelMention,
-  codeBlock,
   EmbedBuilder as BuildersEmbed,
-  formatEmoji,
-  hideLinkEmbed,
-  hyperlink,
-  inlineCode,
-  italic,
-  quote,
-  roleMention,
   ChannelSelectMenuBuilder as BuilderChannelSelectMenuComponent,
   MentionableSelectMenuBuilder as BuilderMentionableSelectMenuComponent,
   RoleSelectMenuBuilder as BuilderRoleSelectMenuComponent,
@@ -21,12 +10,6 @@ import {
   UserSelectMenuBuilder as BuilderUserSelectMenuComponent,
   TextInputBuilder as BuilderTextInputComponent,
   SelectMenuOptionBuilder as BuildersSelectMenuOption,
-  spoiler,
-  strikethrough,
-  time,
-  TimestampStyles,
-  underscore,
-  userMention,
   ModalActionRowComponentBuilder,
   ModalBuilder as BuildersModal,
   AnyComponentBuilder,
@@ -34,8 +17,27 @@ import {
   type RestOrArray,
   ApplicationCommandOptionAllowedChannelTypes,
 } from '@discordjs/builders';
+import {
+  blockQuote,
+  bold,
+  channelMention,
+  codeBlock,
+  formatEmoji,
+  hideLinkEmbed,
+  hyperlink,
+  inlineCode,
+  italic,
+  quote,
+  roleMention,
+  spoiler,
+  strikethrough,
+  time,
+  TimestampStyles,
+  underscore,
+  userMention,
+} from '@discordjs/formatters';
 import { Awaitable, JSONEncodable } from '@discordjs/util';
-import { Collection } from '@discordjs/collection';
+import { Collection, ReadonlyCollection } from '@discordjs/collection';
 import { BaseImageURLOptions, ImageURLOptions, RawFile, REST, RESTOptions } from '@discordjs/rest';
 import {
   WebSocketManager as WSWebSocketManager,
@@ -165,12 +167,15 @@ import {
   GuildOnboardingPromptType,
   AttachmentFlags,
   RoleFlags,
+  TeamMemberRole,
+  GuildWidgetStyle,
+  GuildOnboardingMode,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Stream } from 'node:stream';
 import { MessagePort, Worker } from 'node:worker_threads';
-import * as WebSocketMod from 'ws';
+import { Data as WebSocketData, WebSocket } from 'ws';
 import {
   RawActivityData,
   RawAnonymousGuildData,
@@ -228,91 +233,17 @@ import {
   RawWidgetMemberData,
 } from './rawDataTypes';
 
-/* copied dom typings to prevent dom global pollution */
-type BinaryType = 'arraybuffer' | 'blob';
-interface WebSocketEventMap {
-  close: CloseEvent;
-  error: Event;
-  message: MessageEvent;
-  open: Event;
-}
-interface EventListenerOptions {
-  capture?: boolean;
-}
-interface AddEventListenerOptions extends EventListenerOptions {
-  once?: boolean;
-  passive?: boolean;
-  signal?: AbortSignal;
-}
-interface EventListener {
-  (evt: Event): void;
-}
-interface EventListenerObject {
-  handleEvent(object: Event): void;
-}
-type EventListenerOrEventListenerObject = EventListener | EventListenerObject;
-interface WebSocketDom extends EventTarget {
-  binaryType: BinaryType;
-  readonly bufferedAmount: number;
-  readonly extensions: string;
-  onclose: ((this: WebSocketDom, ev: CloseEvent) => any) | null;
-  onerror: ((this: WebSocketDom, ev: Event) => any) | null;
-  onmessage: ((this: WebSocketDom, ev: MessageEvent) => any) | null;
-  onopen: ((this: WebSocketDom, ev: Event) => any) | null;
-  readonly protocol: string;
-  readonly readyState: number;
-  readonly url: string;
-  close(code?: number, reason?: string): void;
-  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void;
-  readonly CONNECTING: 0;
-  readonly OPEN: 1;
-  readonly CLOSING: 2;
-  readonly CLOSED: 3;
-  addEventListener<K extends keyof WebSocketEventMap>(
-    type: K,
-    listener: (this: WebSocketDom, ev: WebSocketEventMap[K]) => any,
-    options?: boolean | AddEventListenerOptions,
-  ): void;
-  addEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | AddEventListenerOptions,
-  ): void;
-  removeEventListener<K extends keyof WebSocketEventMap>(
-    type: K,
-    listener: (this: WebSocketDom, ev: WebSocketEventMap[K]) => any,
-    options?: boolean | EventListenerOptions,
-  ): void;
-  removeEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | EventListenerOptions,
-  ): void;
-}
-
-declare var WebSocketDom: {
-  prototype: WebSocketDom;
-  new (url: string | URL, protocols?: string | string[]): WebSocketDom;
-  readonly CONNECTING: 0;
-  readonly OPEN: 1;
-  readonly CLOSING: 2;
-  readonly CLOSED: 3;
-};
-/* end dom types */
-
-type WebSocket = WebSocketDom & typeof WebSocketMod;
-
 declare module 'node:events' {
   class EventEmitter {
     // Add type overloads for client events.
-    public static once<E extends EventEmitter, K extends keyof ClientEvents>(
-      eventEmitter: E,
-      eventName: E extends Client ? K : string,
-    ): Promise<E extends Client ? ClientEvents[K] : any[]>;
-    public static on<E extends EventEmitter, K extends keyof ClientEvents>(
-      eventEmitter: E,
-      eventName: E extends Client ? K : string,
-    ): AsyncIterableIterator<E extends Client ? ClientEvents[K] : any>;
+    public static once<Emitter extends EventEmitter, Event extends keyof ClientEvents>(
+      eventEmitter: Emitter,
+      eventName: Emitter extends Client ? Event : string,
+    ): Promise<Emitter extends Client ? ClientEvents[Event] : any[]>;
+    public static on<Emitter extends EventEmitter, Events extends keyof ClientEvents>(
+      eventEmitter: Emitter,
+      eventName: Emitter extends Client ? Events : string,
+    ): AsyncIterableIterator<Emitter extends Client ? ClientEvents[Events] : any>;
   }
 }
 
@@ -461,15 +392,20 @@ export type ActionRowComponentData = MessageActionRowComponentData | ModalAction
 
 export type ActionRowComponent = MessageActionRowComponent | ModalActionRowComponent;
 
-export interface ActionRowData<T extends JSONEncodable<APIActionRowComponentTypes> | ActionRowComponentData>
+export interface ActionRowData<ComponentType extends JSONEncodable<APIActionRowComponentTypes> | ActionRowComponentData>
   extends BaseComponentData {
   /**
    * The components in this action row
    */
-  components: T[];
+  components: ComponentType[];
 }
 
-export class ActionRowBuilder<T extends AnyComponentBuilder = AnyComponentBuilder> extends BuilderActionRow<T> {
+/**
+ * Represents an action row builder.
+ */
+export class ActionRowBuilder<
+  ComponentType extends AnyComponentBuilder = AnyComponentBuilder,
+> extends BuilderActionRow<ComponentType> {
   constructor(
     data?: Partial<
       | ActionRowData<ActionRowComponentData | JSONEncodable<APIActionRowComponentTypes>>
@@ -481,11 +417,11 @@ export class ActionRowBuilder<T extends AnyComponentBuilder = AnyComponentBuilde
    * Creates a new action row builder from JSON data
    * @param other The other data
    */
-  public static from<T extends AnyComponentBuilder = AnyComponentBuilder>(
+  public static from<ComponentType extends AnyComponentBuilder = AnyComponentBuilder>(
     other:
-      | JSONEncodable<APIActionRowComponent<ReturnType<T['toJSON']>>>
-      | APIActionRowComponent<ReturnType<T['toJSON']>>,
-  ): ActionRowBuilder<T>;
+      | JSONEncodable<APIActionRowComponent<ReturnType<ComponentType['toJSON']>>>
+      | APIActionRowComponent<ReturnType<ComponentType['toJSON']>>,
+  ): ActionRowBuilder<ComponentType>;
 }
 
 /**
@@ -510,7 +446,7 @@ export type ModalActionRowComponent = TextInputComponent;
 /**
  * Represents an action row
  */
-export class ActionRow<T extends MessageActionRowComponent | ModalActionRowComponent> extends Component<
+export class ActionRow<ComponentType extends MessageActionRowComponent | ModalActionRowComponent> extends Component<
   APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>
 > {
   public constructor(data: APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>);
@@ -518,12 +454,12 @@ export class ActionRow<T extends MessageActionRowComponent | ModalActionRowCompo
   /**
    * The components in this action row
    */
-  public readonly components: T[];
+  public readonly components: ComponentType[];
 
   /**
    * Returns the API-compatible JSON for this component
    */
-  public toJSON(): APIActionRowComponent<ReturnType<T['toJSON']>>;
+  public toJSON(): APIActionRowComponent<ReturnType<ComponentType['toJSON']>>;
 }
 
 /**
@@ -635,7 +571,7 @@ export class AutoModerationActionExecution {
   /**
    * The channel where this action was triggered from.
    */
-  public get channel(): GuildTextBasedChannel | ForumChannel | null;
+  public get channel(): GuildTextBasedChannel | ForumChannel | MediaChannel | null;
 
   /**
    * The id of the channel where this action was triggered from.
@@ -1229,6 +1165,15 @@ export class ApplicationFlagsBitField extends BitField<ApplicationFlagsString> {
 }
 
 /**
+ * Data that can be resolved to give an application flag bit field. This can be:
+ * * A string (see {@link ApplicationFlagsBitField.Flags})
+ * * An application flag
+ * * An instance of ApplicationFlagsBitField
+ * * An Array of ApplicationFlagsResolvable
+ */
+export type ApplicationFlagsResolvable = BitFieldResolvable<ApplicationFlagsString, number>;
+
+/**
  * Data that can be resolved to give an AutoModerationRule object. This can be:
  * * An AutoModerationRule
  * * A Snowflake
@@ -1305,7 +1250,7 @@ export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
   Message | APIMessage
 >;
 
-export type BooleanCache<T extends CacheType> = T extends 'cached' ? true : false;
+export type BooleanCache<Cached extends CacheType> = Cached extends 'cached' ? true : false;
 
 /**
  * Represents a command interaction.
@@ -1520,14 +1465,6 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
     option: APIApplicationCommandOption,
     resolved: APIApplicationCommandInteractionData['resolved'],
   ): CommandInteractionOption<Cached>;
-
-  /**
-   * Transforms the resolved received from the API.
-   * @param resolved The received resolved objects
-   */
-  private transformResolved(
-    resolved: APIApplicationCommandInteractionData['resolved'],
-  ): CommandInteractionResolvedData<Cached>;
 }
 
 /**
@@ -1570,17 +1507,17 @@ export class InteractionResponse<Cached extends boolean = boolean> {
    * The Promise will reject if the time expires.
    * @param {} [options={}] Options to pass to the internal collector
    */
-  public awaitMessageComponent<T extends MessageComponentType>(
-    options?: AwaitMessageCollectorOptionsParams<T, Cached>,
-  ): Promise<MappedInteractionTypes<Cached>[T]>;
+  public awaitMessageComponent<ComponentType extends MessageComponentType>(
+    options?: AwaitMessageCollectorOptionsParams<ComponentType, Cached>,
+  ): Promise<MappedInteractionTypes<Cached>[ComponentType]>;
 
   /**
    * Creates a message component interaction collector
    * @param {} [options={}] Options to send to the collector
    */
-  public createMessageComponentCollector<T extends MessageComponentType>(
-    options?: MessageCollectorOptionsParams<T, Cached>,
-  ): InteractionCollector<MappedInteractionTypes<Cached>[T]>;
+  public createMessageComponentCollector<ComponentType extends MessageComponentType>(
+    options?: MessageCollectorOptionsParams<ComponentType, Cached>,
+  ): InteractionCollector<MappedInteractionTypes<Cached>[ComponentType]>;
 
   /**
    * Deletes the response.
@@ -1674,6 +1611,18 @@ export class BaseGuildEmoji extends Emoji {
   public constructor(client: Client<true>, data: RawGuildEmojiData, guild: Guild | GuildPreview);
 
   /**
+   * Returns a URL for the emoji.
+   * @param options Options for the image URL
+   */
+  public imageURL(options?: BaseImageURLOptions): string;
+
+  /**
+   * Returns a URL for the emoji.
+   * @deprecated Use {@link BaseGuildEmoji.imageURL} instead.
+   */
+  public get url(): string;
+
+  /**
    * Whether this emoji is available
    */
   public available: boolean | null;
@@ -1724,6 +1673,11 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
    * The default auto archive duration for newly created threads in this channel
    */
   public defaultAutoArchiveDuration?: ThreadAutoArchiveDuration;
+
+  /**
+   * The initial rate limit per user (slowmode) to set on newly created threads in a channel.
+   */
+  public defaultThreadRateLimitPerUser: number | null;
 
   /**
    * The rate limit per user (slowmode) for this channel in seconds
@@ -1913,84 +1867,84 @@ export class BaseGuildVoiceChannel extends TextBasedChannelMixin(GuildChannel, t
   public setVideoQualityMode(videoQualityMode: VideoQualityMode, reason?: string): Promise<this>;
 }
 
-export type EnumLike<E, V> = Record<keyof E, V>;
+export type EnumLike<Enum, Value> = Record<keyof Enum, Value>;
 
 /**
  * Data structure that makes it easy to interact with a bitfield.
  */
-export class BitField<S extends string, N extends number | bigint = number> {
+export class BitField<Flags extends string, Type extends number | bigint = number> {
   /**
    * @param bits Bit(s) to read from
    */
-  public constructor(bits?: BitFieldResolvable<S, N>);
+  public constructor(bits?: BitFieldResolvable<Flags, Type>);
 
   /**
    * Bitfield of the packed bits
    */
-  public bitfield: N;
+  public bitfield: Type;
 
   /**
    * Adds bits to these ones.
    * @param bits Bits to add
    * @returns These bits or new BitField if the instance is frozen.
    */
-  public add(...bits: BitFieldResolvable<S, N>[]): BitField<S, N>;
+  public add(...bits: BitFieldResolvable<Flags, Type>[]): BitField<Flags, Type>;
 
   /**
    * Checks whether the bitfield has a bit, or any of multiple bits.
    * @param bit Bit(s) to check for
    */
-  public any(bit: BitFieldResolvable<S, N>): boolean;
+  public any(bit: BitFieldResolvable<Flags, Type>): boolean;
 
   /**
    * Checks if this bitfield equals another
    * @param bit Bit(s) to check for
    */
-  public equals(bit: BitFieldResolvable<S, N>): boolean;
+  public equals(bit: BitFieldResolvable<Flags, Type>): boolean;
 
   /**
    * Freezes these bits, making them immutable.
    */
-  public freeze(): Readonly<BitField<S, N>>;
+  public freeze(): Readonly<BitField<Flags, Type>>;
 
   /**
    * Checks whether the bitfield has a bit, or multiple bits.
    * @param bit Bit(s) to check for
    */
-  public has(bit: BitFieldResolvable<S, N>): boolean;
+  public has(bit: BitFieldResolvable<Flags, Type>): boolean;
 
   /**
    * Gets all given bits that are missing from the bitfield.
    * @param bits Bit(s) to check for
    * @param hasParams Additional parameters for the has method, if any
    */
-  public missing(bits: BitFieldResolvable<S, N>, ...hasParams: readonly unknown[]): S[];
+  public missing(bits: BitFieldResolvable<Flags, Type>, ...hasParams: readonly unknown[]): Flags[];
 
   /**
    * Removes bits from these.
    * @param bits Bits to remove
    * @returns These bits or new BitField if the instance is frozen.
    */
-  public remove(...bits: BitFieldResolvable<S, N>[]): BitField<S, N>;
+  public remove(...bits: BitFieldResolvable<Flags, Type>[]): BitField<Flags, Type>;
 
   /**
    * Gets an object mapping field names to a {@link boolean} indicating whether the
    * bit is available.
    * @param hasParams Additional parameters for the has method, if any
    */
-  public serialize(...hasParams: readonly unknown[]): Record<S, boolean>;
+  public serialize(...hasParams: readonly unknown[]): Record<Flags, boolean>;
 
   /**
    * Gets an {@link Array} of bitfield names based on the bits available.
    * @param hasParams Additional parameters for the has method, if any
    */
-  public toArray(...hasParams: readonly unknown[]): S[];
+  public toArray(...hasParams: readonly unknown[]): Flags[];
 
-  public toJSON(): N extends number ? number : string;
+  public toJSON(): Type extends number ? number : string;
 
-  public valueOf(): N;
+  public valueOf(): Type;
 
-  public [Symbol.iterator](): IterableIterator<S>;
+  public [Symbol.iterator](): IterableIterator<Flags>;
 
   /**
    * Numeric bitfield flags.
@@ -2051,7 +2005,7 @@ export type AnyComponent =
 /**
  * Represents a component
  */
-export class Component<T extends AnyComponent = AnyComponent> {
+export class Component<RawComponentData extends AnyComponent = AnyComponent> {
   /**
    * Creates a new component from API data
    * @param data The API component data
@@ -2061,23 +2015,23 @@ export class Component<T extends AnyComponent = AnyComponent> {
   /**
    * The API data associated with this component
    */
-  public readonly data: Readonly<T>;
+  public readonly data: Readonly<RawComponentData>;
 
   /**
    * The type of the component
    */
-  public get type(): T['type'];
+  public get type(): RawComponentData['type'];
 
   /**
    * Returns the API-compatible JSON for this component
    */
-  public toJSON(): T;
+  public toJSON(): RawComponentData;
 
   /**
    * Whether or not the given components are equal
    * @param other The component to compare against
    */
-  public equals(other: this | T): boolean;
+  public equals(other: this | RawComponentData): boolean;
 }
 
 /**
@@ -2619,6 +2573,7 @@ export interface MappedChannelCategoryTypes {
   [ChannelType.GuildText]: TextChannel;
   [ChannelType.GuildStageVoice]: StageChannel;
   [ChannelType.GuildForum]: ForumChannel;
+  [ChannelType.GuildMedia]: MediaChannel;
 }
 
 export type CategoryChannelType = Exclude<
@@ -2630,8 +2585,6 @@ export type CategoryChannelType = Exclude<
   | ChannelType.PrivateThread
   | ChannelType.GuildCategory
   | ChannelType.GuildDirectory
-  // TODO: https://github.com/discordjs/discord.js/pull/9662
-  | ChannelType.GuildMedia
 >;
 
 /**
@@ -2773,6 +2726,11 @@ export abstract class BaseChannel extends Base {
   public isVoiceBased(): this is VoiceBasedChannel;
 
   /**
+   * Indicates whether this channel is {@link ThreadOnlyChannel thread-only}.
+   */
+  public isThreadOnly(): this is ThreadOnlyChannel;
+
+  /**
    * When concatenated with a string, this automatically returns the channel's mention instead of the Channel object.
    * @example
    * // Logs: Hello from <#123456789012345678>!
@@ -2781,7 +2739,11 @@ export abstract class BaseChannel extends Base {
   public toString(): ChannelMention | UserMention;
 }
 
-export type If<T extends boolean, A, B = null> = T extends true ? A : T extends false ? B : A | B;
+export type If<Value extends boolean, TrueResult, FalseResult = null> = Value extends true
+  ? TrueResult
+  : Value extends false
+    ? FalseResult
+    : TrueResult | FalseResult;
 
 /**
  * The main hub for interacting with the Discord API, and the starting point for any bot.
@@ -2964,13 +2926,23 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   public fetchSticker(id: Snowflake): Promise<Sticker>;
 
   /**
+   * Obtains the list of available sticker packs.
+   * @example
+   * client.fetchStickerPacks()
+   *   .then(packs => console.log(`Available sticker packs are: ${packs.map(pack => pack.name).join(', ')}`))
+   *   .catch(console.error);
+   */
+  public fetchStickerPacks(): Promise<Collection<Snowflake, StickerPack>>;
+
+  /**
    * Obtains the list of sticker packs available to Nitro subscribers from Discord.
    * @example
    * client.fetchPremiumStickerPacks()
    *   .then(packs => console.log(`Available sticker packs are: ${packs.map(pack => pack.name).join(', ')}`))
    *   .catch(console.error);
+   * @deprecated Use {@link Client.fetchStickerPacks} instead.
    */
-  public fetchPremiumStickerPacks(): Promise<Collection<Snowflake, StickerPack>>;
+  public fetchPremiumStickerPacks(): ReturnType<Client['fetchStickerPacks']>;
 
   /**
    * Obtains a webhook from Discord.
@@ -3030,29 +3002,38 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    */
   public toJSON(): unknown;
 
-  public on<K extends keyof ClientEvents>(event: K, listener: (...args: ClientEvents[K]) => Awaitable<void>): this;
-  public on<S extends string | symbol>(
-    event: Exclude<S, keyof ClientEvents>,
+  public on<Event extends keyof ClientEvents>(
+    event: Event,
+    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
+  ): this;
+  public on<Event extends string | symbol>(
+    event: Exclude<Event, keyof ClientEvents>,
     listener: (...args: any[]) => Awaitable<void>,
   ): this;
 
-  public once<K extends keyof ClientEvents>(event: K, listener: (...args: ClientEvents[K]) => Awaitable<void>): this;
-  public once<S extends string | symbol>(
-    event: Exclude<S, keyof ClientEvents>,
+  public once<Event extends keyof ClientEvents>(
+    event: Event,
+    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
+  ): this;
+  public once<Event extends string | symbol>(
+    event: Exclude<Event, keyof ClientEvents>,
     listener: (...args: any[]) => Awaitable<void>,
   ): this;
 
-  public emit<K extends keyof ClientEvents>(event: K, ...args: ClientEvents[K]): boolean;
-  public emit<S extends string | symbol>(event: Exclude<S, keyof ClientEvents>, ...args: unknown[]): boolean;
+  public emit<Event extends keyof ClientEvents>(event: Event, ...args: ClientEvents[Event]): boolean;
+  public emit<Event extends string | symbol>(event: Exclude<Event, keyof ClientEvents>, ...args: unknown[]): boolean;
 
-  public off<K extends keyof ClientEvents>(event: K, listener: (...args: ClientEvents[K]) => Awaitable<void>): this;
-  public off<S extends string | symbol>(
-    event: Exclude<S, keyof ClientEvents>,
+  public off<Event extends keyof ClientEvents>(
+    event: Event,
+    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
+  ): this;
+  public off<Event extends string | symbol>(
+    event: Exclude<Event, keyof ClientEvents>,
     listener: (...args: any[]) => Awaitable<void>,
   ): this;
 
-  public removeAllListeners<K extends keyof ClientEvents>(event?: K): this;
-  public removeAllListeners<S extends string | symbol>(event?: Exclude<S, keyof ClientEvents>): this;
+  public removeAllListeners<Event extends keyof ClientEvents>(event?: Event): this;
+  public removeAllListeners<Event extends string | symbol>(event?: Exclude<Event, keyof ClientEvents>): this;
 }
 
 /**
@@ -3070,6 +3051,11 @@ export class ClientApplication extends Application {
    * If this application's bot requires a code grant when using the OAuth2 flow
    */
   public botRequireCodeGrant: boolean | null;
+
+  /**
+   * The bot associated with this application.
+   */
+  public bot: User | null;
 
   /**
    * The application command manager for this application
@@ -3127,6 +3113,11 @@ export class ClientApplication extends Application {
   public get partial(): boolean;
 
   /**
+   * This application's interaction endpoint URL.
+   */
+  public interactionsEndpointURL: string | null;
+
+  /**
    * This application's role connection verification entry point URL
    */
   public roleConnectionsVerificationURL: string | null;
@@ -3135,6 +3126,12 @@ export class ClientApplication extends Application {
    * The application's RPC origins, if enabled
    */
   public rpcOrigins: string[];
+
+  /**
+   * Edits this application.
+   * @param options The options for editing this application
+   */
+  public edit(options: ClientApplicationEditOptions): Promise<ClientApplication>;
 
   /**
    * Obtains this application from Discord.
@@ -3342,38 +3339,38 @@ export class ClientVoiceManager {
 
 export { Collection } from '@discordjs/collection';
 
-export interface CollectorEventTypes<K, V, F extends unknown[] = []> {
+export interface CollectorEventTypes<Key, Value, Extras extends unknown[] = []> {
   /**
    * Emitted whenever an element is collected.
    * @param args The arguments emitted by the listener
    */
-  collect: [V, ...F];
+  collect: [Value, ...Extras];
 
   /**
    * Emitted whenever an element is not collected by the collector.
    * @param args The arguments emitted by the listener
    */
-  ignore: [V, ...F];
+  ignore: [Value, ...Extras];
 
   /**
    * Emitted whenever an element is disposed of.
    * @param args The arguments emitted by the listener
    */
-  dispose: [V, ...F];
+  dispose: [Value, ...Extras];
 
   /**
    * Emitted when the collector is finished collecting.
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  end: [collected: Collection<K, V>, reason: string];
+  end: [collected: Collection<Key, Value>, reason: string];
 }
 
 /**
  * Abstract class for defining a new Collector.
  */
-export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmitter {
-  public constructor(client: Client<true>, options?: CollectorOptions<[V, ...F]>);
+export abstract class Collector<Key, Value, Extras extends unknown[] = []> extends EventEmitter {
+  public constructor(client: Client<true>, options?: CollectorOptions<[Value, ...Extras]>);
 
   /**
    * Timeout for cleanup
@@ -3398,7 +3395,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
   /**
    * The items collected by this collector
    */
-  public collected: Collection<K, V>;
+  public collected: Collection<Key, Value>;
 
   /**
    * The timestamp at which this collector last collected an item
@@ -3423,18 +3420,18 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
   /**
    * The filter applied to this collector
    */
-  public filter: CollectorFilter<[V, ...F]>;
+  public filter: CollectorFilter<[Value, ...Extras]>;
 
   /**
    * Returns a promise that resolves with the next collected element;
    * rejects with collected elements if the collector finishes without receiving a next element
    */
-  public get next(): Promise<V>;
+  public get next(): Promise<Value>;
 
   /**
    * The options of this collector
    */
-  public options: CollectorOptions<[V, ...F]>;
+  public options: CollectorOptions<[Value, ...Extras]>;
 
   /**
    * Checks whether the collector should end, and if so, ends it.
@@ -3473,7 +3470,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * Allows collectors to be consumed with for-await-of loops
    * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of}
    */
-  public [Symbol.asyncIterator](): AsyncIterableIterator<[V, ...F]>;
+  public [Symbol.asyncIterator](): AsyncIterableIterator<[Value, ...Extras]>;
 
   /**
    * Transforms the collector to a plain object.
@@ -3489,7 +3486,7 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * @param args Any args the event listener emits
    * @returns Data to insert into collection, if any
    */
-  public abstract collect(...args: unknown[]): K | null | Promise<K | null>;
+  public abstract collect(...args: unknown[]): Awaitable<Key | null>;
 
   /**
    * Handles incoming events from the `handleDispose`. Returns null if the event should not
@@ -3498,16 +3495,16 @@ export abstract class Collector<K, V, F extends unknown[] = []> extends EventEmi
    * @param args Any args the event listener emits
    * @returns Key to remove from the collection, if any
    */
-  public abstract dispose(...args: unknown[]): K | null;
+  public abstract dispose(...args: unknown[]): Key | null;
 
-  public on<EventKey extends keyof CollectorEventTypes<K, V, F>>(
+  public on<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
     event: EventKey,
-    listener: (...args: CollectorEventTypes<K, V, F>[EventKey]) => Awaitable<void>,
+    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => Awaitable<void>,
   ): this;
 
-  public once<EventKey extends keyof CollectorEventTypes<K, V, F>>(
+  public once<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
     event: EventKey,
-    listener: (...args: CollectorEventTypes<K, V, F>[EventKey]) => Awaitable<void>,
+    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => Awaitable<void>,
   ): this;
 }
 
@@ -3734,34 +3731,34 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * @param {} [channelTypes=[]] The allowed types of channels. If empty, all channel types are allowed.
    * @returns The value of the option, or null if not set and not required.
    */
-  public getChannel<const T extends ChannelType = ChannelType>(
+  public getChannel<const Type extends ChannelType = ChannelType>(
     name: string,
     required: true,
-    channelTypes?: readonly T[],
+    channelTypes?: readonly Type[],
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
       // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
       // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
       // Hence the need for this ternary
-      type: T extends ChannelType.PublicThread | ChannelType.AnnouncementThread
+      type: Type extends ChannelType.PublicThread | ChannelType.AnnouncementThread
         ? ChannelType.PublicThread | ChannelType.AnnouncementThread
-        : T;
+        : Type;
     }
   >;
-  public getChannel<const T extends ChannelType = ChannelType>(
+  public getChannel<const Type extends ChannelType = ChannelType>(
     name: string,
     required?: boolean,
-    channelTypes?: readonly T[],
+    channelTypes?: readonly Type[],
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
       // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
       // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
       // Hence the need for this ternary
-      type: T extends ChannelType.PublicThread | ChannelType.AnnouncementThread
+      type: Type extends ChannelType.PublicThread | ChannelType.AnnouncementThread
         ? ChannelType.PublicThread | ChannelType.AnnouncementThread
-        : T;
+        : Type;
     }
   > | null;
 
@@ -4061,7 +4058,14 @@ export class Emoji extends Base {
   public get identifier(): string;
 
   /**
+   * Returns a URL for the emoji or `null` if this is not a custom emoji.
+   * @param options Options for the image URL
+   */
+  public imageURL(options?: BaseImageURLOptions): string | null;
+
+  /**
    * The URL to the emoji file if it's a custom emoji
+   * @deprecated Use {@link Emoji.imageURL} instead.
    */
   public get url(): string | null;
 
@@ -4356,7 +4360,7 @@ export class Guild extends AnonymousGuild {
   /**
    * Widget channel for this guild
    */
-  public get widgetChannel(): TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | null;
+  public get widgetChannel(): TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | MediaChannel | null;
 
   /**
    * The widget channel's id, if enabled
@@ -4386,7 +4390,7 @@ export class Guild extends AnonymousGuild {
    * @example
    * // Delete a guild
    * guild.delete()
-   *   .then(g => console.log(`Deleted the guild ${g}`))
+   *   .then(guild => console.log(`Deleted the guild ${guild}`))
    *   .catch(console.error);
    */
   public delete(): Promise<Guild>;
@@ -4409,6 +4413,12 @@ export class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   public edit(options: GuildEditOptions): Promise<Guild>;
+
+  /**
+   * Edits the guild onboarding data for this guild.
+   * @param options The options to provide
+   */
+  public editOnboarding(options: GuildOnboardingEditOptions): Promise<GuildOnboarding>;
 
   /**
    * Updates the guild's welcome screen
@@ -4444,9 +4454,9 @@ export class Guild extends AnonymousGuild {
    *   .then(audit => console.log(audit.entries.first()))
    *   .catch(console.error);
    */
-  public fetchAuditLogs<T extends GuildAuditLogsResolvable = null>(
-    options?: GuildAuditLogsFetchOptions<T>,
-  ): Promise<GuildAuditLogs<T>>;
+  public fetchAuditLogs<Event extends GuildAuditLogsResolvable = null>(
+    options?: GuildAuditLogsFetchOptions<Event>,
+  ): Promise<GuildAuditLogs<Event>>;
 
   /**
    * Fetches a collection of integrations to this guild.
@@ -4529,6 +4539,12 @@ export class Guild extends AnonymousGuild {
    *   .catch(console.error);
    */
   public fetchWidgetSettings(): Promise<GuildWidgetSettings>;
+
+  /**
+   * Returns a URL for the PNG widget of the guild.
+   * @param style The style for the widget image
+   */
+  public widgetImageURL(style?: GuildWidgetStyle): string;
 
   /**
    * Leaves the guild.
@@ -4777,7 +4793,7 @@ export class Guild extends AnonymousGuild {
   public toJSON(): unknown;
 }
 
-export class GuildAuditLogs<T extends GuildAuditLogsResolvable = AuditLogEvent> {
+export class GuildAuditLogs<Event extends GuildAuditLogsResolvable = AuditLogEvent> {
   private constructor(guild: Guild, data: RawGuildAuditLogData);
 
   /**
@@ -4808,7 +4824,7 @@ export class GuildAuditLogs<T extends GuildAuditLogsResolvable = AuditLogEvent> 
   /**
    * The entries for this guild's audit logs
    */
-  public entries: Collection<Snowflake, GuildAuditLogsEntry<T>>;
+  public entries: Collection<Snowflake, GuildAuditLogsEntry<Event>>;
 
   /**
    * Transforms the audit logs to a plain object.
@@ -4970,6 +4986,8 @@ export class GuildBan extends Base {
  * - {@link CategoryChannel}
  * - {@link NewsChannel}
  * - {@link StageChannel}
+ * - {@link ForumChannel}
+ * - {@link MediaChannel}
  */
 export abstract class GuildChannel extends BaseChannel {
   /**
@@ -5220,11 +5238,6 @@ export class GuildEmoji extends BaseGuildEmoji {
   public get roles(): GuildEmojiRoleManager;
 
   /**
-   * The URL to the emoji file
-   */
-  public get url(): string;
-
-  /**
    * Deletes the emoji.
    * @param reason Reason for deleting the emoji
    */
@@ -5236,7 +5249,7 @@ export class GuildEmoji extends BaseGuildEmoji {
    * @example
    * // Edit an emoji
    * emoji.edit({ name: 'newemoji' })
-   *   .then(e => console.log(`Edited emoji ${e}`))
+   *   .then(emoji => console.log(`Edited emoji ${emoji}`))
    *   .catch(console.error);
    */
   public edit(options: GuildEmojiEditOptions): Promise<GuildEmoji>;
@@ -5319,12 +5332,12 @@ export class GuildMember extends PartialTextBasedChannel(Base) {
   public get dmChannel(): DMChannel | null;
 
   /**
-   * The displayed color of this member in base 10
+   * The displayed role color of this member in base 10
    */
   public get displayColor(): number;
 
   /**
-   * The displayed color of this member in hexadecimal
+   * The displayed role color of this member in hexadecimal
    */
   public get displayHexColor(): HexColorString;
 
@@ -5606,6 +5619,11 @@ export class GuildOnboarding extends Base {
    * Whether onboarding is enabled
    */
   public enabled: boolean;
+
+  /**
+   * The mode of this onboarding
+   */
+  public mode: GuildOnboardingMode;
 }
 
 /**
@@ -5669,9 +5687,19 @@ export class GuildOnboardingPromptOption extends Base {
   private constructor(client: Client, data: APIGuildOnboardingPromptOption, guildId: Snowflake);
 
   /**
+   * The raw emoji of the option
+   */
+  private _emoji: APIPartialEmoji;
+
+  /**
    * The id of the option
    */
   public id: Snowflake;
+
+  /**
+   * The emoji of this onboarding prompt option
+   */
+  public get emoji(): Emoji | GuildEmoji | null;
 
   /**
    * The guild this onboarding prompt option is from
@@ -5692,11 +5720,6 @@ export class GuildOnboardingPromptOption extends Base {
    * The roles assigned to a member when the option is selected
    */
   public roles: Collection<Snowflake, Role>;
-
-  /**
-   * The emoji of the option
-   */
-  public emoji: GuildOnboardingPromptOptionEmoji | null;
 
   /**
    * The title of the option
@@ -5820,7 +5843,7 @@ export class GuildPreview extends Base {
 /**
  * Represents a scheduled event in a {@link Guild}.
  */
-export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildScheduledEventStatus> extends Base {
+export class GuildScheduledEvent<Status extends GuildScheduledEventStatus = GuildScheduledEventStatus> extends Base {
   private constructor(client: Client<true>, data: RawGuildScheduledEventData);
 
   /**
@@ -5856,12 +5879,11 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
 
   /**
    * The timestamp the guild scheduled event will start at
-   * <info>This can be potentially `null` only when it's an {@link AuditLogEntryTarget}</info>
    */
   public scheduledStartTimestamp: number | null;
 
   /**
-   * The timestamp the guild scheduled event will end at,
+   * The timestamp the guild scheduled event will end at
    * or `null` if the event does not have a scheduled time to end
    */
   public scheduledEndTimestamp: number | null;
@@ -5874,7 +5896,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
   /**
    * The status of the guild scheduled event
    */
-  public status: S;
+  public status: Status;
 
   /**
    * The type of hosting entity associated with the scheduled event
@@ -5944,6 +5966,11 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
   public image: string | null;
 
   /**
+   * Whether this guild scheduled event is partial.
+   */
+  public get partial(): false;
+
+  /**
    * The URL of this scheduled event's cover image
    * @param {} [options={}] Options for image URL
    */
@@ -5964,9 +5991,15 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(guildScheduledEvent))
    *  .catch(console.error);
    */
-  public edit<T extends GuildScheduledEventSetStatusArg<S>>(
-    options: GuildScheduledEventEditOptions<S, T>,
-  ): Promise<GuildScheduledEvent<T>>;
+  public edit<AcceptableStatus extends GuildScheduledEventSetStatusArg<Status>>(
+    options: GuildScheduledEventEditOptions<Status, AcceptableStatus>,
+  ): Promise<GuildScheduledEvent<AcceptableStatus>>;
+
+  /**
+   * Fetches this guild scheduled event.
+   * @param {} [force=true] Whether to skip the cache check and request the API
+   */
+  public fetch(force?: boolean): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Deletes this guild scheduled event.
@@ -5976,7 +6009,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(guildScheduledEvent))
    *  .catch(console.error);
    */
-  public delete(): Promise<GuildScheduledEvent<S>>;
+  public delete(): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Sets a new name for the guild scheduled event.
@@ -5988,7 +6021,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the name to: ${guildScheduledEvent.name}`))
    *  .catch(console.error);
    */
-  public setName(name: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+  public setName(name: string, reason?: string): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Sets a new time to schedule the event at.
@@ -6000,7 +6033,10 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the start time to: ${guildScheduledEvent.scheduledStartTime}`))
    *  .catch(console.error);
    */
-  public setScheduledStartTime(scheduledStartTime: DateResolvable, reason?: string): Promise<GuildScheduledEvent<S>>;
+  public setScheduledStartTime(
+    scheduledStartTime: DateResolvable,
+    reason?: string,
+  ): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Sets a new time to end the event at.
@@ -6012,7 +6048,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the end time to: ${guildScheduledEvent.scheduledEndTime}`))
    *  .catch(console.error);
    */
-  public setScheduledEndTime(scheduledEndTime: DateResolvable, reason?: string): Promise<GuildScheduledEvent<S>>;
+  public setScheduledEndTime(scheduledEndTime: DateResolvable, reason?: string): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Sets the new description of the guild scheduled event.
@@ -6024,7 +6060,7 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the description to: ${guildScheduledEvent.description}`))
    *  .catch(console.error);
    */
-  public setDescription(description: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+  public setDescription(description: string, reason?: string): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Sets the new status of the guild scheduled event.
@@ -6038,10 +6074,10 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the status to: ${guildScheduledEvent.status}`))
    *  .catch(console.error);
    */
-  public setStatus<T extends GuildScheduledEventSetStatusArg<S>>(
-    status: T,
+  public setStatus<AcceptableStatus extends GuildScheduledEventSetStatusArg<Status>>(
+    status: AcceptableStatus,
     reason?: string,
-  ): Promise<GuildScheduledEvent<T>>;
+  ): Promise<GuildScheduledEvent<AcceptableStatus>>;
 
   /**
    * Sets the new location of the guild scheduled event.
@@ -6053,15 +6089,15 @@ export class GuildScheduledEvent<S extends GuildScheduledEventStatus = GuildSche
    *  .then(guildScheduledEvent => console.log(`Set the location to: ${guildScheduledEvent.entityMetadata.location}`))
    *  .catch(console.error);
    */
-  public setLocation(location: string, reason?: string): Promise<GuildScheduledEvent<S>>;
+  public setLocation(location: string, reason?: string): Promise<GuildScheduledEvent<Status>>;
 
   /**
    * Fetches subscribers of this guild scheduled event.
    * @param options Options for fetching the subscribers
    */
-  public fetchSubscribers<T extends FetchGuildScheduledEventSubscribersOptions>(
-    options?: T,
-  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<T>>;
+  public fetchSubscribers<Options extends FetchGuildScheduledEventSubscribersOptions>(
+    options?: Options,
+  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<Options>>;
 
   /**
    * When concatenated with a string, this automatically concatenates the event's URL instead of the object.
@@ -6401,10 +6437,10 @@ export type CacheTypeReducer<
 > = [State] extends ['cached']
   ? CachedType
   : [State] extends ['raw']
-  ? RawType
-  : [State] extends ['raw' | 'cached']
-  ? PresentType
-  : Fallback;
+    ? RawType
+    : [State] extends ['raw' | 'cached']
+      ? PresentType
+      : Fallback;
 
 export type Interaction<Cached extends CacheType = CacheType> =
   | ChatInputCommandInteraction<Cached>
@@ -6582,7 +6618,7 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   /**
    * Indicates whether this interaction is a {@link StringSelectMenuInteraction}.
    *
-   * @deprecated Use {@link isStringSelectMenu} instead
+   * @deprecated Use {@link BaseInteraction.isStringSelectMenu} instead
    */
   public isSelectMenu(): this is StringSelectMenuInteraction<Cached>;
 
@@ -6631,16 +6667,16 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
  * <info>Interaction collectors that do not specify `time` or `idle` may be prone to always running.
  * Ensure your interaction collectors end via either of these options or manual cancellation.</info>
  */
-export class InteractionCollector<T extends CollectedInteraction> extends Collector<
+export class InteractionCollector<Interaction extends CollectedInteraction> extends Collector<
   Snowflake,
-  T,
-  [Collection<Snowflake, T>]
+  Interaction,
+  [Collection<Snowflake, Interaction>]
 > {
   /**
    * @param client The client on which to collect interactions
    * @param options The options to apply to this collector
    */
-  public constructor(client: Client<true>, options?: InteractionCollectorOptions<T>);
+  public constructor(client: Client<true>, options?: InteractionCollectorOptions<Interaction>);
 
   /**
    * Handles checking if the message has been deleted, and if so, stops the collector with the reason 'messageDelete'.
@@ -6693,7 +6729,7 @@ export class InteractionCollector<T extends CollectedInteraction> extends Collec
   /**
    * The options of this collector
    */
-  public options: InteractionCollectorOptions<T>;
+  public options: InteractionCollectorOptions<Interaction>;
 
   /**
    * The total number of interactions collected
@@ -6726,14 +6762,17 @@ export class InteractionCollector<T extends CollectedInteraction> extends Collec
    * Emitted whenever an interaction is collected/disposed/ignored.
    * @param interaction The interaction that was collected/disposed/ignored
    */
-  public on(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: T) => Awaitable<void>): this;
+  public on(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => Awaitable<void>): this;
 
   /**
    * Emitted when the collector is finished collecting.
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public on(event: 'end', listener: (collected: Collection<Snowflake, T>, reason: string) => Awaitable<void>): this;
+  public on(
+    event: 'end',
+    listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<void>,
+  ): this;
 
   public on(event: string, listener: (...args: any[]) => Awaitable<void>): this;
 
@@ -6741,14 +6780,17 @@ export class InteractionCollector<T extends CollectedInteraction> extends Collec
    * Emitted whenever an interaction is collected/disposed/ignored.
    * @param interaction The interaction that was collected/disposed/ignored
    */
-  public once(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: T) => Awaitable<void>): this;
+  public once(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => Awaitable<void>): this;
 
   /**
    * Emitted when the collector is finished collecting.
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public once(event: 'end', listener: (collected: Collection<Snowflake, T>, reason: string) => Awaitable<void>): this;
+  public once(
+    event: 'end',
+    listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<void>,
+  ): this;
 
   public once(event: string, listener: (...args: any[]) => Awaitable<void>): this;
 }
@@ -6929,7 +6971,7 @@ export class Invite extends Base {
 
   /**
    * The stage instance data if there is a public {@link StageInstance} in the stage channel this invite is for
-   * @deprecated
+   * @deprecated Public Stage Instances don't exist anymor
    */
   public stageInstance: InviteStageInstance | null;
 
@@ -6941,7 +6983,7 @@ export class Invite extends Base {
 
 /**
  * Represents the data about a public {@link StageInstance} in an {@link Invite}.
- * @deprecated
+ * @deprecated Public Stage Instances don't exist anymore
  */
 export class InviteStageInstance extends Base {
   public constructor(client: Client<true>, data: RawInviteStageInstance, channelId: Snowflake, guildId: Snowflake);
@@ -7002,12 +7044,12 @@ export class InviteGuild extends AnonymousGuild {
 /**
  * A Collection which holds a max amount of entries and sweeps periodically.
  */
-export class LimitedCollection<K, V> extends Collection<K, V> {
+export class LimitedCollection<Key, Value> extends Collection<Key, Value> {
   /**
    * @param {} [options={}] Options for constructing the Collection.
    * @param {} [iterable=null] Optional entries passed to the Map constructor.
    */
-  public constructor(options?: LimitedCollectionOptions<K, V>, iterable?: Iterable<readonly [K, V]>);
+  public constructor(options?: LimitedCollectionOptions<Key, Value>, iterable?: Iterable<readonly [Key, Value]>);
 
   /**
    * The max size of the Collection.
@@ -7017,22 +7059,34 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   /**
    * A function called to check if an entry should be kept when the Collection is at max size.
    */
-  public keepOverLimit: ((value: V, key: K, collection: this) => boolean) | null;
+  public keepOverLimit: ((value: Value, key: Key, collection: this) => boolean) | null;
 }
 
 export type MessageComponentType = Exclude<ComponentType, ComponentType.TextInput | ComponentType.ActionRow>;
 
-export type MessageCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> = {
-  componentType?: T;
-} & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
+export type MessageCollectorOptionsParams<
+  ComponentType extends MessageComponentType,
+  Cached extends boolean = boolean,
+> = {
+  componentType?: ComponentType;
+} & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>;
 
-export type MessageChannelCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> = {
-  componentType?: T;
-} & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[T]>;
+export type MessageChannelCollectorOptionsParams<
+  ComponentType extends MessageComponentType,
+  Cached extends boolean = boolean,
+> = {
+  componentType?: ComponentType;
+} & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>;
 
-export type AwaitMessageCollectorOptionsParams<T extends MessageComponentType, Cached extends boolean = boolean> = {
-  componentType?: T;
-} & Pick<InteractionCollectorOptions<MappedInteractionTypes<Cached>[T]>, keyof AwaitMessageComponentOptions<any>>;
+export type AwaitMessageCollectorOptionsParams<
+  ComponentType extends MessageComponentType,
+  Cached extends boolean = boolean,
+> = {
+  componentType?: ComponentType;
+} & Pick<
+  InteractionCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>,
+  keyof AwaitMessageComponentOptions<any>
+>;
 
 export interface StringMappedInteractionTypes<Cached extends CacheType = CacheType> {
   Button: ButtonInteraction<Cached>;
@@ -7044,7 +7098,7 @@ export interface StringMappedInteractionTypes<Cached extends CacheType = CacheTy
   ActionRow: MessageComponentInteraction<Cached>;
 }
 
-export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
+export type WrapBooleanCache<Cached extends boolean> = If<Cached, 'cached', CacheType>;
 
 export interface MappedInteractionTypes<Cached extends boolean = boolean> {
   [ComponentType.Button]: ButtonInteraction<WrapBooleanCache<Cached>>;
@@ -7116,7 +7170,7 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   public get cleanContent(): string;
 
   /**
-   * An array of of action rows in the message.
+   * An array of action rows in the message.
    * <info>This property requires the {@link GatewayIntentBits.MessageContent} privileged intent
    * in a guild for messages that do not mention the client.</info>
    */
@@ -7257,6 +7311,11 @@ export class Message<InGuild extends boolean = boolean> extends Base {
   public roleSubscriptionData: RoleSubscriptionData | null;
 
   /**
+   * Resolved data from auto-populated select menus.
+   */
+  public resolved: CommandInteractionResolvedData | null;
+
+  /**
    * Whether or not this message was sent by Discord, not actually a user (e.g. pin notifications)
    */
   public system: boolean;
@@ -7309,9 +7368,9 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  public awaitMessageComponent<T extends MessageComponentType>(
-    options?: AwaitMessageCollectorOptionsParams<T, InGuild>,
-  ): Promise<MappedInteractionTypes<InGuild>[T]>;
+  public awaitMessageComponent<ComponentType extends MessageComponentType>(
+    options?: AwaitMessageCollectorOptionsParams<ComponentType, InGuild>,
+  ): Promise<MappedInteractionTypes<InGuild>[ComponentType]>;
 
   /**
    * Similar to createReactionCollector but in promise form.
@@ -7348,9 +7407,9 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    * collector.on('collect', i => console.log(`Collected ${i.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  public createMessageComponentCollector<T extends MessageComponentType>(
-    options?: MessageCollectorOptionsParams<T, InGuild>,
-  ): InteractionCollector<MappedInteractionTypes<InGuild>[T]>;
+  public createMessageComponentCollector<ComponentType extends MessageComponentType>(
+    options?: MessageCollectorOptionsParams<ComponentType, InGuild>,
+  ): InteractionCollector<MappedInteractionTypes<InGuild>[ComponentType]>;
 
   /**
    * Deletes the message.
@@ -7584,7 +7643,8 @@ export class Attachment {
   private attachment: BufferResolvable | Stream;
 
   /**
-   * This media type of this attachment
+   * The media (MIME) type of this attachment
+   * @see {@link https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types}
    */
   public contentType: string | null;
 
@@ -8397,7 +8457,7 @@ export class ModalSubmitFields {
    * @param customId The custom id of the component
    * @param type The type of the component
    */
-  public getField<T extends ComponentType>(customId: string, type: T): { type: T } & TextInputModalData;
+  public getField<Type extends ComponentType>(customId: string, type: Type): { type: Type } & TextInputModalData;
   public getField(customId: string, type?: ComponentType): TextInputModalData;
 
   /**
@@ -8770,9 +8830,9 @@ export interface DefaultReactionEmoji {
 }
 
 /**
- * Represents a channel that only contains threads
+ * Represents symbols utilized by thread-only channels.
  */
-export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
+export abstract class ThreadOnlyChannel extends TextBasedChannelMixin(GuildChannel, true, [
   'send',
   'lastMessage',
   'lastPinAt',
@@ -8783,7 +8843,10 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
   'createMessageComponentCollector',
   'awaitMessageComponent',
 ]) {
-  public type: ChannelType.GuildForum;
+  /**
+   * The type of the channel
+   */
+  public type: ChannelType.GuildForum | ChannelType.GuildMedia;
 
   /**
    * A manager of the threads belonging to this channel
@@ -8829,11 +8892,6 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    * The default sort order mode used to order posts
    */
   public defaultSortOrder: SortOrderType | null;
-
-  /**
-   * The default layout type used to display posts
-   */
-  public defaultForumLayout: ForumLayoutType;
 
   /**
    * Sets the available tags for this forum channel
@@ -8902,6 +8960,21 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    * @param reason Reason for changing the default sort order
    */
   public setDefaultSortOrder(defaultSortOrder: SortOrderType | null, reason?: string): Promise<this>;
+}
+
+/**
+ * Represents a forum channel.
+ */
+export class ForumChannel extends ThreadOnlyChannel {
+  /**
+   * The type of the channel
+   */
+  public type: ChannelType.GuildForum;
+
+  /**
+   * The default layout type used to display posts
+   */
+  public defaultForumLayout: ForumLayoutType;
 
   /**
    * Sets the default forum layout type used to display posts
@@ -8909,6 +8982,16 @@ export class ForumChannel extends TextBasedChannelMixin(GuildChannel, true, [
    * @param reason Reason for changing the default forum layout
    */
   public setDefaultForumLayout(defaultForumLayout: ForumLayoutType, reason?: string): Promise<this>;
+}
+
+/**
+ * Represents a media channel.
+ */
+export class MediaChannel extends ThreadOnlyChannel {
+  /**
+   * The type of the channel
+   */
+  public type: ChannelType.GuildMedia;
 }
 
 /**
@@ -10036,8 +10119,11 @@ export class Shard extends EventEmitter {
    * @returns Result of the script execution
    */
   public eval(script: string): Promise<unknown>;
-  public eval<T>(fn: (client: Client) => T): Promise<T>;
-  public eval<T, P>(fn: (client: Client<true>, context: Serialized<P>) => T, context: P): Promise<T>;
+  public eval<Result>(fn: (client: Client) => Result): Promise<Result>;
+  public eval<Result, Context>(
+    fn: (client: Client<true>, context: Serialized<Context>) => Result,
+    context: Context,
+  ): Promise<Result>;
 
   /**
    * Fetches a client property value of the shard.
@@ -10074,14 +10160,14 @@ export class Shard extends EventEmitter {
    */
   public spawn(timeout?: number): Promise<ChildProcess>;
 
-  public on<K extends keyof ShardEventTypes>(
-    event: K,
-    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
+  public on<Event extends keyof ShardEventTypes>(
+    event: Event,
+    listener: (...args: ShardEventTypes[Event]) => Awaitable<void>,
   ): this;
 
-  public once<K extends keyof ShardEventTypes>(
-    event: K,
-    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
+  public once<Event extends keyof ShardEventTypes>(
+    event: Event,
+    listener: (...args: ShardEventTypes[Event]) => Awaitable<void>,
   ): this;
 }
 
@@ -10157,16 +10243,19 @@ export class ShardClientUtil {
    *   .catch(console.error);
    * @see {@link ShardingManager.broadcastEval}
    */
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
-  public broadcastEval<T, P>(
-    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P },
-  ): Promise<Serialized<T>[]>;
-  public broadcastEval<T, P>(
-    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P; shard: number },
-  ): Promise<Serialized<T>>;
+  public broadcastEval<Result>(fn: (client: Client) => Awaitable<Result>): Promise<Serialized<Result>[]>;
+  public broadcastEval<Result>(
+    fn: (client: Client) => Awaitable<Result>,
+    options: { shard: number },
+  ): Promise<Serialized<Result>>;
+  public broadcastEval<Result, Context>(
+    fn: (client: Client<true>, context: Serialized<Context>) => Awaitable<Result>,
+    options: { context: Context },
+  ): Promise<Serialized<Result>[]>;
+  public broadcastEval<Result, Context>(
+    fn: (client: Client<true>, context: Serialized<Context>) => Awaitable<Result>,
+    options: { context: Context; shard: number },
+  ): Promise<Serialized<Result>>;
 
   /**
    * Fetches a client property value of each shard, or a given shard.
@@ -10288,16 +10377,19 @@ export class ShardingManager extends EventEmitter {
    * @param options The options for the broadcast
    * @returns Results of the script execution
    */
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
-  public broadcastEval<T, P>(
-    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P },
-  ): Promise<Serialized<T>[]>;
-  public broadcastEval<T, P>(
-    fn: (client: Client<true>, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P; shard: number },
-  ): Promise<Serialized<T>>;
+  public broadcastEval<Result>(fn: (client: Client) => Awaitable<Result>): Promise<Serialized<Result>[]>;
+  public broadcastEval<Result>(
+    fn: (client: Client) => Awaitable<Result>,
+    options: { shard: number },
+  ): Promise<Serialized<Result>>;
+  public broadcastEval<Result, Context>(
+    fn: (client: Client<true>, context: Serialized<Context>) => Awaitable<Result>,
+    options: { context: Context },
+  ): Promise<Serialized<Result>[]>;
+  public broadcastEval<Result, Context>(
+    fn: (client: Client<true>, context: Serialized<Context>) => Awaitable<Result>,
+    options: { context: Context; shard: number },
+  ): Promise<Serialized<Result>>;
 
   /**
    * Creates a single shard.
@@ -10539,7 +10631,7 @@ export class Structures extends null {
    * Retrieves a structure class.
    * @param structure Name of the structure to retrieve
    */
-  public static get<K extends keyof Extendable>(structure: K): Extendable[K];
+  public static get<Key extends keyof Extendable>(structure: Key): Extendable[Key];
   public static get(structure: string): (...args: any[]) => void;
 
   /**
@@ -10563,14 +10655,14 @@ export class Structures extends null {
    *   return CoolGuild;
    * });
    */
-  public static extend<K extends keyof Extendable, T extends Extendable[K]>(
-    structure: K,
-    extender: (baseClass: Extendable[K]) => T,
-  ): T;
-  public static extend<T extends (...args: any[]) => void>(
+  public static extend<Key extends keyof Extendable, Type extends Extendable[Key]>(
+    structure: Key,
+    extender: (baseClass: Extendable[Key]) => Type,
+  ): Type;
+  public static extend<Type extends (...args: any[]) => void>(
     structure: string,
-    extender: (baseClass: typeof Function) => T,
-  ): T;
+    extender: (baseClass: typeof Function) => Type,
+  ): Type;
 }
 
 /**
@@ -10671,7 +10763,7 @@ export class Sticker extends Base {
   public fetch(): Promise<Sticker>;
 
   /**
-   * Fetches the pack this sticker is part of from Discord, if this is a Nitro sticker.
+   * Fetches the pack that contains this sticker.
    */
   public fetchPack(): Promise<StickerPack | null>;
 
@@ -10686,7 +10778,7 @@ export class Sticker extends Base {
    * @example
    * // Update the name of a sticker
    * sticker.edit({ name: 'new name' })
-   *   .then(s => console.log(`Updated the name of the sticker to ${s.name}`))
+   *   .then(sticker => console.log(`Updated the name of the sticker to ${sticker.name}`))
    *   .catch(console.error);
    */
   public edit(options?: GuildStickerEditOptions): Promise<Sticker>;
@@ -10697,7 +10789,7 @@ export class Sticker extends Base {
    * @example
    * // Delete a message
    * sticker.delete()
-   *   .then(s => console.log(`Deleted sticker ${s.name}`))
+   *   .then(sticker => console.log(`Deleted sticker ${sticker.name}`))
    *   .catch(console.error);
    */
   public delete(reason?: string): Promise<Sticker>;
@@ -10976,7 +11068,9 @@ export class Sweepers {
    * Create a sweepFilter function that uses a lifetime to determine sweepability.
    * @param {} [options={}] The options used to generate the filter function
    */
-  public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): GlobalSweepFilter<K, V>;
+  public static filterByLifetime<Key, Value>(
+    options?: LifetimeFilterOptions<Key, Value>,
+  ): GlobalSweepFilter<Key, Value>;
 
   /**
    * Creates a sweep filter that sweeps outdated messages (edits taken into account)
@@ -11092,6 +11186,7 @@ export class TeamMember extends Base {
 
   /**
    * The permissions this Team Member has with regard to the team
+   * @deprecated Use {@link TeamMember.role} instead
    */
   public permissions: string[];
 
@@ -11104,6 +11199,11 @@ export class TeamMember extends Base {
    * The user for this Team Member
    */
   public user: User;
+
+  /**
+   * The role of this Team Member
+   */
+  public role: TeamMemberRole;
 
   /**
    * When concatenated with a string, this automatically returns the team member's mention instead of the
@@ -11150,7 +11250,7 @@ export interface PrivateThreadChannel extends ThreadChannel<false> {
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedChannelMixin(BaseChannel, true, [
+export class ThreadChannel<ThreadOnly extends boolean = boolean> extends TextBasedChannelMixin(BaseChannel, true, [
   'fetchWebhooks',
   'createWebhook',
   'setNSFW',
@@ -11304,7 +11404,7 @@ export class ThreadChannel<Forum extends boolean = boolean> extends TextBasedCha
   /**
    * The parent channel of this thread
    */
-  public get parent(): If<Forum, ForumChannel, TextChannel | NewsChannel> | null;
+  public get parent(): If<ThreadOnly, ForumChannel | MediaChannel, TextChannel | NewsChannel> | null;
 
   /**
    * The id of the parent channel of this thread
@@ -11816,7 +11916,7 @@ export class UserContextMenuCommandInteraction<
   /**
    * The target member from this interaction
    */
-  public get targetMember(): CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember>;
+  public get targetMember(): CacheTypeReducer<Cached, GuildMember, APIInteractionGuildMember> | null;
 
   /**
    * Indicates whether this interaction is received from a guild.
@@ -11872,9 +11972,9 @@ export function cleanContent(str: string, channel: TextBasedChannel): string;
  * Sorts by Discord's position and id.
  * @param collection Collection of objects to sort
  */
-export function discordSort<K, V extends { rawPosition: number; id: Snowflake }>(
-  collection: Collection<K, V>,
-): Collection<K, V>;
+export function discordSort<Key, Value extends { rawPosition: number; id: Snowflake }>(
+  collection: Collection<Key, Value>,
+): Collection<Key, Value>;
 
 /**
  * The content to put in a code block with all code block fences replaced by the equivalent backticks.
@@ -11912,14 +12012,6 @@ export function makeError(obj: MakeErrorOptions): Error;
 export function makePlainError(err: Error): MakeErrorOptions;
 
 /**
- * Sets default properties on an object that aren't already specified.
- * @param def Default properties
- * @param given Object to assign defaults to
- * @private
- */
-export function mergeDefault(def: unknown, given: unknown): unknown;
-
-/**
  * Moves an element in an array *in place*.
  * @param array Array to modify
  * @param element Element to move
@@ -11938,7 +12030,7 @@ export function moveElementInArray(array: unknown[], element: unknown, newIndex:
  * @returns Object with `animated`, `name`, and `id` properties
  * @private
  */
-export function parseEmoji(text: string): { animated: boolean; name: string; id: Snowflake | null } | null;
+export function parseEmoji(text: string): PartialEmoji | null;
 
 /**
  * Resolves a ColorResolvable into a color number.
@@ -11952,7 +12044,8 @@ export function resolveColor(color: ColorResolvable): number;
  * @param emoji Emoji identifier to resolve
  * @private
  */
-export function resolvePartialEmoji(emoji: EmojiIdentifierResolvable): Partial<APIPartialEmoji> | null;
+export function resolvePartialEmoji(emoji: Snowflake): PartialEmojiOnlyId;
+export function resolvePartialEmoji(emoji: Emoji | EmojiIdentifierResolvable): PartialEmoji | null;
 
 /**
  * Verifies the provided data is a string, otherwise throws provided error.
@@ -11975,11 +12068,11 @@ export function verifyString(data: string, error?: typeof Error, errorMessage?: 
  * @returns Updated item list, with `id` and `position` properties
  * @private
  */
-export function setPosition<T extends Channel | Role>(
-  item: T,
+export function setPosition<Item extends Channel | Role>(
+  item: Item,
   position: number,
   relative: boolean,
-  sorted: Collection<Snowflake, T>,
+  sorted: Collection<Snowflake, Item>,
   client: Client<true>,
   route: string,
   reason?: string,
@@ -11991,6 +12084,17 @@ export function setPosition<T extends Channel | Role>(
  * @returns Null if the URL is invalid, otherwise the id and the token
  */
 export function parseWebhookURL(url: string): WebhookClientDataIdWithToken | null;
+
+/**
+ * Transforms the resolved data received from the API.
+ * @param supportingData Data to support the transformation
+ * @param data The received resolved objects
+ * @private
+ */
+export function transformResolved<Cached extends CacheType>(
+  supportingData: SupportingInteractionResolvedData,
+  data?: APIApplicationCommandInteractionData['resolved'],
+): CommandInteractionResolvedData<Cached>;
 
 export interface MappedComponentBuilderTypes {
   [ComponentType.Button]: ButtonBuilder;
@@ -12033,20 +12137,20 @@ export function createChannel(client: Client<true>, data: APIChannel, options?: 
  * Transforms API data into a component
  * @param data The data to create the component from
  */
-export function createComponent<T extends keyof MappedComponentTypes>(
-  data: APIMessageComponent & { type: T },
-): MappedComponentTypes[T];
-export function createComponent<C extends Component>(data: C): C;
+export function createComponent<Type extends keyof MappedComponentTypes>(
+  data: APIMessageComponent & { type: Type },
+): MappedComponentTypes[Type];
+export function createComponent<Data extends Component>(data: Data): Data;
 export function createComponent(data: APIMessageComponent | Component): Component;
 
 /**
  * Transforms API data into a component builder
  * @param data The data to create the component from
  */
-export function createComponentBuilder<T extends keyof MappedComponentBuilderTypes>(
-  data: APIMessageComponent & { type: T },
-): MappedComponentBuilderTypes[T];
-export function createComponentBuilder<C extends ComponentBuilder>(data: C): C;
+export function createComponentBuilder<Type extends keyof MappedComponentBuilderTypes>(
+  data: APIMessageComponent & { type: Type },
+): MappedComponentBuilderTypes[Type];
+export function createComponentBuilder<Data extends ComponentBuilder>(data: Data): Data;
 export function createComponentBuilder(data: APIMessageComponent | ComponentBuilder): ComponentBuilder;
 
 /** @deprecated This class is redundant as all methods of the class can be imported from discord.js directly. */
@@ -12367,7 +12471,7 @@ export class Webhook extends WebhookMixin() {
   /**
    * The channel the webhook belongs to
    */
-  public get channel(): TextChannel | VoiceChannel | NewsChannel | ForumChannel | StageChannel | null;
+  public get channel(): TextChannel | VoiceChannel | NewsChannel | StageChannel | ForumChannel | MediaChannel | null;
 
   /**
    * Whether this webhook is created by a user.
@@ -12764,14 +12868,14 @@ export class WebSocketShard extends EventEmitter {
    */
   public send(data: unknown, important?: boolean): void;
 
-  public on<K extends keyof WebSocketShardEventTypes>(
-    event: K,
-    listener: (...args: WebSocketShardEventTypes[K]) => Awaitable<void>,
+  public on<Event extends keyof WebSocketShardEventTypes>(
+    event: Event,
+    listener: (...args: WebSocketShardEventTypes[Event]) => Awaitable<void>,
   ): this;
 
-  public once<K extends keyof WebSocketShardEventTypes>(
-    event: K,
-    listener: (...args: WebSocketShardEventTypes[K]) => Awaitable<void>,
+  public once<Event extends keyof WebSocketShardEventTypes>(
+    event: Event,
+    listener: (...args: WebSocketShardEventTypes[Event]) => Awaitable<void>,
   ): this;
 }
 
@@ -12796,6 +12900,12 @@ export class Widget extends Base {
    * Update the Widget.
    */
   public fetch(): Promise<Widget>;
+
+  /**
+   * Returns a URL for the PNG widget of the guild.
+   * @param style The style for the widget image
+   */
+  public imageURL(style?: GuildWidgetStyle): string;
 
   /**
    * The id of the guild.
@@ -12935,7 +13045,7 @@ export class WelcomeChannel extends Base {
   /**
    * The channel of this welcome channel
    */
-  public get channel(): TextChannel | NewsChannel | ForumChannel | null;
+  public get channel(): TextChannel | NewsChannel | ForumChannel | MediaChannel | null;
 
   /**
    * The emoji of this welcome channel
@@ -13116,23 +13226,24 @@ export enum DiscordjsErrorCodes {
   TokenMissing = 'TokenMissing',
   ApplicationCommandPermissionsTokenMissing = 'ApplicationCommandPermissionsTokenMissing',
 
-  /** @deprecated */
+  /** @deprecated WebSocket errors are now handled in `@discordjs/ws` */
   WSCloseRequested = 'WSCloseRequested',
-  /** @deprecated */
+  /** @deprecated WebSocket errors are now handled in `@discordjs/ws` */
   WSConnectionExists = 'WSConnectionExists',
-  /** @deprecated */
+  /** @deprecated WebSocket errors are now handled in `@discordjs/ws` */
   WSNotOpen = 'WSNotOpen',
+  /** @deprecated No longer in use */
   ManagerDestroyed = 'ManagerDestroyed',
 
   BitFieldInvalid = 'BitFieldInvalid',
 
-  /** @deprecated */
+  /** @deprecated This error is now handled in `@discordjs/ws` */
   ShardingInvalid = 'ShardingInvalid',
-  /** @deprecated */
+  /** @deprecated This error is now handled in `@discordjs/ws` */
   ShardingRequired = 'ShardingRequired',
-  /** @deprecated */
+  /** @deprecated This error is now handled in `@discordjs/ws` */
   InvalidIntents = 'InvalidIntents',
-  /** @deprecated */
+  /** @deprecated This error is now handled in `@discordjs/ws` */
   DisallowedIntents = 'DisallowedIntents',
   ShardingNoShards = 'ShardingNoShards',
   ShardingInProcess = 'ShardingInProcess',
@@ -13152,20 +13263,29 @@ export enum DiscordjsErrorCodes {
 
   InviteOptionsMissingChannel = 'InviteOptionsMissingChannel',
 
+  /** @deprecated Button validation errors are now handled in `@discordjs/builders` */
   ButtonLabel = 'ButtonLabel',
+  /** @deprecated Button validation errors are now handled in `@discordjs/builders` */
   ButtonURL = 'ButtonURL',
+  /** @deprecated Button validation errors are now handled in `@discordjs/builders` */
   ButtonCustomId = 'ButtonCustomId',
 
+  /** @deprecated Select Menu validation errors are now handled in `@discordjs/builders` */
   SelectMenuCustomId = 'SelectMenuCustomId',
+  /** @deprecated Select Menu validation errors are now handled in `@discordjs/builders` */
   SelectMenuPlaceholder = 'SelectMenuPlaceholder',
+  /** @deprecated Select Menu validation errors are now handled in `@discordjs/builders` */
   SelectOptionLabel = 'SelectOptionLabel',
+  /** @deprecated Select Menu validation errors are now handled in `@discordjs/builders` */
   SelectOptionValue = 'SelectOptionValue',
+  /** @deprecated Select Menu validation errors are now handled in `@discordjs/builders` */
   SelectOptionDescription = 'SelectOptionDescription',
 
   InteractionCollectorError = 'InteractionCollectorError',
 
   FileNotFound = 'FileNotFound',
 
+  /** @deprecated No longer in use */
   UserBannerNotFetched = 'UserBannerNotFetched',
   UserNoDMChannel = 'UserNoDMChannel',
 
@@ -13176,13 +13296,16 @@ export enum DiscordjsErrorCodes {
 
   ReqResourceType = 'ReqResourceType',
 
+  /** @deprecated This error is now handled in `@discordjs/rest` */
   ImageFormat = 'ImageFormat',
+  /** @deprecated This error is now handled in `@discordjs/rest` */
   ImageSize = 'ImageSize',
 
   MessageBulkDeleteType = 'MessageBulkDeleteType',
   MessageNonceType = 'MessageNonceType',
   MessageContentType = 'MessageContentType',
 
+  /** @deprecated No longer in use */
   SplitMaxLen = 'SplitMaxLen',
 
   BanResolveId = 'BanResolveId',
@@ -13218,13 +13341,14 @@ export enum DiscordjsErrorCodes {
   EmojiType = 'EmojiType',
   EmojiManaged = 'EmojiManaged',
   MissingManageGuildExpressionsPermission = 'MissingManageGuildExpressionsPermission',
-  /** @deprecated Use {@link MissingManageGuildExpressionsPermission} instead. */
+  /** @deprecated Use {@link DiscordjsErrorCodes.MissingManageGuildExpressionsPermission} instead. */
   MissingManageEmojisAndStickersPermission = 'MissingManageEmojisAndStickersPermission',
 
   NotGuildSticker = 'NotGuildSticker',
 
   ReactionResolveUser = 'ReactionResolveUser',
 
+  /** @deprecated Not used anymore since the introduction of `GUILD_WEB_PAGE_VANITY_URL` feature */
   VanityURL = 'VanityURL',
 
   InviteResolveCode = 'InviteResolveCode',
@@ -13241,7 +13365,7 @@ export enum DiscordjsErrorCodes {
 
   InteractionAlreadyReplied = 'InteractionAlreadyReplied',
   InteractionNotReplied = 'InteractionNotReplied',
-  /** @deprecated */
+  /** @deprecated Not used anymore since ephemeral replies can now be deleted */
   InteractionEphemeralReplied = 'InteractionEphemeralReplied',
 
   CommandInteractionOptionNotFound = 'CommandInteractionOptionNotFound',
@@ -13269,10 +13393,10 @@ export interface DiscordjsErrorFields<Name extends string> {
   get code(): DiscordjsErrorCodes;
 }
 
-export function DiscordjsErrorMixin<T, N extends string>(
-  Base: Constructable<T>,
-  name: N,
-): Constructable<T & DiscordjsErrorFields<N>>;
+export function DiscordjsErrorMixin<Entity, Name extends string>(
+  Base: Constructable<Entity>,
+  name: Name,
+): Constructable<Entity & DiscordjsErrorFields<Name>>;
 
 export class DiscordjsError extends DiscordjsErrorMixin(Error, 'Error') {}
 
@@ -13299,7 +13423,7 @@ export abstract class BaseManager {
 /**
  * Manages the API methods of a data model along with a collection of instances.
  */
-export abstract class DataManager<K, Holds, R> extends BaseManager {
+export abstract class DataManager<Key, Holds, Resolvable> extends BaseManager {
   public constructor(client: Client<true>, holds: Constructable<Holds>);
 
   /**
@@ -13310,7 +13434,7 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
   /**
    * The cache of items for this manager.
    */
-  public get cache(): Collection<K, Holds>;
+  public get cache(): Collection<Key, Holds>;
 
   /**
    * Resolves a data entry to a data Object.
@@ -13318,33 +13442,33 @@ export abstract class DataManager<K, Holds, R> extends BaseManager {
    * @returns An instance from this Manager
    */
   public resolve(resolvable: Holds): Holds;
-  public resolve(resolvable: R): Holds | null;
+  public resolve(resolvable: Resolvable): Holds | null;
 
   /**
    * Resolves a data entry to an instance id.
    * @param resolvable The id or instance of something in this Manager
    */
-  public resolveId(resolvable: K | Holds): K;
-  public resolveId(resolvable: R): K | null;
+  public resolveId(resolvable: Key | Holds): Key;
+  public resolveId(resolvable: Resolvable): Key | null;
 
   /**
    * Returns the cache.
    */
-  public valueOf(): Collection<K, Holds>;
+  public valueOf(): Collection<Key, Holds>;
 }
 
 /**
  * Manages the API methods of a data model with a mutable cache of instances.
  */
-export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R> {
+export abstract class CachedManager<Key, Holds, Resolvable> extends DataManager<Key, Holds, Resolvable> {
   public constructor(client: Client<true>, holds: Constructable<Holds>, iterable?: Iterable<Holds>);
 
   /**
    * The private cache of items for this manager.
    */
-  private readonly _cache: Collection<K, Holds>;
+  private readonly _cache: Collection<Key, Holds>;
 
-  private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
+  private _add(data: unknown, cache?: boolean, { id, extras }?: { id: Key; extras: unknown[] }): Holds;
 }
 
 /**
@@ -13437,8 +13561,8 @@ export class ApplicationCommandManager<
 
   /**
    * Obtains one or multiple application commands from Discord, or the cache if it's already available.
-   * @param id The application command's id
-   * @param  options Additional options for this fetch
+   * @param id Options for fetching application command(s)
+   * @param options Additional options for this fetch
    * @example
    * // Fetch a single command
    * client.application.commands.fetch('123456789012345678')
@@ -13821,9 +13945,9 @@ export class CategoryChannelChildManager extends DataManager<Snowflake, Category
    * <info>You cannot create a channel of type {@link ChannelType.GuildCategory} inside a CategoryChannel.</info>
    * @param options Options for creating the new channel
    */
-  public create<T extends CategoryChannelType>(
-    options: CategoryCreateChannelOptions & { type: T },
-  ): Promise<MappedChannelCategoryTypes[T]>;
+  public create<Type extends CategoryChannelType>(
+    options: CategoryCreateChannelOptions & { type: Type },
+  ): Promise<MappedChannelCategoryTypes[Type]>;
   public create(options: CategoryCreateChannelOptions): Promise<TextChannel>;
 }
 
@@ -13991,7 +14115,6 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
 
   /**
    * Creates a new channel in the guild.
-   * @param options Options for creating the new channel
    * @example
    * // Create a new text channel
    * guild.channels.create({ name: 'new-general', reason: 'Needed a cool new channel' })
@@ -14010,9 +14133,9 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   ],
    * })
    */
-  public create<T extends GuildChannelTypes>(
-    options: GuildChannelCreateOptions & { type: T },
-  ): Promise<MappedGuildChannelTypes[T]>;
+  public create<Type extends GuildChannelTypes>(
+    options: GuildChannelCreateOptions & { type: Type },
+  ): Promise<MappedGuildChannelTypes[Type]>;
   public create(options: GuildChannelCreateOptions): Promise<TextChannel>;
 
   /**
@@ -14271,6 +14394,13 @@ export class GuildManager extends CachedManager<Snowflake, Guild, GuildResolvabl
    */
   public fetch(options: Snowflake | FetchGuildOptions): Promise<Guild>;
   public fetch(options?: FetchGuildsOptions): Promise<Collection<Snowflake, OAuth2Guild>>;
+
+  /**
+   * Returns a URL for the PNG widget of a guild.
+   * @param guild The guild of the widget image
+   * @param style The style for the widget image
+   */
+  public widgetImageURL(guild: GuildResolvable, style?: GuildWidgetStyle): string;
 }
 
 /**
@@ -14639,18 +14769,21 @@ export class GuildScheduledEventManager extends CachedManager<
    */
   public fetch(): Promise<Collection<Snowflake, GuildScheduledEvent>>;
   public fetch<
-    T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
-  >(options?: T): Promise<GuildScheduledEventManagerFetchResult<T>>;
+    Options extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
+  >(options?: Options): Promise<GuildScheduledEventManagerFetchResult<Options>>;
 
   /**
    * Edits a guild scheduled event.
    * @param guildScheduledEvent The guild scheduled event to edit
    * @param options Options to edit the guild scheduled event
    */
-  public edit<S extends GuildScheduledEventStatus, T extends GuildScheduledEventSetStatusArg<S>>(
+  public edit<
+    Status extends GuildScheduledEventStatus,
+    AcceptableStatus extends GuildScheduledEventSetStatusArg<Status>,
+  >(
     guildScheduledEvent: GuildScheduledEventResolvable,
-    options: GuildScheduledEventEditOptions<S, T>,
-  ): Promise<GuildScheduledEvent<T>>;
+    options: GuildScheduledEventEditOptions<Status, AcceptableStatus>,
+  ): Promise<GuildScheduledEvent<AcceptableStatus>>;
 
   /**
    * Deletes a guild scheduled event.
@@ -14663,10 +14796,10 @@ export class GuildScheduledEventManager extends CachedManager<
    * @param guildScheduledEvent The guild scheduled event to fetch subscribers of
    * @param options Options for fetching the subscribers
    */
-  public fetchSubscribers<T extends FetchGuildScheduledEventSubscribersOptions>(
+  public fetchSubscribers<Options extends FetchGuildScheduledEventSubscribersOptions>(
     guildScheduledEvent: GuildScheduledEventResolvable,
-    options?: T,
-  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<T>>;
+    options?: Options,
+  ): Promise<GuildScheduledEventManagerFetchSubscribersResult<Options>>;
 }
 
 /**
@@ -14853,24 +14986,30 @@ export abstract class MessageManager<InGuild extends boolean = boolean> extends 
   ): Promise<Message<InGuild>>;
 
   /**
-   * Gets a message, or messages, from this channel.
+   * Fetches message(s) from a channel.
    * <info>The returned Collection does not contain reaction users of the messages if they were not cached.
    * Those need to be fetched separately in such a case.</info>
-   * @param options Additional options for this fetch
+   * @param options Options for fetching message(s)
    * @example
-   * // Get message
+   * // Fetch a message
    * channel.messages.fetch('99539446449315840')
    *   .then(message => console.log(message.content))
    *   .catch(console.error);
    * @example
-   * // Get messages
-   * channel.messages.fetch({ limit: 10 })
+   * // Fetch a maximum of 10 messages without caching
+   * channel.messages.fetch({ limit: 10, cache: false })
    *   .then(messages => console.log(`Received ${messages.size} messages`))
    *   .catch(console.error);
    * @example
-   * // Get messages and filter by user id
+   * // Fetch a maximum of 10 messages without caching around a message id
+   * channel.messages.fetch({ limit: 10, cache: false, around: '99539446449315840' })
+   *   .then(messages => console.log(`Received ${messages.size} messages`))
+   *   .catch(console.error);
+   * @example
+   * // Fetch messages and filter by a user id
    * channel.messages.fetch()
-   *   .then(messages => console.log(`${messages.filter(m => m.author.id === '84484653687267328').size} messages`))
+   *   .then(messages => console.log(`${messages.filter(message =>
+   *          message.author.id === '84484653687267328').size} messages`))
    *   .catch(console.error);
    */
   public fetch(options: MessageResolvable | FetchMessageOptions): Promise<Message<InGuild>>;
@@ -15262,17 +15401,20 @@ export class StageInstanceManager extends CachedManager<Snowflake, StageInstance
 /**
  * Manages API methods for thread-based channels and stores their cache.
  */
-export class ThreadManager<Forum extends boolean = boolean> extends CachedManager<
+export class ThreadManager<ThreadOnly extends boolean = boolean> extends CachedManager<
   Snowflake,
-  ThreadChannel<Forum>,
+  ThreadChannel<ThreadOnly>,
   ThreadChannelResolvable
 > {
-  public constructor(channel: TextChannel | NewsChannel | ForumChannel, iterable?: Iterable<RawThreadChannelData>);
+  public constructor(
+    channel: TextChannel | NewsChannel | ForumChannel | MediaChannel,
+    iterable?: Iterable<RawThreadChannelData>,
+  );
 
   /**
    * The channel this Manager belongs to
    */
-  public channel: If<Forum, ForumChannel, TextChannel | NewsChannel>;
+  public channel: If<ThreadOnly, ForumChannel | MediaChannel, TextChannel | NewsChannel>;
 
   /**
    * Obtains a thread from Discord, or the channel cache if it's already available.
@@ -15485,20 +15627,20 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 // to the classes that use these methods without having to manually add them
 // to each of those classes
 
-export type Constructable<T> = abstract new (...args: any[]) => T;
-export function PartialTextBasedChannel<T>(
-  Base?: Constructable<T>,
-): Constructable<T & PartialTextBasedChannelFields<false>>;
+export type Constructable<Entity> = abstract new (...args: any[]) => Entity;
+export function PartialTextBasedChannel<Entity>(
+  Base?: Constructable<Entity>,
+): Constructable<Entity & PartialTextBasedChannelFields<false>>;
 
 export function TextBasedChannelMixin<
-  T,
+  Entity,
   InGuild extends boolean = boolean,
-  I extends keyof TextBasedChannelFields<InGuild> = never,
+  IgnoredFields extends keyof TextBasedChannelFields<InGuild> = never,
 >(
-  Base?: Constructable<T>,
+  Base?: Constructable<Entity>,
   inGuild?: InGuild,
-  ignore?: I[],
-): Constructable<T & Omit<TextBasedChannelFields<InGuild>, I>>;
+  ignore?: IgnoredFields[],
+): Constructable<Entity & Omit<TextBasedChannelFields<InGuild>, IgnoredFields>>;
 
 export interface PartialTextBasedChannelFields<InGuild extends boolean = boolean> {
   /**
@@ -15569,9 +15711,9 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    *   .then(interaction => console.log(`${interaction.customId} was clicked!`))
    *   .catch(console.error);
    */
-  awaitMessageComponent<T extends MessageComponentType>(
-    options?: AwaitMessageCollectorOptionsParams<T, true>,
-  ): Promise<MappedInteractionTypes[T]>;
+  awaitMessageComponent<ComponentType extends MessageComponentType>(
+    options?: AwaitMessageCollectorOptionsParams<ComponentType, true>,
+  ): Promise<MappedInteractionTypes[ComponentType]>;
 
   /**
    * Similar to createMessageCollector but in promise form.
@@ -15604,27 +15746,27 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
   ): Promise<Collection<Snowflake, Message | PartialMessage | undefined>>;
 
   /**
-   * Creates a button interaction collector.
+   * Creates a component interaction collector.
    * @param {} [options={}] Options to send to the collector
    * @example
    * // Create a button interaction collector
    * const filter = (interaction) => interaction.customId === 'button' && interaction.user.id === 'someId';
    * const collector = channel.createMessageComponentCollector({ filter, time: 15_000 });
-   * collector.on('collect', i => console.log(`Collected ${i.customId}`));
+   * collector.on('collect', interaction => console.log(`Collected ${interaction.customId}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
-  createMessageComponentCollector<T extends MessageComponentType>(
-    options?: MessageChannelCollectorOptionsParams<T, true>,
-  ): InteractionCollector<MappedInteractionTypes[T]>;
+  createMessageComponentCollector<ComponentType extends MessageComponentType>(
+    options?: MessageChannelCollectorOptionsParams<ComponentType, true>,
+  ): InteractionCollector<MappedInteractionTypes[ComponentType]>;
 
   /**
    * Creates a Message Collector.
    * @param {} [options={}] The options to pass to the collector
    * @example
    * // Create a message collector
-   * const filter = m => m.content.includes('discord');
+   * const filter = message => message.content.includes('discord');
    * const collector = channel.createMessageCollector({ filter, time: 15_000 });
-   * collector.on('collect', m => console.log(`Collected ${m.content}`));
+   * collector.on('collect', message => console.log(`Collected ${message.content}`));
    * collector.on('end', collected => console.log(`Collected ${collected.size} items`));
    */
   createMessageCollector(options?: MessageCollectorOptions): MessageCollector;
@@ -15678,8 +15820,8 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
   setNSFW(nsfw?: boolean, reason?: string): Promise<this>;
 }
 
-export function PartialWebhookMixin<T>(Base?: Constructable<T>): Constructable<T & PartialWebhookFields>;
-export function WebhookMixin<T>(Base?: Constructable<T>): Constructable<T & WebhookFields>;
+export function PartialWebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & PartialWebhookFields>;
+export function WebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & WebhookFields>;
 
 export interface PartialWebhookFields {
   /**
@@ -15889,7 +16031,14 @@ export interface AddGuildMemberOptions {
   fetchWhenExisting?: boolean;
 }
 
-export type AllowedPartial = User | Channel | GuildMember | Message | MessageReaction | ThreadMember;
+export type AllowedPartial =
+  | User
+  | Channel
+  | GuildMember
+  | Message
+  | MessageReaction
+  | GuildScheduledEvent
+  | ThreadMember;
 
 export type AllowedThreadTypeForNewsChannel = ChannelType.AnnouncementThread;
 
@@ -16695,18 +16844,18 @@ export interface AutoModerationTriggerMetadata {
 /**
  * An object containing the same properties as CollectorOptions, but a few more
  */
-export type AwaitMessageComponentOptions<T extends CollectedMessageInteraction> = Omit<
-  MessageComponentCollectorOptions<T>,
+export type AwaitMessageComponentOptions<Interaction extends CollectedMessageInteraction> = Omit<
+  MessageComponentCollectorOptions<Interaction>,
   'max' | 'maxComponents' | 'maxUsers'
 >;
 
-export type ModalSubmitInteractionCollectorOptions<T extends ModalSubmitInteraction> = Omit<
-  InteractionCollectorOptions<T>,
+export type ModalSubmitInteractionCollectorOptions<Interaction extends ModalSubmitInteraction> = Omit<
+  InteractionCollectorOptions<Interaction>,
   'channel' | 'message' | 'guild' | 'interactionType'
 >;
 
-export type AwaitModalSubmitOptions<T extends ModalSubmitInteraction> = Omit<
-  ModalSubmitInteractionCollectorOptions<T>,
+export type AwaitModalSubmitOptions<Interaction extends ModalSubmitInteraction> = Omit<
+  ModalSubmitInteractionCollectorOptions<Interaction>,
   'max' | 'maxComponents' | 'maxUsers'
 > & {
   time: number;
@@ -16739,7 +16888,7 @@ export interface BanOptions {
   /**
    * Number of days of messages to delete, must be between 0 and 7, inclusive
    * @default 0
-   * @deprecated Use {@link deleteMessageSeconds} instead.
+   * @deprecated Use {@link BanOptions.deleteMessageSeconds} instead.
    */
   deleteMessageDays?: number;
 
@@ -16786,12 +16935,12 @@ export interface BaseFetchOptions {
  * * An instance of BitField
  * * An Array of BitFieldResolvable
  */
-export type BitFieldResolvable<T extends string, N extends number | bigint> =
-  | RecursiveReadonlyArray<T | N | `${bigint}` | Readonly<BitField<T, N>>>
-  | T
-  | N
+export type BitFieldResolvable<Flags extends string, Type extends number | bigint> =
+  | RecursiveReadonlyArray<Flags | Type | `${bigint}` | Readonly<BitField<Flags, Type>>>
+  | Flags
+  | Type
   | `${bigint}`
-  | Readonly<BitField<T, N>>;
+  | Readonly<BitField<Flags, Type>>;
 
 /**
  * Data that can be resolved to give a Buffer. This can be:
@@ -16940,7 +17089,7 @@ export interface Caches {
 }
 
 export type CacheConstructors = {
-  [K in keyof Caches]: Caches[K][0] & { name: K };
+  [Cache in keyof Caches]: Caches[Cache][0] & { name: Cache };
 };
 
 type OverriddenCaches =
@@ -16960,11 +17109,11 @@ export type CacheFactory = (
   managerType: CacheConstructors[Exclude<keyof Caches, OverriddenCaches>],
   holds: Caches[(typeof manager)['name']][1],
   manager: CacheConstructors[keyof Caches],
-) => (typeof manager)['prototype'] extends DataManager<infer K, infer V, any> ? Collection<K, V> : never;
+) => (typeof manager)['prototype'] extends DataManager<infer Key, infer Value, any> ? Collection<Key, Value> : never;
 
 export type CacheWithLimitsOptions = {
-  [K in keyof Caches]?: Caches[K][0]['prototype'] extends DataManager<infer K, infer V, any>
-    ? LimitedCollectionOptions<K, V> | number
+  [K in keyof Caches]?: Caches[K][0]['prototype'] extends DataManager<infer Key, infer Value, any>
+    ? LimitedCollectionOptions<Key, Value> | number
     : never;
 };
 
@@ -17027,6 +17176,11 @@ export interface CategoryCreateChannelOptions {
    * The camera video quality mode of the voice channel
    */
   videoQualityMode?: VideoQualityMode;
+
+  /**
+   * The initial rate limit per user (slowmode) to set on newly created threads in a channel.
+   */
+  defaultThreadRateLimitPerUser?: number;
 
   /**
    * The tags that can be used in this channel (forum only).
@@ -17126,7 +17280,7 @@ export interface WebhookCreateOptions extends ChannelWebhookCreateOptions {
   /**
    * The channel to create the webhook for
    */
-  channel: TextChannel | NewsChannel | VoiceChannel | StageChannel | ForumChannel | Snowflake;
+  channel: TextChannel | NewsChannel | VoiceChannel | StageChannel | ForumChannel | MediaChannel | Snowflake;
 }
 
 export interface ClientEvents {
@@ -17536,7 +17690,7 @@ export interface ClientEvents {
   /**
    * Emitted whenever a channel has its webhooks changed.
    * @param channel The channel that had a webhook update
-   * @deprecated Use {@link webhooksUpdate} instead.
+   * @deprecated Use {@link ClientEvents.webhooksUpdate} instead.
    */
   webhookUpdate: ClientEvents['webhooksUpdate'];
 
@@ -17544,7 +17698,7 @@ export interface ClientEvents {
    * Emitted whenever a channel has its webhooks changed.
    * @param channel The channel that had a webhook update
    */
-  webhooksUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel];
+  webhooksUpdate: [channel: TextChannel | NewsChannel | VoiceChannel | ForumChannel | MediaChannel];
 
   /**
    * Emitted when an interaction is created.
@@ -17636,7 +17790,7 @@ export interface ClientEvents {
    * @param newGuildScheduledEvent The guild scheduled event object after the update
    */
   guildScheduledEventUpdate: [
-    oldGuildScheduledEvent: GuildScheduledEvent | null,
+    oldGuildScheduledEvent: GuildScheduledEvent | PartialGuildScheduledEvent | null,
     newGuildScheduledEvent: GuildScheduledEvent,
   ];
 
@@ -17644,21 +17798,21 @@ export interface ClientEvents {
    * Emitted whenever a guild scheduled event is deleted.
    * @param guildScheduledEvent The deleted guild scheduled event
    */
-  guildScheduledEventDelete: [guildScheduledEvent: GuildScheduledEvent];
+  guildScheduledEventDelete: [guildScheduledEvent: GuildScheduledEvent | PartialGuildScheduledEvent];
 
   /**
    * Emitted whenever a user subscribes to a guild scheduled event
    * @param guildScheduledEvent The guild scheduled event
    * @param user The user who subscribed
    */
-  guildScheduledEventUserAdd: [guildScheduledEvent: GuildScheduledEvent, user: User];
+  guildScheduledEventUserAdd: [guildScheduledEvent: GuildScheduledEvent | PartialGuildScheduledEvent, user: User];
 
   /**
    * Emitted whenever a user unsubscribes from a guild scheduled event
    * @param guildScheduledEvent The guild scheduled event
    * @param user The user who unsubscribed
    */
-  guildScheduledEventUserRemove: [guildScheduledEvent: GuildScheduledEvent, user: User];
+  guildScheduledEventUserRemove: [guildScheduledEvent: GuildScheduledEvent | PartialGuildScheduledEvent, user: User];
 }
 
 /**
@@ -17796,10 +17950,10 @@ export interface ClientUserEditOptions {
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent}
  */
 export interface CloseEvent {
-  /** @deprecated */
+  /** @deprecated Not used anymore since using {@link @discordjs/ws#(WebSocketManager:class)} internally */
   wasClean: boolean;
   code: number;
-  /** @deprecated */
+  /** @deprecated Not used anymore since using {@link @discordjs/ws#(WebSocketManager:class)} internally */
   reason: string;
 }
 
@@ -17808,16 +17962,16 @@ export interface CloseEvent {
  * @param args Any arguments received by the listener
  * @param collection The items collected by this collector
  */
-export type CollectorFilter<T extends unknown[]> = (...args: T) => boolean | Promise<boolean>;
+export type CollectorFilter<Arguments extends unknown[]> = (...args: Arguments) => Awaitable<boolean>;
 
 /**
  * Options to be applied to the collector.
  */
-export interface CollectorOptions<T extends unknown[]> {
+export interface CollectorOptions<FilterArguments extends unknown[]> {
   /**
    * The filter applied to this collector
    */
-  filter?: CollectorFilter<T>;
+  filter?: CollectorFilter<FilterArguments>;
 
   /**
    * How long to run the collector for in milliseconds
@@ -18594,6 +18748,11 @@ export interface StageInstanceCreateOptions {
    * Whether to notify `@everyone` that the stage instance has started
    */
   sendStartNotification?: boolean;
+
+  /**
+   * The guild scheduled event associated with the stage instance
+   */
+  guildScheduledEvent?: GuildScheduledEventResolvable;
 }
 
 /**
@@ -18730,6 +18889,7 @@ interface Extendable {
   DirectoryChannel: typeof DirectoryChannel;
   PartialGroupDMChannel: typeof PartialGroupDMChannel;
   ForumChannel: typeof ForumChannel;
+  MediaChannel: typeof MediaChannel;
 }
 
 /**
@@ -18962,7 +19122,7 @@ export interface FetchGuildScheduledEventSubscribersOptions {
 /**
  * Options used to fetch a single invite from a guild.
  */
-interface FetchInviteOptions extends BaseFetchOptions {
+export interface FetchInviteOptions extends BaseFetchOptions {
   /**
    * The invite to fetch
    */
@@ -18972,7 +19132,7 @@ interface FetchInviteOptions extends BaseFetchOptions {
 /**
  * Options used to fetch all invites from a guild.
  */
-interface FetchInvitesOptions {
+export interface FetchInvitesOptions {
   /**
    * The channel to fetch all invites from
    */
@@ -19186,7 +19346,9 @@ export interface AttachmentPayload {
  * See {@link [Collection.sweep](https://discord.js.org/#/docs/collection/main/class/Collection?scrollTo=sweep)}
  * for the definition of this function.
  */
-export type GlobalSweepFilter<K, V> = () => ((value: V, key: K, collection: Collection<K, V>) => boolean) | null;
+export type GlobalSweepFilter<Key, Value> = () =>
+  | ((value: Value, key: Key, collection: Collection<Key, Value>) => boolean)
+  | null;
 
 interface GuildAuditLogsTypes {
   [AuditLogEvent.GuildUpdate]: ['Guild', 'Update'];
@@ -19248,6 +19410,8 @@ interface GuildAuditLogsTypes {
 export type GuildAuditLogsActionType = GuildAuditLogsTypes[keyof GuildAuditLogsTypes][1] | 'All';
 
 export interface GuildAuditLogsEntryExtraField {
+  [AuditLogEvent.MemberKick]: { integrationType: string } | null;
+  [AuditLogEvent.MemberRoleUpdate]: { integrationType: string } | null;
   [AuditLogEvent.MemberPrune]: { removed: number; days: number };
   [AuditLogEvent.MemberMove]: { channel: VoiceBasedChannel | { id: Snowflake }; count: number };
   [AuditLogEvent.MessageDelete]: { channel: GuildTextBasedChannel | { id: Snowflake }; count: number };
@@ -19310,7 +19474,7 @@ export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLo
 /**
  * Options used to fetch audit logs.
  */
-export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> {
+export interface GuildAuditLogsFetchOptions<Event extends GuildAuditLogsResolvable> {
   /**
    * Consider only entries before this entry
    */
@@ -19334,7 +19498,7 @@ export interface GuildAuditLogsFetchOptions<T extends GuildAuditLogsResolvable> 
   /**
    * Only return entries for this action type
    */
-  type?: T;
+  type?: Event;
 }
 
 export type GuildAuditLogsResolvable = AuditLogEvent | null;
@@ -19677,7 +19841,7 @@ export interface GuildWidgetSettings {
   /**
    * The widget invite channel
    */
-  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | MediaChannel | null;
 }
 
 /**
@@ -19993,7 +20157,7 @@ export interface GuildWidgetSettingsData {
   /**
    * The widget invite channel
    */
-  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | Snowflake | null;
+  channel: TextChannel | NewsChannel | VoiceBasedChannel | ForumChannel | MediaChannel | Snowflake | null;
 }
 
 /**
@@ -20104,8 +20268,8 @@ export interface GuildScheduledEventCreateOptions {
  * Options used to edit a guild scheduled event.
  */
 export interface GuildScheduledEventEditOptions<
-  S extends GuildScheduledEventStatus,
-  T extends GuildScheduledEventSetStatusArg<S>,
+  Status extends GuildScheduledEventStatus,
+  AcceptableStatus extends GuildScheduledEventSetStatusArg<Status>,
 > extends Omit<Partial<GuildScheduledEventCreateOptions>, 'channel'> {
   /**
    * The channel of the guild scheduled event
@@ -20115,7 +20279,7 @@ export interface GuildScheduledEventEditOptions<
   /**
    * The status of the guild scheduled event
    */
-  status?: T;
+  status?: AcceptableStatus;
 }
 
 /**
@@ -20141,15 +20305,16 @@ export interface GuildScheduledEventEntityMetadataOptions {
 }
 
 export type GuildScheduledEventManagerFetchResult<
-  T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
-> = T extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions
+  Options extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions | FetchGuildScheduledEventsOptions,
+> = Options extends GuildScheduledEventResolvable | FetchGuildScheduledEventOptions
   ? GuildScheduledEvent
   : Collection<Snowflake, GuildScheduledEvent>;
 
-export type GuildScheduledEventManagerFetchSubscribersResult<T extends FetchGuildScheduledEventSubscribersOptions> =
-  T extends { withMember: true }
-    ? Collection<Snowflake, GuildScheduledEventUser<true>>
-    : Collection<Snowflake, GuildScheduledEventUser<false>>;
+export type GuildScheduledEventManagerFetchSubscribersResult<
+  Options extends FetchGuildScheduledEventSubscribersOptions,
+> = Options extends { withMember: true }
+  ? Collection<Snowflake, GuildScheduledEventUser<true>>
+  : Collection<Snowflake, GuildScheduledEventUser<false>>;
 
 /**
  * Privacy level of a {@link GuildScheduledEvent} object:
@@ -20158,17 +20323,17 @@ export type GuildScheduledEventManagerFetchSubscribersResult<T extends FetchGuil
  */
 export type GuildScheduledEventResolvable = Snowflake | GuildScheduledEvent;
 
-export type GuildScheduledEventSetStatusArg<T extends GuildScheduledEventStatus> =
-  T extends GuildScheduledEventStatus.Scheduled
+export type GuildScheduledEventSetStatusArg<Status extends GuildScheduledEventStatus> =
+  Status extends GuildScheduledEventStatus.Scheduled
     ? GuildScheduledEventStatus.Active | GuildScheduledEventStatus.Canceled
-    : T extends GuildScheduledEventStatus.Active
-    ? GuildScheduledEventStatus.Completed
-    : never;
+    : Status extends GuildScheduledEventStatus.Active
+      ? GuildScheduledEventStatus.Completed
+      : never;
 
 /**
  * Represents a subscriber of a {@link GuildScheduledEvent}
  */
-export interface GuildScheduledEventUser<T> {
+export interface GuildScheduledEventUser<WithMember> {
   /**
    * The id of the guild scheduled event which the user subscribed to
    */
@@ -20182,7 +20347,7 @@ export interface GuildScheduledEventUser<T> {
   /**
    * The guild member associated with the user, if any
    */
-  member: T extends true ? GuildMember : null;
+  member: WithMember extends true ? GuildMember : null;
 }
 
 /**
@@ -20196,23 +20361,108 @@ export type GuildTemplateResolvable = string;
 export type GuildVoiceChannelResolvable = VoiceBasedChannel | Snowflake;
 
 /**
- * The data for an emoji of a guilds onboarding prompt option
+ * Options used to edit the guild onboarding.
  */
-export interface GuildOnboardingPromptOptionEmoji {
+export interface GuildOnboardingEditOptions {
   /**
-   * The id of the emoji
+   * The prompts shown during onboarding and in customize community
    */
-  id: Snowflake | null;
+  prompts?: readonly GuildOnboardingPromptData[] | ReadonlyCollection<Snowflake, GuildOnboardingPrompt>;
 
   /**
-   * The name of the emoji
+   * The channels that new members get opted into automatically
    */
-  name: string;
+  defaultChannels?: readonly ChannelResolvable[] | ReadonlyCollection<Snowflake, GuildChannel>;
 
   /**
-   * Whether the emoji is animated
+   * Whether the onboarding is enabled
    */
-  animated: boolean;
+  enabled?: boolean;
+
+  /**
+   * The mode to edit the guild onboarding with
+   */
+  mode?: GuildOnboardingMode;
+
+  /**
+   * The reason for editing the guild onboarding
+   */
+  reason?: string;
+}
+
+/**
+ * Data for editing a guild onboarding prompt.
+ */
+export interface GuildOnboardingPromptData {
+  /**
+   * The id of the prompt
+   */
+  id?: Snowflake;
+
+  /**
+   * The title for the prompt
+   */
+  title: string;
+
+  /**
+   * Whether users are limited to selecting one option for the prompt
+   */
+  singleSelect?: boolean;
+
+  /**
+   * Whether the prompt is required before a user completes the onboarding flow
+   */
+  required?: boolean;
+
+  /**
+   * Whether the prompt is present in the onboarding flow
+   */
+  inOnboarding?: boolean;
+
+  /**
+   * The type of the prompt
+   */
+  type?: GuildOnboardingPromptType;
+
+  /**
+   * The options available within the prompt
+   */
+  options: readonly GuildOnboardingPromptOptionData[] | ReadonlyCollection<Snowflake, GuildOnboardingPromptOption>;
+}
+
+/**
+ * Data for editing a guild onboarding prompt option.
+ */
+export interface GuildOnboardingPromptOptionData {
+  /**
+   * The id of the option
+   */
+  id?: Snowflake | null;
+
+  /**
+   * The channels a member is added to when the option is selected
+   */
+  channels?: readonly ChannelResolvable[] | ReadonlyCollection<Snowflake, GuildChannel>;
+
+  /**
+   * The roles assigned to a member when the option is selected
+   */
+  roles?: readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>;
+
+  /**
+   * The title of the option
+   */
+  title: string;
+
+  /**
+   * The description of the option
+   */
+  description?: string | null;
+
+  /**
+   * The emoji of the option
+   */
+  emoji?: EmojiIdentifierResolvable | Emoji | null;
 }
 
 export type HexColorString = `#${string}`;
@@ -20246,8 +20496,10 @@ export type CollectedInteraction<Cached extends CacheType = CacheType> =
   | ButtonInteraction<Cached>
   | ModalSubmitInteraction<Cached>;
 
-export interface InteractionCollectorOptions<T extends CollectedInteraction, Cached extends CacheType = CacheType>
-  extends CollectorOptions<[T, Collection<Snowflake, T>]> {
+export interface InteractionCollectorOptions<
+  Interaction extends CollectedInteraction,
+  Cached extends CacheType = CacheType,
+> extends CollectorOptions<[Interaction, Collection<Snowflake, Interaction>]> {
   /**
    * The channel to listen to interactions from
    */
@@ -20388,6 +20640,7 @@ export type GuildInvitableChannelResolvable =
   | NewsChannel
   | StageChannel
   | ForumChannel
+  | MediaChannel
   | Snowflake;
 
 /**
@@ -20450,20 +20703,20 @@ export type InviteResolvable = string;
 /**
  * Options for generating a filter function based on lifetime
  */
-export interface LifetimeFilterOptions<K, V> {
+export interface LifetimeFilterOptions<Key, Value> {
   /**
    * A function that takes an entry, key, and the collection and returns a boolean, `true` when the entry should
    * not be checked for sweepability.
    * @default () => false
    */
-  excludeFromSweep?: (value: V, key: K, collection: LimitedCollection<K, V>) => boolean;
+  excludeFromSweep?: (value: Value, key: Key, collection: LimitedCollection<Key, Value>) => boolean;
 
   /**
    * A function that takes an entry, key, and the collection and returns a timestamp to compare against in order
    * to determine the lifetime of the entry.
    * @default (e) => e?.createdTimestamp
    */
-  getComparisonTimestamp?: (value: V, key: K, collection: LimitedCollection<K, V>) => number;
+  getComparisonTimestamp?: (value: Value, key: Key, collection: LimitedCollection<Key, Value>) => number;
 
   /**
    * How long, in seconds, an entry should stay in the collection before it is considered sweepable.
@@ -20607,13 +20860,13 @@ export type CollectedMessageInteraction<Cached extends CacheType = CacheType> = 
   ModalSubmitInteraction
 >;
 
-export type MessageComponentCollectorOptions<T extends CollectedMessageInteraction> = Omit<
-  InteractionCollectorOptions<T>,
+export type MessageComponentCollectorOptions<Interaction extends CollectedMessageInteraction> = Omit<
+  InteractionCollectorOptions<Interaction>,
   'channel' | 'message' | 'guild' | 'interactionType'
 >;
 
-export type MessageChannelComponentCollectorOptions<T extends CollectedMessageInteraction> = Omit<
-  InteractionCollectorOptions<T>,
+export type MessageChannelComponentCollectorOptions<Interaction extends CollectedMessageInteraction> = Omit<
+  InteractionCollectorOptions<Interaction>,
   'channel' | 'guild' | 'interactionType'
 >;
 
@@ -20622,7 +20875,7 @@ export type MessageChannelComponentCollectorOptions<T extends CollectedMessageIn
  * @see {@link [MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)}
  */
 export interface MessageEvent {
-  data: import('ws').Data;
+  data: WebSocketData;
   type: string;
   target: WebSocket;
 }
@@ -20795,6 +21048,16 @@ export type GuildForumThreadMessageCreateOptions = BaseMessageOptions &
   Pick<MessageCreateOptions, 'flags' | 'stickers'>;
 
 /**
+ * Data used to reference an attachment.
+ */
+export interface MessageEditAttachmentData {
+  /**
+   * The id of the attachment
+   */
+  id: Snowflake;
+}
+
+/**
  * Options that can be passed to edit a message.
  */
 export interface MessageEditOptions extends Omit<BaseMessageOptions, 'content'> {
@@ -20805,9 +21068,9 @@ export interface MessageEditOptions extends Omit<BaseMessageOptions, 'content'> 
   content?: string | null;
 
   /**
-   * An array of attachments to keep, all attachments will be kept if omitted
+   * An array of attachments to keep. All attachments will be kept if omitted
    */
-  attachments?: JSONEncodable<AttachmentPayload>[];
+  attachments?: (Attachment | MessageEditAttachmentData)[];
 
   /**
    * Which flags to set for the message
@@ -21140,9 +21403,9 @@ export type PermissionResolvable = BitFieldResolvable<keyof typeof PermissionFla
 
 export type PermissionOverwriteResolvable = UserResolvable | RoleResolvable | PermissionOverwrites;
 
-export type RecursiveArray<T> = ReadonlyArray<T | RecursiveArray<T>>;
+export type RecursiveArray<ItemType> = ReadonlyArray<ItemType | RecursiveArray<ItemType>>;
 
-export type RecursiveReadonlyArray<T> = ReadonlyArray<T | RecursiveReadonlyArray<T>>;
+export type RecursiveReadonlyArray<ItemType> = ReadonlyArray<ItemType | RecursiveReadonlyArray<ItemType>>;
 
 /**
  * Recipient data received in a {@link PartialGroupDMChannel}.
@@ -21250,17 +21513,49 @@ export interface PartialChannelData {
   rateLimitPerUser?: number;
 }
 
-export type Partialize<
-  T extends AllowedPartial,
-  N extends keyof T | null = null,
-  M extends keyof T | null = null,
-  E extends keyof T | '' = '',
-> = {
-  readonly client: Client<true>;
+/**
+ * A partial emoji object.
+ */
+export interface PartialEmoji {
+  /**
+   * Whether the emoji is animated
+   */
+  animated: boolean;
+
+  /**
+   * The id of the emoji
+   */
+  id: Snowflake | undefined;
+
+  /**
+   * The name of the emoji
+   */
+  name: string;
+}
+
+/**
+ * A partial emoji object with only an id.
+ */
+export interface PartialEmojiOnlyId {
+  /**
+   * The id of the emoji
+   */
   id: Snowflake;
-  partial: true;
-} & {
-  [K in keyof Omit<T, 'client' | 'id' | 'partial' | E>]: K extends N ? null : K extends M ? T[K] | null : T[K];
+}
+
+export type Partialize<
+  PartialType extends AllowedPartial,
+  NulledKeys extends keyof PartialType | null = null,
+  NullableKeys extends keyof PartialType | null = null,
+  OverridableKeys extends keyof PartialType | '' = '',
+> = {
+  [K in keyof Omit<PartialType, OverridableKeys>]: K extends 'partial'
+    ? true
+    : K extends NulledKeys
+      ? null
+      : K extends NullableKeys
+        ? PartialType[K] | null
+        : PartialType[K];
 };
 
 export interface PartialDMChannel extends Partialize<DMChannel, null, null, 'lastMessageId'> {
@@ -21273,6 +21568,9 @@ export interface PartialMessage
   extends Partialize<Message, 'type' | 'system' | 'pinned' | 'tts', 'content' | 'cleanContent' | 'author'> {}
 
 export interface PartialMessageReaction extends Partialize<MessageReaction, 'count'> {}
+
+export interface PartialGuildScheduledEvent
+  extends Partialize<GuildScheduledEvent, 'userCount', 'status' | 'privacyLevel' | 'name' | 'entityType'> {}
 
 export interface PartialThreadMember extends Partialize<ThreadMember, 'flags' | 'joinedAt' | 'joinedTimestamp'> {}
 
@@ -21695,14 +21993,34 @@ export interface StageInstanceEditOptions {
   privacyLevel?: StageInstancePrivacyLevel;
 }
 
+/**
+ * Supportive data for interaction resolved data.
+ */
+export interface SupportingInteractionResolvedData {
+  /**
+   * The client
+   */
+  client: Client;
+
+  /**
+   * A guild
+   */
+  guild?: Guild;
+
+  /**
+   * A channel
+   */
+  channel?: GuildTextBasedChannel;
+}
+
 export type SweeperKey = keyof SweeperDefinitions;
 
-export type CollectionSweepFilter<K, V> = (value: V, key: K, collection: Collection<K, V>) => boolean;
+export type CollectionSweepFilter<Key, Value> = (value: Value, key: Key, collection: Collection<Key, Value>) => boolean;
 
 /**
  * Options for sweeping a single type of item from cache
  */
-export interface SweepOptions<K, V> {
+export interface SweepOptions<Key, Value> {
   /**
    * The interval (in seconds) at which to perform sweeping of the item
    */
@@ -21712,7 +22030,7 @@ export interface SweepOptions<K, V> {
    * The function used to determine the function passed to the sweep method
    * <info>This property is optional when the key is `invites`, `messages`, or `threads` and `lifetime` is set</info>
    */
-  filter: GlobalSweepFilter<K, V>;
+  filter: GlobalSweepFilter<Key, Value>;
 }
 
 /**
@@ -21760,15 +22078,15 @@ export interface SweeperDefinitions {
  * Options for {@link Sweepers} defining the behavior of cache sweeping
  */
 export type SweeperOptions = {
-  [K in keyof SweeperDefinitions]?: SweeperDefinitions[K][2] extends true
-    ? SweepOptions<SweeperDefinitions[K][0], SweeperDefinitions[K][1]> | LifetimeSweepOptions
-    : SweepOptions<SweeperDefinitions[K][0], SweeperDefinitions[K][1]>;
+  [Key in keyof SweeperDefinitions]?: SweeperDefinitions[Key][2] extends true
+    ? SweepOptions<SweeperDefinitions[Key][0], SweeperDefinitions[Key][1]> | LifetimeSweepOptions
+    : SweepOptions<SweeperDefinitions[Key][0], SweeperDefinitions[Key][1]>;
 };
 
 /**
  * Options for defining the behavior of a LimitedCollection
  */
-export interface LimitedCollectionOptions<K, V> {
+export interface LimitedCollectionOptions<Key, Value> {
   /**
    * The maximum size of the Collection
    * @default Infinity
@@ -21779,7 +22097,7 @@ export interface LimitedCollectionOptions<K, V> {
    * A function, which is passed the value and key of an entry, ran to decide to keep an entry past the maximum size
    * @default null
    */
-  keepOverLimit?: (value: V, key: K, collection: LimitedCollection<K, V>) => boolean;
+  keepOverLimit?: (value: Value, key: Key, collection: LimitedCollection<Key, Value>) => boolean;
 }
 
 export type Channel =
@@ -21792,14 +22110,15 @@ export type Channel =
   | TextChannel
   | AnyThreadChannel
   | VoiceChannel
-  | ForumChannel;
+  | ForumChannel
+  | MediaChannel;
 
 /**
  * The channels that are text-based.
  */
 export type TextBasedChannel = Exclude<
   Extract<Channel, { type: TextChannelType }>,
-  PartialGroupDMChannel | ForumChannel
+  PartialGroupDMChannel | ForumChannel | MediaChannel
 >;
 
 /**
@@ -22058,7 +22377,7 @@ export interface WebhookEditOptions {
   /**
    * The new channel for the webhook
    */
-  channel?: GuildTextChannelResolvable | VoiceChannel | ForumChannel | StageChannel;
+  channel?: GuildTextChannelResolvable | VoiceChannel | StageChannel | ForumChannel | MediaChannel;
 
   /**
    * Reason for editing the webhook
@@ -22207,7 +22526,7 @@ export interface WelcomeChannelData {
   /**
    * The channel to link for this welcome channel
    */
-  channel: TextChannel | NewsChannel | ForumChannel | Snowflake;
+  channel: TextChannel | NewsChannel | ForumChannel | MediaChannel | Snowflake;
 
   /**
    * The emoji to display for this welcome channel
@@ -22235,6 +22554,56 @@ export interface WelcomeScreenEditOptions {
   welcomeChannels?: WelcomeChannelData[];
 }
 
+/**
+ * Options used for editing an application.
+ */
+export interface ClientApplicationEditOptions {
+  /**
+   * The application's custom installation URL
+   */
+  customInstallURL?: string;
+
+  /**
+   * The application's description
+   */
+  description?: string;
+
+  /**
+   * The application's role connection verification URL
+   */
+  roleConnectionsVerificationURL?: string;
+
+  /**
+   * Settings for the application's default in-app authorization
+   */
+  installParams?: ClientApplicationInstallParams;
+
+  /**
+   * The flags for the application
+   */
+  flags?: ApplicationFlagsResolvable;
+
+  /**
+   * The application's icon
+   */
+  icon?: BufferResolvable | Base64Resolvable | null;
+
+  /**
+   * The application's cover image
+   */
+  coverImage?: BufferResolvable | Base64Resolvable | null;
+
+  /**
+   * The application's interaction endpoint URL
+   */
+  interactionsEndpointURL?: string;
+
+  /**
+   * The application's tags
+   */
+  tags?: readonly string[];
+}
+
 export interface ClientApplicationInstallParams {
   /**
    * The scopes to add the application to the server with
@@ -22247,17 +22616,17 @@ export interface ClientApplicationInstallParams {
   permissions: Readonly<PermissionsBitField>;
 }
 
-export type Serialized<T> = T extends symbol | bigint | (() => any)
+export type Serialized<Value> = Value extends symbol | bigint | (() => any)
   ? never
-  : T extends number | string | boolean | undefined
-  ? T
-  : T extends { toJSON(): infer R }
-  ? R
-  : T extends ReadonlyArray<infer V>
-  ? Serialized<V>[]
-  : T extends ReadonlyMap<unknown, unknown> | ReadonlySet<unknown>
-  ? {}
-  : { [K in keyof T]: Serialized<T[K]> };
+  : Value extends number | string | boolean | undefined
+    ? Value
+    : Value extends JSONEncodable<infer JSONResult>
+      ? JSONResult
+      : Value extends ReadonlyArray<infer ItemType>
+        ? Serialized<ItemType>[]
+        : Value extends ReadonlyMap<unknown, unknown> | ReadonlySet<unknown>
+          ? {}
+          : { [K in keyof Value]: Serialized<Value[K]> };
 
 //#endregion
 

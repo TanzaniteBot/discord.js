@@ -35,7 +35,9 @@
  * * **`ModalSubmitInteraction`**
  * * **`DirectoryChannel`**
  * * **`PartialGroupDMChannel`**
+ * * **`ThreadOnlyChannel`**
  * * **`ForumChannel`**
+ * * **`MediaChannel`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -138,7 +140,9 @@ const structures = {
   ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
   DirectoryChannel: require('../structures/DirectoryChannel'),
   PartialGroupDMChannel: require('../structures/PartialGroupDMChannel'),
+  ThreadOnlyChannel: require('../structures/ThreadOnlyChannel'),
   ForumChannel: require('../structures/ForumChannel'),
+  MediaChannel: require('../structures/MediaChannel'),
 };
 
 module.exports = Structures;

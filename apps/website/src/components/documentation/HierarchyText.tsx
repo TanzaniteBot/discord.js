@@ -1,5 +1,5 @@
-import type { ApiClass, ApiInterface, Excerpt } from '@microsoft/api-extractor-model';
-import { ApiItemKind } from '@microsoft/api-extractor-model';
+import type { ApiClass, ApiInterface, Excerpt } from '@discordjs/api-extractor-model';
+import { ApiItemKind } from '@discordjs/api-extractor-model';
 import { ExcerptText } from '../ExcerptText';
 
 export function HierarchyText({
@@ -9,8 +9,6 @@ export function HierarchyText({
 	readonly item: ApiClass | ApiInterface;
 	readonly type: 'Extends' | 'Implements';
 }) {
-	const model = item.getAssociatedModel()!;
-
 	if (
 		(item.kind === ApiItemKind.Class &&
 			(item as ApiClass).extendsType === undefined &&
@@ -45,13 +43,15 @@ export function HierarchyText({
 	}
 
 	return (
-		<div className="flex flex-row place-items-center gap-4">
-			<h3 className="text-xl font-bold">{type}</h3>
-			<span className="break-all font-mono space-y-2">
-				{excerpts.map((excerpt, idx) => (
-					<ExcerptText excerpt={excerpt} key={idx} model={model} />
-				))}
-			</span>
+		<div className="flex flex-col gap-4">
+			{excerpts.map((excerpt, idx) => (
+				<div className="flex flex-row place-items-center gap-4" key={`${type}-${idx}`}>
+					<h3 className="text-xl font-bold">{type}</h3>
+					<span className="break-all font-mono space-y-2">
+						<ExcerptText excerpt={excerpt} />
+					</span>
+				</div>
+			))}
 		</div>
 	);
 }

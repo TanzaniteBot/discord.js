@@ -6,6 +6,8 @@ on:
     paths:
       - 'packages/*/src/**'
       - '!packages/create-discord-bot/**'
+      - '!packages/proxy-container/**'
+      - '!packages/ui/**'
     tags:
       - '**'
   workflow_dispatch:
@@ -24,7 +26,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  build-docs:
     name: Build & upload documentation
     runs-on: ubuntu-latest
     env:
@@ -69,6 +71,7 @@ jobs:
         if: ${{ github.ref_type == 'tag' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         uses: ./packages/actions/src/uploadDocumentation
         with:
           package: ${{ steps.extract-tag.outputs.package }}
@@ -83,6 +86,7 @@ jobs:
           mkdir -p "out/${PACKAGE}"
           if [[ "${PACKAGE}" == "discord.js" ]]; then
             mv "packages/${PACKAGE}/docs/docs.json" "out/${PACKAGE}/${SEMVER}.json"
+            mv "packages/${PACKAGE}/docs/docs.api.json" "out/${PACKAGE}/${SEMVER}.api.json"
           else
             mv "packages/${PACKAGE}/docs/docs.api.json" "out/${PACKAGE}/${SEMVER}.api.json"
           fi
@@ -91,16 +95,18 @@ jobs:
         if: ${{ github.ref_type == 'branch' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         uses: ./packages/actions/src/uploadDocumentation
 
       - name: Move docs to correct directory
         if: ${{ github.ref_type == 'branch' }}
         run: |
-          declare -a PACKAGES=("brokers" "builders" "collection" "core" "discord.js" "next" "formatters" "proxy" "rest" "util" "voice" "ws")
+          declare -a PACKAGES=("brokers" "builders" "collection" "core" "discord.js" "formatters" "next" "proxy" "rest" "util" "voice" "ws")
           for PACKAGE in "${PACKAGES[@]}"; do
             if [[ "${PACKAGE}" == "discord.js" ]]; then
               mkdir -p "out/${PACKAGE}"
               mv "packages/${PACKAGE}/docs/docs.json" "out/${PACKAGE}/${GITHUB_REF_NAME}.json"
+              mv "packages/${PACKAGE}/docs/docs.api.json" "out/${PACKAGE}/${GITHUB_REF_NAME}.api.json"
             else
               mkdir -p "out/${PACKAGE}"
               mv "packages/${PACKAGE}/docs/docs.api.json" "out/${PACKAGE}/${GITHUB_REF_NAME}.api.json"
@@ -115,3 +121,33 @@ jobs:
           git add .
           git commit -m "Docs build for ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME}: ${GITHUB_SHA}" || true
           git push
+
+  build-indices:
+    needs: build-docs
+    name: Build & upload search indices
+    runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    if: github.repository_owner == 'discordjs'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install node.js v18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        uses: ./packages/actions/src/pnpmCache
+
+      - name: Build dependencies
+        run: pnpm run build
+
+      - name: Upload search indices to meilisearch
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEARCH_API_URL: ${{ secrets.SEARCH_API_URL }}
+          SEARCH_API_KEY: ${{ secrets.SEARCH_API_KEY }}
+        uses: ./packages/actions/src/uploadSearchIndices

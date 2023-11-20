@@ -209,7 +209,7 @@ class GuildMember extends Base {
   }
 
   /**
-   * The displayed color of this member in base 10
+   * The displayed role color of this member in base 10
    * @type {number}
    * @readonly
    */
@@ -218,7 +218,7 @@ class GuildMember extends Base {
   }
 
   /**
-   * The displayed color of this member in hexadecimal
+   * The displayed role color of this member in hexadecimal
    * @type {string}
    * @readonly
    */
@@ -411,7 +411,7 @@ class GuildMember extends Base {
 
   /**
    * Times this guild member out.
-   * @param {DateResolvable|null} communicationDisabledUntil The date or timestamp
+   * @param {?DateResolvable} communicationDisabledUntil The date or timestamp
    * for the member's communication to be disabled until. Provide `null` to remove the timeout.
    * @param {string} [reason] The reason for this timeout.
    * @returns {Promise<GuildMember>}
@@ -432,7 +432,7 @@ class GuildMember extends Base {
 
   /**
    * Times this guild member out.
-   * @param {number|null} timeout The duration in milliseconds
+   * @param {?number} timeout The duration in milliseconds
    * for the member's communication to be disabled. Provide `null` to remove the timeout.
    * @param {string} [reason] The reason for this timeout.
    * @returns {Promise<GuildMember>}
@@ -520,8 +520,3 @@ class GuildMember extends Base {
 TextBasedChannel.applyToClass(GuildMember);
 
 exports.GuildMember = GuildMember;
-
-/**
- * @external APIGuildMember
- * @see {@link https://discord.com/developers/docs/resources/guild#guild-member-object}
- */

@@ -13,6 +13,7 @@ const getVoiceChannel = lazy(() => require('../util/Structures').get('VoiceChann
 const getDirectoryChannel = lazy(() => require('../util/Structures').get('DirectoryChannel'));
 const getPartialGroupDMChannel = lazy(() => require('../util/Structures').get('PartialGroupDMChannel'));
 const getForumChannel = lazy(() => require('../util/Structures').get('ForumChannel'));
+const getMediaChannel = lazy(() => require('../util/Structures').get('MediaChannel'));
 
 /**
  * Creates a discord.js channel from data received from the API.
@@ -68,6 +69,9 @@ function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
           break;
         case ChannelType.GuildForum:
           channel = new (getForumChannel())(guild, data, client);
+          break;
+        case ChannelType.GuildMedia:
+          channel = new (getMediaChannel())(guild, data, client);
           break;
       }
       if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);

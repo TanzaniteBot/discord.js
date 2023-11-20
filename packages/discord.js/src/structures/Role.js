@@ -1,5 +1,6 @@
 'use strict';
 
+const { roleMention } = require('@discordjs/formatters');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { PermissionFlagsBits } = require('discord-api-types/v10');
 const Base = require('./Base');
@@ -185,7 +186,7 @@ class Role extends Base {
   get members() {
     return this.id === this.guild.id
       ? this.guild.members.cache.clone()
-      : this.guild.members.cache.filter(m => m._roles.includes(this.id));
+      : this.guild.members.cache.filter(member => member._roles.includes(this.id));
   }
 
   /**
@@ -210,7 +211,7 @@ class Role extends Base {
       (acc, role) =>
         acc +
         (this.rawPosition === role.rawPosition
-          ? BigInt(this.id) > BigInt(role.id)
+          ? BigInt(this.id) < BigInt(role.id)
           : this.rawPosition > role.rawPosition),
       0,
     );
@@ -457,7 +458,7 @@ class Role extends Base {
    */
   toString() {
     if (this.id === this.guild.id) return '@everyone';
-    return `<@&${this.id}>`;
+    return roleMention(this.id);
   }
 
   toJSON() {
@@ -469,8 +470,3 @@ class Role extends Base {
 }
 
 exports.Role = Role;
-
-/**
- * @external APIRole
- * @see {@link https://discord.com/developers/docs/topics/permissions#role-object}
- */

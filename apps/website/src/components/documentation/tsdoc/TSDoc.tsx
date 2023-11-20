@@ -1,12 +1,14 @@
-import type { ApiItem } from '@microsoft/api-extractor-model';
+import type { ApiItem } from '@discordjs/api-extractor-model';
 import type { DocComment, DocFencedCode, DocLinkTag, DocNode, DocNodeContainer, DocPlainText } from '@microsoft/tsdoc';
 import { DocNodeKind, StandardTags } from '@microsoft/tsdoc';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, useCallback, type ReactNode } from 'react';
+import { DocumentationLink } from '~/components/DocumentationLink';
+import { BuiltinDocumentationLinks } from '~/util/builtinDocumentationLinks';
 import { ItemLink } from '../../ItemLink';
 import { SyntaxHighlighter } from '../../SyntaxHighlighter';
-import { resolveItemURI } from '../util';
+import { resolveCanonicalReference, resolveItemURI } from '../util';
 import { DefaultValueBlock, DeprecatedBlock, ExampleBlock, RemarksBlock, ReturnsBlock, SeeBlock } from './BlockComment';
 
 export function TSDoc({ item, tsdoc }: { readonly item: ApiItem; readonly tsdoc: DocNode }): JSX.Element {
@@ -32,18 +34,36 @@ export function TSDoc({ item, tsdoc }: { readonly item: ApiItem; readonly tsdoc:
 					const { codeDestination, urlDestination, linkText } = tsdoc as DocLinkTag;
 
 					if (codeDestination) {
-						const foundItem = item.getAssociatedModel()?.resolveDeclarationReference(codeDestination, item)
-							.resolvedApiItem;
+						if (
+							!codeDestination.importPath &&
+							!codeDestination.packageName &&
+							codeDestination.memberReferences.length === 1 &&
+							codeDestination.memberReferences[0]!.memberIdentifier &&
+							codeDestination.memberReferences[0]!.memberIdentifier.identifier in BuiltinDocumentationLinks
+						) {
+							const typeName = codeDestination.memberReferences[0]!.memberIdentifier.identifier;
+							const href = BuiltinDocumentationLinks[typeName as keyof typeof BuiltinDocumentationLinks];
+							return (
+								<DocumentationLink key={`${typeName}-${idx}`} href={href}>
+									{typeName}
+								</DocumentationLink>
+							);
+						}
 
-						if (!foundItem) return null;
+						const declarationReference = item.getAssociatedModel()?.resolveDeclarationReference(codeDestination, item);
+						const foundItem = declarationReference?.resolvedApiItem;
+						const resolved = resolveCanonicalReference(codeDestination);
+
+						if (!foundItem && !resolved) return null;
 
 						return (
 							<ItemLink
 								className="rounded font-mono text-blurple outline-none focus:ring focus:ring-width-2 focus:ring-blurple"
-								itemURI={resolveItemURI(foundItem)}
+								itemURI={resolveItemURI(foundItem ?? resolved!.item)}
 								key={idx}
+								packageName={resolved?.package ?? item.getAssociatedPackage()?.displayName.replace('@discordjs/', '')}
 							>
-								{linkText ?? foundItem.displayName}
+								{linkText ?? foundItem?.displayName ?? resolved!.item.displayName}
 							</ItemLink>
 						);
 					}
@@ -90,7 +110,7 @@ export function TSDoc({ item, tsdoc }: { readonly item: ApiItem; readonly tsdoc:
 					);
 
 					return (
-						<div className="flex flex-col space-y-2">
+						<div className="flex flex-col gap-2">
 							{comment.deprecatedBlock ? (
 								<DeprecatedBlock>{createNode(comment.deprecatedBlock.content)}</DeprecatedBlock>
 							) : null}
