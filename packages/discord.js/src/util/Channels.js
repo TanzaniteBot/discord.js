@@ -12,6 +12,7 @@ const getThreadChannel = lazy(() => require('../util/Structures').get('ThreadCha
 const getVoiceChannel = lazy(() => require('../util/Structures').get('VoiceChannel'));
 const getDirectoryChannel = lazy(() => require('../util/Structures').get('DirectoryChannel'));
 const getPartialGroupDMChannel = lazy(() => require('../util/Structures').get('PartialGroupDMChannel'));
+
 const getForumChannel = lazy(() => require('../util/Structures').get('ForumChannel'));
 const getMediaChannel = lazy(() => require('../util/Structures').get('MediaChannel'));
 

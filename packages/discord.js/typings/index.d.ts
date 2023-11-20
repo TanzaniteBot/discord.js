@@ -11198,7 +11198,6 @@ export class TeamMember extends Base {
    * The user for this Team Member
    */
   public user: User;
-  public role: TeamMemberRole;
 
   /**
    * The role of this Team Member
