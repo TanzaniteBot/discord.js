@@ -1,5 +1,5 @@
 import type { ApiFunction, ApiItem } from '@discordjs/api-extractor-model';
-import { ApiModel } from '@discordjs/api-extractor-model';
+import { ApiModel, ApiPackage } from '@discordjs/api-extractor-model';
 import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import type { PropsWithChildren } from 'react';
@@ -9,11 +9,8 @@ import { Nav } from '~/components/Nav';
 import { Outline } from '~/components/Outline';
 import type { SidebarSectionItemData } from '~/components/Sidebar';
 import { resolveItemURI } from '~/components/documentation/util';
-import { addPackageToModel } from '~/util/addPackageToModel';
 import { N_RECENT_VERSIONS, PACKAGES } from '~/util/constants';
 import { Providers } from './providers';
-
-export const revalidate = 3_600;
 
 const Header = dynamic(async () => import('~/components/Header'));
 const Footer = dynamic(async () => import('~/components/Footer'));
@@ -57,7 +54,8 @@ export default async function PackageLayout({ children, params }: PropsWithChild
 		notFound();
 	}
 
-	const model = addPackageToModel(new ApiModel(), modelJSON);
+	const model = new ApiModel();
+	model.addMember(ApiPackage.loadFromJson(modelJSON));
 
 	const pkg = model.tryGetPackageByName(params.package);
 
