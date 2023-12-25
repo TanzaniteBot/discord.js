@@ -1,8 +1,8 @@
 'use strict';
 
 const { Routes } = require('discord-api-types/v10');
-const DataResolver = require('../util/DataResolver');
 const Structures = require('../util/Structures');
+const { resolveImage } = require('../util/DataResolver');
 
 /**
  * Represents the logged in client's Discord user.
@@ -56,7 +56,7 @@ class ClientUser extends Structures.get('User') {
    */
   async edit({ username, avatar }) {
     const data = await this.client.rest.patch(Routes.user(), {
-      body: { username, avatar: avatar && (await DataResolver.resolveImage(avatar)) },
+      body: { username, avatar: avatar && (await resolveImage(avatar)) },
     });
 
     this.client.token = data.token;

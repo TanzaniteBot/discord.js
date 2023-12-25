@@ -46,7 +46,7 @@ import { JsonFile, Path } from '@rushstack/node-core-library';
 import * as ts from 'typescript';
 import type { AstDeclaration } from '../analyzer/AstDeclaration.js';
 import type { AstEntity } from '../analyzer/AstEntity.js';
-import type { AstImport } from '../analyzer/AstImport.js';
+import { AstImport } from '../analyzer/AstImport.js';
 import type { AstModule } from '../analyzer/AstModule.js';
 import { AstNamespaceImport } from '../analyzer/AstNamespaceImport.js';
 import { AstSymbol } from '../analyzer/AstSymbol.js';
@@ -210,14 +210,10 @@ interface IProcessAstEntityContext {
 	parentDocgenJson?: DocgenContainerJson | undefined;
 }
 
-const linkRegEx = /{@link\s(?<class>\w+)#(?<event>event:)?(?<prop>[\w()]+)(?<name>\s[^}]*)?}/g;
-function fixLinkTags(input?: string): string | undefined {
-	return input?.replaceAll(
-		linkRegEx,
-		(_match, _p1, _p2, _p3, _p4, _offset, _string, groups) =>
-			`{@link ${groups.class}.${groups.prop}${groups.name ? ` |${groups.name}` : ''}}`,
-	);
-}
+const linkRegEx =
+	/{@link\s(?:(?<class>\w+)(?:[#.](?<event>event:)?(?<prop>[\w()]+))?|(?<url>https?:\/\/[^\s}]*))(?<name>\s[^}]*)?}/g;
+
+const moduleNameRegEx = /^(?<package>(?:@[\w.-]+\/)?[\w.-]+)(?<path>(?:\/[\w.-]+)+)?$/i;
 
 function filePathFromJson(meta: DocgenMetaJson): string {
 	return `${meta.path.slice('packages/discord.js/'.length)}/${meta.file}`;
@@ -243,6 +239,8 @@ export class ApiModelGenerator {
 
 	private readonly _referenceGenerator: DeclarationReferenceGenerator;
 
+	private readonly _jsDocJson: DocgenJson | undefined;
+
 	public constructor(collector: Collector) {
 		this._collector = collector;
 		this._apiModel = new ApiModel();
@@ -257,11 +255,11 @@ export class ApiModelGenerator {
 
 	public buildApiPackage(): ApiPackage {
 		const packageDocComment: tsdoc.DocComment | undefined = this._collector.workingPackage.tsdocComment;
-		let jsDocJson: DocgenJson | undefined;
 
 		const jsDocFilepath = `${this._collector.extractorConfig.apiJsonFilePath.slice(0, -8)}json`;
 		if (existsSync(jsDocFilepath)) {
-			jsDocJson = JsonFile.load(jsDocFilepath);
+			// @ts-expect-error assign value only when starting to build a new ApiPackage
+			this._jsDocJson = JsonFile.load(jsDocFilepath);
 		}
 
 		const apiPackage: ApiPackage = new ApiPackage({
@@ -284,7 +282,7 @@ export class ApiModelGenerator {
 					name: entity.nameForEmit!,
 					isExported: entity.exportedFromEntryPoint,
 					parentApiItem: apiEntryPoint,
-					parentDocgenJson: jsDocJson,
+					parentDocgenJson: this._jsDocJson,
 				});
 			}
 		}
@@ -560,12 +558,12 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = parent?.construct
 				? this._tsDocParser.parseString(
-						`/*+\n * ${fixLinkTags(parent.construct.description)}\n${
+						`/*+\n * ${this._fixLinkTags(parent.construct.description) ?? ''}\n${
 							parent.construct.params
-								?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`)
+								?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
 								.join('') ?? ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const isProtected: boolean = (astDeclaration.modifierFlags & ts.ModifierFlags.Protected) !== 0;
@@ -646,14 +644,16 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = jsDoc
 				? this._tsDocParser.parseString(
-						`/**\n * ${fixLinkTags(jsDoc.description)}\n${jsDoc.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''}${
+						`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
+							jsDoc.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''
+						}${
 							jsDoc.deprecated
 								? ` * @deprecated ${
-										typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-								  }\n`
+										typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+									}\n`
 								: ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const isAbstract: boolean = (ts.getCombinedModifierFlags(classDeclaration) & ts.ModifierFlags.Abstract) !== 0;
@@ -718,12 +718,12 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = parent?.construct
 				? this._tsDocParser.parseString(
-						`/*+\n * ${fixLinkTags(parent.construct.description)}\n${
+						`/*+\n * ${this._fixLinkTags(parent.construct.description) ?? ''}\n${
 							parent.construct.params
-								?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`)
+								?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
 								.join('') ?? ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const sourceLocation: ISourceLocation = this._getSourceLocation(constructSignature);
@@ -849,21 +849,22 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = jsDoc
 				? this._tsDocParser.parseString(
-						`/**\n * ${fixLinkTags(jsDoc.description)}\n${
-							jsDoc.params?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`).join('') ??
-							''
+						`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
+							jsDoc.params
+								?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
+								.join('') ?? ''
 						}${
 							jsDoc.returns?.length && !Array.isArray(jsDoc.returns[0])
-								? ` * @returns ${fixLinkTags(jsDoc.returns[0]!.description ?? '')}`
+								? ` * @returns ${this._fixLinkTags(jsDoc.returns[0]!.description) ?? ''}`
 								: ''
 						}${
 							jsDoc.deprecated
 								? ` * @deprecated ${
-										typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-								  }\n`
+										typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+									}\n`
 								: ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const sourceLocation: ISourceLocation = this._getSourceLocation(functionDeclaration);
@@ -976,14 +977,16 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = jsDoc
 				? this._tsDocParser.parseString(
-						`/**\n * ${fixLinkTags(jsDoc.description)}\n${jsDoc.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''}${
+						`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
+							jsDoc.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''
+						}${
 							jsDoc.deprecated
 								? ` * @deprecated ${
-										typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-								  }\n`
+										typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+									}\n`
 								: ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const sourceLocation: ISourceLocation = this._getSourceLocation(interfaceDeclaration);
@@ -1046,24 +1049,24 @@ export class ApiModelGenerator {
 				const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 				const docComment: tsdoc.DocComment | undefined = jsDoc
 					? this._tsDocParser.parseString(
-							`/**\n * ${fixLinkTags(jsDoc.description)}\n${
+							`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
 								jsDoc.params
-									?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`)
+									?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
 									.join('') ?? ''
 							}${
 								jsDoc.returns?.length && !Array.isArray(jsDoc.returns[0])
-									? ` * @returns ${fixLinkTags(jsDoc.returns[0]!.description ?? '')}`
+									? ` * @returns ${this._fixLinkTags(jsDoc.returns[0]!.description) ?? ''}\n`
 									: ''
 							}${
 								jsDoc.examples?.map((example) => ` * @example\n * \`\`\`js\n * ${example}\n * \`\`\`\n`).join('') ?? ''
 							}${
 								jsDoc.deprecated
 									? ` * @deprecated ${
-											typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-									  }\n`
+											typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+										}\n`
 									: ''
 							} */`,
-					  ).docComment
+						).docComment
 					: apiItemMetadata.tsdocComment;
 				const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 				if (releaseTag === ReleaseTag.Internal || releaseTag === ReleaseTag.Alpha) {
@@ -1093,6 +1096,10 @@ export class ApiModelGenerator {
 					fileColumn: sourceLocation.sourceFileColumn,
 				});
 			} else if (jsDoc) {
+				if (jsDoc.inherited) {
+					return;
+				}
+
 				const methodOptions = this._mapMethod(jsDoc, parentApiItem.getAssociatedPackage()!.name);
 				if (methodOptions.releaseTag === ReleaseTag.Internal || methodOptions.releaseTag === ReleaseTag.Alpha) {
 					return; // trim out items marked as "@internal" or "@alpha"
@@ -1136,22 +1143,22 @@ export class ApiModelGenerator {
 				const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 				const docComment: tsdoc.DocComment | undefined = jsDoc
 					? this._tsDocParser.parseString(
-							`/**\n * ${fixLinkTags(jsDoc.description)}\n${
+							`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
 								jsDoc.params
-									?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`)
+									?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
 									.join('') ?? ''
 							}${
 								jsDoc.returns?.length && !Array.isArray(jsDoc.returns[0])
-									? ` * @returns ${fixLinkTags(jsDoc.returns[0]!.description ?? '')}`
+									? ` * @returns ${this._fixLinkTags(jsDoc.returns[0]!.description) ?? ''}\n`
 									: ''
 							}${
 								jsDoc.deprecated
 									? ` * @deprecated ${
-											typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-									  }\n`
+											typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+										}\n`
 									: ''
 							} */`,
-					  ).docComment
+						).docComment
 					: apiItemMetadata.tsdocComment;
 				const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 				const isOptional: boolean = (astDeclaration.astSymbol.followedSymbol.flags & ts.SymbolFlags.Optional) !== 0;
@@ -1218,8 +1225,8 @@ export class ApiModelGenerator {
 		const isStatic: boolean = astDeclaration
 			? (astDeclaration.modifierFlags & ts.ModifierFlags.Static) !== 0
 			: parentApiItem.kind === ApiItemKind.Class || parentApiItem.kind === ApiItemKind.Interface
-			  ? (jsDoc as DocgenPropertyJson).scope === 'static'
-			  : false;
+				? (jsDoc as DocgenPropertyJson).scope === 'static'
+				: false;
 		const containerKey: string = ApiProperty.getContainerKey(name, isStatic);
 
 		let apiProperty: ApiProperty | undefined = parentApiItem.tryGetMemberByKey(containerKey) as ApiProperty;
@@ -1253,16 +1260,16 @@ export class ApiModelGenerator {
 				const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 				const docComment: tsdoc.DocComment | undefined = jsDoc
 					? this._tsDocParser.parseString(
-							`/**\n * ${fixLinkTags(jsDoc.description)}\n${
+							`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
 								'see' in jsDoc ? jsDoc.see.map((see) => ` * @see ${see}\n`).join('') : ''
 							}${'readonly' in jsDoc && jsDoc.readonly ? ' * @readonly\n' : ''}${
 								'deprecated' in jsDoc && jsDoc.deprecated
 									? ` * @deprecated ${
-											typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-									  }\n`
+											typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+										}\n`
 									: ''
 							} */`,
-					  ).docComment
+						).docComment
 					: apiItemMetadata.tsdocComment;
 				const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 				const isOptional: boolean = (astDeclaration.astSymbol.followedSymbol.flags & ts.SymbolFlags.Optional) !== 0;
@@ -1328,12 +1335,16 @@ export class ApiModelGenerator {
 				const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 				const docComment: tsdoc.DocComment | undefined = jsDoc
 					? this._tsDocParser.parseString(
-							`/**\n * ${fixLinkTags(jsDoc.description)}\n${
+							`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
 								'see' in jsDoc ? jsDoc.see.map((see) => ` * @see ${see}\n`).join('') : ''
 							}${'readonly' in jsDoc && jsDoc.readonly ? ' * @readonly\n' : ''}${
-								'deprecated' in jsDoc && jsDoc.deprecated ? ` * @deprecated ${jsDoc.deprecated}\n` : ''
+								'deprecated' in jsDoc && jsDoc.deprecated
+									? ` * @deprecated ${
+											typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+										}\n`
+									: ''
 							} */`,
-					  ).docComment
+						).docComment
 					: apiItemMetadata.tsdocComment;
 				const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 				const isOptional: boolean = (astDeclaration.astSymbol.followedSymbol.flags & ts.SymbolFlags.Optional) !== 0;
@@ -1396,16 +1407,20 @@ export class ApiModelGenerator {
 			const apiItemMetadata: ApiItemMetadata = this._collector.fetchApiItemMetadata(astDeclaration);
 			const docComment: tsdoc.DocComment | undefined = jsDoc
 				? this._tsDocParser.parseString(
-						`/**\n * ${fixLinkTags(jsDoc.description) ?? ''}\n${
+						`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
 							'params' in jsDoc
-								? jsDoc.params.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`).join('')
+								? jsDoc.params
+										.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
+										.join('')
 								: ''
 						}${
 							'returns' in jsDoc
-								? jsDoc.returns.map((ret) => ` * @returns ${Array.isArray(ret) ? '' : fixLinkTags(ret.description)}\n`)
+								? jsDoc.returns
+										.map((ret) => ` * @returns ${Array.isArray(ret) ? '' : this._fixLinkTags(ret.description) ?? ''}\n`)
+										.join('')
 								: ''
 						} */`,
-				  ).docComment
+					).docComment
 				: apiItemMetadata.tsdocComment;
 			const releaseTag: ReleaseTag = apiItemMetadata.effectiveReleaseTag;
 			const sourceLocation: ISourceLocation = this._getSourceLocation(typeAliasDeclaration);
@@ -1531,13 +1546,15 @@ export class ApiModelGenerator {
 			}
 
 			const docComment: tsdoc.DocComment | undefined = this._tsDocParser.parseString(
-				`/**\n * ${fixLinkTags(jsDoc.description)}\n${
-					jsDoc.params?.map((param) => ` * @param ${param.name} - ${fixLinkTags(param.description)}\n`).join('') ?? ''
+				`/**\n * ${this._fixLinkTags(jsDoc.description) ?? ''}\n${
+					jsDoc.params
+						?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
+						.join('') ?? ''
 				}${'see' in jsDoc ? jsDoc.see.map((see) => ` * @see ${see}\n`).join('') : ''}${
 					'deprecated' in jsDoc && jsDoc.deprecated
 						? ` * @deprecated ${
-								typeof jsDoc.deprecated === 'string' ? fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
-						  }\n`
+								typeof jsDoc.deprecated === 'string' ? this._fixLinkTags(jsDoc.deprecated) : jsDoc.deprecated
+							}\n`
 						: ''
 				} */`,
 			).docComment;
@@ -1672,6 +1689,23 @@ export class ApiModelGenerator {
 		return sourceLocation;
 	}
 
+	private _fixLinkTags(input?: string): string | undefined {
+		return input?.replaceAll(linkRegEx, (_match, _p1, _p2, _p3, _p4, _p5, _offset, _string, groups) => {
+			let target = groups.class ?? groups.url;
+			const external = this._jsDocJson?.externals.find((external) => groups.class && external.name === groups.class);
+			const match = /discord-api-types-(?<type>[^#]*?)(?:#|\/(?<kind>[^#/]*)\/)(?<name>[^/}]*)}$/.exec(
+				external?.see?.[0] ?? '',
+			);
+			if (match) {
+				target = `discord-api-types#(${match.groups!.name}:${
+					/^v\d+$/.test(match.groups!.type!) ? match.groups!.kind : 'type'
+				})`;
+			}
+
+			return `{@link ${target}${groups.prop ? `.${groups.prop}` : ''}${groups.name ? ` |${groups.name}` : ''}}`;
+		});
+	}
+
 	private _mapVarType(typey: DocgenVarTypeJson): IExcerptToken[] {
 		const mapper = Array.isArray(typey) ? typey : typey.types ?? [];
 		const lookup: { [K in ts.SyntaxKind]?: string } = {
@@ -1681,39 +1715,37 @@ export class ApiModelGenerator {
 		};
 		return mapper
 			.flatMap((typ, index) => {
-				const result = typ.reduce<IExcerptToken[]>(
-					(arr, [type, symbol]) => [
+				const result = typ.reduce<IExcerptToken[]>((arr, [type, symbol]) => {
+					const astEntity =
+						(this._collector.entities.find(
+							(entity) => entity.nameForEmit === type && 'astDeclarations' in entity.astEntity,
+						)?.astEntity as AstSymbol | undefined) ??
+						(this._collector.entities.find((entity) => entity.nameForEmit === type && 'astSymbol' in entity.astEntity)
+							?.astEntity as AstImport | undefined);
+					const astSymbol = astEntity instanceof AstImport ? astEntity.astSymbol : astEntity;
+					const match = astEntity instanceof AstImport ? moduleNameRegEx.exec(astEntity.modulePath) : null;
+					const pkg = match?.groups!.package ?? this._apiModel.packages[0]!.name;
+					return [
 						...arr,
 						{
 							kind: type?.includes("'") ? ExcerptTokenKind.Content : ExcerptTokenKind.Reference,
 							text: fixPrimitiveTypes(type ?? 'unknown', symbol),
 							canonicalReference: type?.includes("'")
 								? undefined
-								: DeclarationReference.package(this._apiModel.packages[0]!.name)
+								: DeclarationReference.package(pkg)
 										.addNavigationStep(
 											Navigation.Members as any,
 											DeclarationReference.parseComponent(type ?? 'unknown'),
 										)
 										.withMeaning(
-											lookup[
-												(
-													(this._collector.entities.find(
-														(entity) => entity.nameForEmit === type && 'astDeclarations' in entity.astEntity,
-													)?.astEntity as AstSymbol | undefined) ??
-													(
-														this._collector.entities.find(
-															(entity) => entity.nameForEmit === type && 'astSymbol' in entity.astEntity,
-														)?.astEntity as AstImport | undefined
-													)?.astSymbol
-												)?.astDeclarations[0]?.declaration.kind ?? ts.SyntaxKind.ClassDeclaration
-											] ?? ('class' as any),
+											lookup[astSymbol?.astDeclarations[0]?.declaration.kind ?? ts.SyntaxKind.ClassDeclaration] ??
+												('class' as any),
 										)
 										.toString(),
 						},
 						{ kind: ExcerptTokenKind.Content, text: symbol ?? '' },
-					],
-					[],
-				);
+					];
+				}, []);
 				return index === 0 ? result : [{ kind: ExcerptTokenKind.Content, text: ' | ' }, ...result];
 			})
 			.filter((excerpt) => excerpt.text.length);
@@ -1729,9 +1761,9 @@ export class ApiModelGenerator {
 			isOptional: Boolean(prop.nullable),
 			isReadonly: Boolean(prop.readonly),
 			docComment: this._tsDocParser.parseString(
-				`/**\n * ${prop.description}\n${prop.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''}${
-					prop.readonly ? ' * @readonly\n' : ''
-				} */`,
+				`/**\n * ${this._fixLinkTags(prop.description) ?? ''}\n${
+					prop.see?.map((see) => ` * @see ${see}\n`).join('') ?? ''
+				}${prop.readonly ? ' * @readonly\n' : ''} */`,
 			).docComment,
 			excerptTokens: [
 				{
@@ -1774,7 +1806,7 @@ export class ApiModelGenerator {
 			text: `${
 				method.scope === 'global'
 					? `export function ${method.name}(`
-					: `${method.access}${method.scope === 'static' ? ' static' : ''} ${method.name}(`
+					: `${method.access ? `${method.access} ` : ''}${method.scope === 'static' ? 'static ' : ''}${method.name}(`
 			}${
 				method.params?.length
 					? `${method.params[0]!.name}${method.params[0]!.nullable || method.params[0]!.optional ? '?' : ''}`
@@ -1820,11 +1852,13 @@ export class ApiModelGenerator {
 				: { startIndex: 0, endIndex: 0 },
 			typeParameters: [],
 			docComment: this._tsDocParser.parseString(
-				`/**\n * ${method.description}\n${
-					method.params?.map((param) => ` * @param ${param.name} - ${param.description}\n`).join('') ?? ''
+				`/**\n * ${this._fixLinkTags(method.description) ?? ''}\n${
+					method.params
+						?.map((param) => ` * @param ${param.name} - ${this._fixLinkTags(param.description) ?? ''}\n`)
+						.join('') ?? ''
 				}${
-					method.returns?.length && !Array.isArray(method.returns[0])
-						? ` * @returns ${method.returns[0]!.description}`
+					method.returns?.length && !Array.isArray(method.returns[0]) && method.returns[0]!.description
+						? ` * @returns ${this._fixLinkTags(method.returns[0]!.description) ?? ''}`
 						: ''
 				}${method.examples?.map((example) => ` * @example\n * \`\`\`js\n * ${example}\n * \`\`\`\n`).join('') ?? ''}${
 					method.deprecated

@@ -170,6 +170,11 @@ import {
   TeamMemberRole,
   GuildWidgetStyle,
   GuildOnboardingMode,
+  APISKU,
+  SKUFlags,
+  SKUType,
+  APIEntitlement,
+  EntitlementType,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -231,7 +236,7 @@ import {
   RawWelcomeScreenData,
   RawWidgetData,
   RawWidgetMemberData,
-} from './rawDataTypes';
+} from './rawDataTypes.js';
 
 declare module 'node:events' {
   class EventEmitter {
@@ -1275,6 +1280,8 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
     | 'getFocused'
     | 'getMentionable'
     | 'getRole'
+    | 'getUser'
+    | 'getMember'
     | 'getAttachment'
     | 'getNumber'
     | 'getInteger'
@@ -1440,6 +1447,12 @@ export abstract class CommandInteraction<Cached extends CacheType = CacheType> e
       | ModalComponentData
       | APIModalInteractionResponseCallbackData,
   ): Promise<void>;
+
+  /**
+   * Responds to the interaction with an upgrade button.
+   * <info>Only available for applications with monetization enabled.</info>
+   */
+  public sendPremiumRequired(): Promise<void>;
 
   /**
    * Collects a single modal submit interaction that passes the filter.
@@ -2435,9 +2448,9 @@ export interface IconData {
   proxyIconURL?: string;
 }
 
-export type EmbedAuthorData = Omit<APIEmbedAuthor, 'icon_url' | 'proxy_icon_url'> & IconData;
+export interface EmbedAuthorData extends Omit<APIEmbedAuthor, 'icon_url' | 'proxy_icon_url'>, IconData {}
 
-export type EmbedFooterData = Omit<APIEmbedFooter, 'icon_url' | 'proxy_icon_url'> & IconData;
+export interface EmbedFooterData extends Omit<APIEmbedFooter, 'icon_url' | 'proxy_icon_url'>, IconData {}
 
 export interface EmbedAssetData extends Omit<APIEmbedImage, 'proxy_url'> {
   /**
@@ -3002,34 +3015,25 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    */
   public toJSON(): unknown;
 
-  public on<Event extends keyof ClientEvents>(
-    event: Event,
-    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
-  ): this;
+  public on<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
   public on<Event extends string | symbol>(
     event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
+    listener: (...args: any[]) => void,
   ): this;
 
-  public once<Event extends keyof ClientEvents>(
-    event: Event,
-    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
-  ): this;
+  public once<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
   public once<Event extends string | symbol>(
     event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
+    listener: (...args: any[]) => void,
   ): this;
 
   public emit<Event extends keyof ClientEvents>(event: Event, ...args: ClientEvents[Event]): boolean;
   public emit<Event extends string | symbol>(event: Exclude<Event, keyof ClientEvents>, ...args: unknown[]): boolean;
 
-  public off<Event extends keyof ClientEvents>(
-    event: Event,
-    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
-  ): this;
+  public off<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
   public off<Event extends string | symbol>(
     event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => Awaitable<void>,
+    listener: (...args: any[]) => void,
   ): this;
 
   public removeAllListeners<Event extends keyof ClientEvents>(event?: Event): this;
@@ -3061,6 +3065,11 @@ export class ClientApplication extends Application {
    * The application command manager for this application
    */
   public commands: ApplicationCommandManager;
+
+  /**
+   * The entitlement manager for this application
+   */
+  public entitlements: EntitlementManager;
 
   /**
    * The id of the guild associated with this application.
@@ -3142,6 +3151,11 @@ export class ClientApplication extends Application {
    * Gets this application's role connection metadata records
    */
   public fetchRoleConnectionMetadataRecords(): Promise<ApplicationRoleConnectionMetadata[]>;
+
+  /**
+   * Gets this application's SKUs
+   */
+  public fetchSKUs(): Promise<Collection<Snowflake, SKU>>;
 
   /**
    * Updates this application's role connection metadata records
@@ -3499,12 +3513,12 @@ export abstract class Collector<Key, Value, Extras extends unknown[] = []> exten
 
   public on<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
     event: EventKey,
-    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => Awaitable<void>,
+    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => void,
   ): this;
 
   public once<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
     event: EventKey,
-    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => Awaitable<void>,
+    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => void,
   ): this;
 }
 
@@ -3869,23 +3883,6 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
   public commandType: ApplicationCommandType.Message | ApplicationCommandType.User;
 
   /**
-   * The target of the interaction, parsed into options
-   */
-  public options: Omit<
-    CommandInteractionOptionResolver<Cached>,
-    | 'getFocused'
-    | 'getMentionable'
-    | 'getRole'
-    | 'getNumber'
-    | 'getInteger'
-    | 'getString'
-    | 'getChannel'
-    | 'getBoolean'
-    | 'getSubcommandGroup'
-    | 'getSubcommand'
-  >;
-
-  /**
    * The id of the target of this interaction
    */
   public targetId: Snowflake;
@@ -3912,6 +3909,7 @@ export class ContextMenuCommandInteraction<Cached extends CacheType = CacheType>
   private resolveContextMenuOptions(data: APIApplicationCommandInteractionData): CommandInteractionOption<Cached>[];
 }
 
+/** @internal */
 export interface ResolvedFile {
   /**
    * Buffer containing the file data
@@ -3922,50 +3920,6 @@ export interface ResolvedFile {
    * Content type of the file
    */
   contentType?: string;
-}
-
-/**
- * The DataResolver identifies different objects and tries to resolve a specific piece of information from them.
- */
-export class DataResolver extends null {
-  private constructor();
-
-  /**
-   * Resolves a Base64Resolvable to a Base 64 image.
-   * @param data The base 64 resolvable you want to resolve
-   */
-  public static resolveBase64(data: Base64Resolvable): string;
-
-  /**
-   * Resolves the string to a code based on the passed regex.
-   * @param data The string to resolve
-   * @param regex The RegExp used to extract the code
-   */
-  public static resolveCode(data: string, regex: RegExp): string;
-
-  /**
-   * Resolves a BufferResolvable to a Buffer.
-   * @param resource The buffer or stream resolvable to resolve
-   */
-  public static resolveFile(resource: BufferResolvable | Stream): Promise<ResolvedFile>;
-
-  /**
-   * Resolves a Base64Resolvable, a string, or a BufferResolvable to a Base 64 image.
-   * @param image The image to be resolved
-   */
-  public static resolveImage(image: BufferResolvable | Base64Resolvable): Promise<string | null>;
-
-  /**
-   * Resolves InviteResolvable to an invite code.
-   * @param data The invite resolvable to resolve
-   */
-  public static resolveInviteCode(data: InviteResolvable): string;
-
-  /**
-   * Resolves GuildTemplateResolvable to a template code.
-   * @param data The template resolvable to resolve
-   */
-  public static resolveGuildTemplateCode(data: GuildTemplateResolvable): string;
 }
 
 /**
@@ -4086,6 +4040,107 @@ export class Emoji extends Base {
    * reaction.message.channel.send(`The emoji used was: ${reaction.emoji}`);
    */
   public toString(): string;
+}
+
+/**
+ * Represents an Entitlement
+ */
+export class Entitlement extends Base {
+  private constructor(client: Client<true>, data: APIEntitlement);
+
+  /**
+   * The id of the entitlement
+   */
+  public id: Snowflake;
+
+  /**
+   * The id of the associated SKU
+   */
+  public skuId: Snowflake;
+
+  /**
+   * The id of the user that is granted access to this entitlement's SKU
+   */
+  public userId: Snowflake;
+
+  /**
+   * The id of the guild that is granted access to this entitlement's SKU
+   */
+  public guildId: Snowflake | null;
+
+  /**
+   * The id of the parent application
+   */
+  public applicationId: Snowflake;
+
+  /**
+   * The type of this entitlement
+   */
+  public type: EntitlementType;
+
+  /**
+   * Whether this entitlement was deleted
+   */
+  public deleted: boolean;
+
+  /**
+   * The timestamp at which this entitlement is valid
+   * <info>This is only `null` for test entitlements</info>
+   */
+  public startsTimestamp: number | null;
+
+  /**
+   * The timestamp at which this entitlement is no longer valid
+   * <info>This is only `null` for test entitlements</info>
+   */
+  public endsTimestamp: number | null;
+
+  /**
+   * The guild that is granted access to this entitlement's SKU
+   */
+  public get guild(): Guild | null;
+
+  /**
+   * The start date at which this entitlement is valid
+   * <info>This is only `null` for test entitlements</info>
+   */
+  public get startsAt(): Date | null;
+
+  /**
+   * The end date at which this entitlement is no longer valid
+   * <info>This is only `null` for test entitlements</info>
+   */
+  public get endsAt(): Date | null;
+
+  /**
+   * Fetches the user that is granted access to this entitlement's SKU
+   */
+  public fetchUser(): Promise<User>;
+
+  /**
+   * Indicates whether this entitlement is active
+   */
+  public isActive(): boolean;
+
+  /**
+   * Indicates whether this entitlement is a test entitlement
+   */
+  public isTest(): this is this & {
+    startsTimestamp: null;
+    endsTimestamp: null;
+    get startsAt(): null;
+    get endsAt(): null;
+  };
+
+  /**
+   * Indicates whether this entitlement is a user subscription
+   */
+  public isUserSubscription(): this is this & { guildId: null; get guild(): null };
+
+  /**
+   * Indicates whether this entitlement is a guild subscription
+   */
+  public isGuildSubscription(): this is this & { guildId: Snowflake; guild: Guild };
 }
 
 /**
@@ -6556,6 +6611,11 @@ export class BaseInteraction<Cached extends CacheType = CacheType> extends Base 
   public guildLocale: CacheTypeReducer<Cached, Locale>;
 
   /**
+   * The entitlements for the invoking user, representing access to premium SKUs
+   */
+  public entitlements: Collection<Snowflake, Entitlement>;
+
+  /**
    * Indicates whether this interaction is received from a guild.
    */
   public inGuild(): this is BaseInteraction<'raw' | 'cached'>;
@@ -6762,36 +6822,31 @@ export class InteractionCollector<Interaction extends CollectedInteraction> exte
    * Emitted whenever an interaction is collected/disposed/ignored.
    * @param interaction The interaction that was collected/disposed/ignored
    */
-  public on(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => Awaitable<void>): this;
+  public on(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => void): this;
 
   /**
    * Emitted when the collector is finished collecting.
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public on(
-    event: 'end',
-    listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<void>,
-  ): this;
+  public on(event: 'end', listener: (collected: Collection<Snowflake, Interaction>, reason: string) => void): this;
 
-  public on(event: string, listener: (...args: any[]) => Awaitable<void>): this;
+  public on(event: string, listener: (...args: any[]) => void): this;
 
   /**
    * Emitted whenever an interaction is collected/disposed/ignored.
    * @param interaction The interaction that was collected/disposed/ignored
    */
-  public once(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => Awaitable<void>): this;
+  public once(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => void): this;
 
   /**
    * Emitted when the collector is finished collecting.
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public once(
-    event: 'end',
-    listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<void>,
-  ): this;
-  public once(event: string, listener: (...args: any[]) => Awaitable<void>): this;
+  public once(event: 'end', listener: (collected: Collection<Snowflake, Interaction>, reason: string) => void): this;
+
+  public once(event: string, listener: (...args: any[]) => void): this;
 }
 
 /**
@@ -6806,6 +6861,11 @@ export class InteractionWebhook extends PartialWebhookMixin() {
   public constructor(client: Client<true>, id: Snowflake, token: string);
 
   /**
+   * The client that instantiated the interaction webhook
+   */
+  public readonly client: Client<true>;
+
+  /**
    * The interaction's token
    */
   public token: string;
@@ -6815,10 +6875,24 @@ export class InteractionWebhook extends PartialWebhookMixin() {
    * @param options The content for the reply
    */
   public send(options: string | MessagePayload | InteractionReplyOptions): Promise<Message>;
+
+  /**
+   * Edits a message that was sent by this webhook.
+   * @param message The message to edit
+   * @param options The options to provide
+   * @returns Returns the message edited by this webhook
+   */
   public editMessage(
     message: MessageResolvable | '@original',
     options: string | MessagePayload | WebhookMessageEditOptions,
   ): Promise<Message>;
+
+  /**
+   * Gets a message that was sent by this webhook.
+   * @param message The id of the message to fetch
+   * @param {} [options={}] The options to provide to fetch the message.
+   * @returns Returns the message sent by this webhook
+   */
   public fetchMessage(message: Snowflake | '@original'): Promise<Message>;
 }
 
@@ -7063,29 +7137,29 @@ export class LimitedCollection<Key, Value> extends Collection<Key, Value> {
 
 export type MessageComponentType = Exclude<ComponentType, ComponentType.TextInput | ComponentType.ActionRow>;
 
-export type MessageCollectorOptionsParams<
+export interface MessageCollectorOptionsParams<
   ComponentType extends MessageComponentType,
   Cached extends boolean = boolean,
-> = {
+> extends MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]> {
   componentType?: ComponentType;
-} & MessageComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>;
+}
 
-export type MessageChannelCollectorOptionsParams<
+export interface MessageChannelCollectorOptionsParams<
   ComponentType extends MessageComponentType,
   Cached extends boolean = boolean,
-> = {
+> extends MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]> {
   componentType?: ComponentType;
-} & MessageChannelComponentCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>;
+}
 
-export type AwaitMessageCollectorOptionsParams<
+export interface AwaitMessageCollectorOptionsParams<
   ComponentType extends MessageComponentType,
   Cached extends boolean = boolean,
-> = {
+> extends Pick<
+    InteractionCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>,
+    keyof AwaitMessageComponentOptions<any>
+  > {
   componentType?: ComponentType;
-} & Pick<
-  InteractionCollectorOptions<MappedInteractionTypes<Cached>[ComponentType]>,
-  keyof AwaitMessageComponentOptions<any>
->;
+}
 
 export interface StringMappedInteractionTypes<Cached extends CacheType = CacheType> {
   Button: ButtonInteraction<Cached>;
@@ -7997,6 +8071,12 @@ export class MessageComponentInteraction<Cached extends CacheType = CacheType> e
   ): Promise<void>;
 
   /**
+   * Responds to the interaction with an upgrade button.
+   * <info>Only available for applications with monetization enabled.</info>
+   */
+  public sendPremiumRequired(): Promise<void>;
+
+  /**
    * Collects a single modal submit interaction that passes the filter.
    * The Promise will reject if the time expires.
    * @param options Options to pass to the internal collector
@@ -8022,6 +8102,25 @@ export class MessageContextMenuCommandInteraction<
    * The invoked application command's type
    */
   public commandType: ApplicationCommandType.Message;
+
+  /**
+   * The target of the interaction, parsed into options
+   */
+  public options: Omit<
+    CommandInteractionOptionResolver<Cached>,
+    | 'getFocused'
+    | 'getMentionable'
+    | 'getRole'
+    | 'getUser'
+    | 'getNumber'
+    | 'getAttachment'
+    | 'getInteger'
+    | 'getString'
+    | 'getChannel'
+    | 'getBoolean'
+    | 'getSubcommandGroup'
+    | 'getSubcommand'
+  >;
 
   /**
    * The message this interaction was sent from
@@ -8662,6 +8761,12 @@ export class ModalSubmitInteraction<Cached extends CacheType = CacheType> extend
   public deferUpdate(options?: InteractionDeferUpdateOptions): Promise<InteractionResponse<BooleanCache<Cached>>>;
 
   /**
+   * Responds to the interaction with an upgrade button.
+   * <info>Only available for applications with monetization enabled.</info>
+   */
+  public sendPremiumRequired(): Promise<void>;
+
+  /**
    * Indicates whether this interaction is received from a guild.
    */
   public inGuild(): this is ModalSubmitInteraction<'raw' | 'cached'>;
@@ -8809,12 +8914,12 @@ export interface GuildForumTag {
   emoji: GuildForumTagEmoji | null;
 }
 
-export type GuildForumTagData = Partial<GuildForumTag> & {
+export interface GuildForumTagData extends Partial<GuildForumTag> {
   /**
    * The name of the tag
    */
   name: string;
-};
+}
 
 export interface DefaultReactionEmoji {
   /**
@@ -10161,12 +10266,12 @@ export class Shard extends EventEmitter {
 
   public on<Event extends keyof ShardEventTypes>(
     event: Event,
-    listener: (...args: ShardEventTypes[Event]) => Awaitable<void>,
+    listener: (...args: ShardEventTypes[Event]) => void,
   ): this;
 
   public once<Event extends keyof ShardEventTypes>(
     event: Event,
-    listener: (...args: ShardEventTypes[Event]) => Awaitable<void>,
+    listener: (...args: ShardEventTypes[Event]) => void,
   ): this;
 }
 
@@ -10427,13 +10532,13 @@ export class ShardingManager extends EventEmitter {
    * Emitted upon creating a shard.
    * @param shard Shard that was created
    */
-  public on(event: 'shardCreate', listener: (shard: Shard) => Awaitable<void>): this;
+  public on(event: 'shardCreate', listener: (shard: Shard) => void): this;
 
   /**
    * Emitted upon creating a shard.
    * @param shard Shard that was created
    */
-  public once(event: 'shardCreate', listener: (shard: Shard) => Awaitable<void>): this;
+  public once(event: 'shardCreate', listener: (shard: Shard) => void): this;
 }
 
 export interface FetchRecommendedShardCountOptions {
@@ -10455,6 +10560,61 @@ export {
   SnowflakeGenerateOptions,
   DeconstructedSnowflake,
 } from '@sapphire/snowflake';
+
+/**
+ * Represents a premium application SKU.
+ */
+export class SKU extends Base {
+  private constructor(client: Client<true>, data: APISKU);
+
+  /**
+   * The id of the SKU
+   */
+  public id: Snowflake;
+
+  /**
+   * The type of the SKU
+   */
+  public type: SKUType;
+
+  /**
+   * The id of the parent application
+   */
+  public applicationId: Snowflake;
+
+  /**
+   * The customer-facing name of the premium offering
+   */
+  public name: string;
+
+  /**
+   * The system-generated URL slug based on this SKU's name
+   */
+  public slug: string;
+
+  /**
+   * Flags that describe the SKU
+   */
+  public flags: Readonly<SKUFlagsBitField>;
+}
+
+export type SKUFlagsString = keyof typeof SKUFlags;
+
+/**
+ * Data structure that makes it easy to interact with an {@link SKU.flags} bitfield.
+ */
+export class SKUFlagsBitField extends BitField<SKUFlagsString> {
+  /**
+   * Numeric SKU flags.
+   */
+  public static FLAGS: typeof SKUFlags;
+
+  /**
+   * Resolves bitfields to their numeric form.
+   * @param bit bit(s) to resolve
+   */
+  public static resolve(bit?: BitFieldResolvable<SKUFlagsString, number>): number;
+}
 
 /**
  * Represents a guild stage channel on Discord.
@@ -10518,6 +10678,8 @@ export class DirectoryChannel extends BaseChannel {
    * The name of the channel
    */
   public name: string;
+
+  public toString(): ChannelMention;
 }
 
 /**
@@ -10926,6 +11088,15 @@ export class Sweepers {
    */
   public sweepEmojis(
     filter: CollectionSweepFilter<SweeperDefinitions['emojis'][0], SweeperDefinitions['emojis'][1]>,
+  ): number;
+
+  /**
+   * Sweeps all client application entitlements and removes the ones which are indicated by the filter.
+   * @param filter The function used to determine which entitlements will be removed from the caches.
+   * @returns Amount of entitlements that were removed from the caches
+   */
+  public sweepEntitlements(
+    filter: CollectionSweepFilter<SweeperDefinitions['entitlements'][0], SweeperDefinitions['entitlements'][1]>,
   ): number;
 
   /**
@@ -11908,6 +12079,25 @@ export class UserContextMenuCommandInteraction<
   public commandType: ApplicationCommandType.User;
 
   /**
+   * The target of the interaction, parsed into options
+   */
+  public options: Omit<
+    CommandInteractionOptionResolver<Cached>,
+    | 'getMessage'
+    | 'getFocused'
+    | 'getMentionable'
+    | 'getRole'
+    | 'getNumber'
+    | 'getAttachment'
+    | 'getInteger'
+    | 'getString'
+    | 'getChannel'
+    | 'getBoolean'
+    | 'getSubcommandGroup'
+    | 'getSubcommand'
+  >;
+
+  /**
    * The target user from this interaction
    */
   public get targetUser(): User;
@@ -11956,7 +12146,7 @@ export class UserFlagsBitField extends BitField<UserFlagsString> {
  * @param path Path to get the basename of
  * @param ext File extension to remove
  * @returns Basename of the path
- * @private
+ * @internal
  */
 export function basename(path: string, ext?: string): string;
 
@@ -11999,14 +12189,14 @@ export function flatten(obj: unknown, ...props: Record<string, boolean | string>
 /**
  * Makes an Error from a plain info object.
  * @param obj Error info
- * @private
+ * @internal
  */
 export function makeError(obj: MakeErrorOptions): Error;
 
 /**
  * Makes a plain error info object from an Error.
  * @param err Error to get info from
- * @private
+ * @internal
  */
 export function makePlainError(err: Error): MakeErrorOptions;
 
@@ -12016,7 +12206,7 @@ export function makePlainError(err: Error): MakeErrorOptions;
  * @param element Element to move
  * @param newIndex Index or offset to move the element to
  * @param {} [offset=false] Move the element by an offset amount rather than to a set index
- * @private
+ * @internal
  */
 export function moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
 
@@ -12041,9 +12231,10 @@ export function resolveColor(color: ColorResolvable): number;
 /**
  * Resolves a partial emoji object from an {@link EmojiIdentifierResolvable}, without checking a Client.
  * @param emoji Emoji identifier to resolve
- * @private
+ * @internal
  */
 export function resolvePartialEmoji(emoji: Snowflake): PartialEmojiOnlyId;
+/** @internal */
 export function resolvePartialEmoji(emoji: Emoji | EmojiIdentifierResolvable): PartialEmoji | null;
 
 /**
@@ -12065,7 +12256,7 @@ export function verifyString(data: string, error?: typeof Error, errorMessage?: 
  * @param route Route to call PATCH on
  * @param reason Reason for the change
  * @returns Updated item list, with `id` and `position` properties
- * @private
+ * @internal
  */
 export function setPosition<Item extends Channel | Role>(
   item: Item,
@@ -12083,16 +12274,30 @@ export function setPosition<Item extends Channel | Role>(
  * @returns Null if the URL is invalid, otherwise the id and the token
  */
 export function parseWebhookURL(url: string): WebhookClientDataIdWithToken | null;
+
+/**
+ * Transforms the resolved data received from the API.
+ * @param supportingData Data to support the transformation
+ * @param data The received resolved objects
+ * @internal
+ */
 export function transformResolved<Cached extends CacheType>(
   supportingData: SupportingInteractionResolvedData,
   data?: APIApplicationCommandInteractionData['resolved'],
 ): CommandInteractionResolvedData<Cached>;
 
 /**
+ * Resolves a SKU id from a SKU resolvable.
+ * @param resolvable The SKU resolvable to resolve
+ * @returns The resolved SKU id, or `null` if the resolvable was invalid
+ */
+export function resolveSKUId(resolvable: SKUResolvable): Snowflake | null;
+
+/**
  * Transforms the resolved data received from the API.
  * @param supportingData Data to support the transformation
  * @param data The received resolved objects
- * @private
+ * @internal
  */
 export function transformResolved<Cached extends CacheType>(
   supportingData: SupportingInteractionResolvedData,
@@ -12121,7 +12326,14 @@ export interface MappedComponentTypes {
   [ComponentType.TextInput]: TextInputComponent;
 }
 
-export interface ChannelCreateOptions {
+/**
+ * Extra options for creating a channel.
+ * @internal
+ */
+export interface CreateChannelOptions {
+  /**
+   * Whether to allow creating a channel from an unknown guild
+   */
   allowFromUnknownGuild?: boolean;
 }
 
@@ -12132,9 +12344,14 @@ export interface ChannelCreateOptions {
  * @param guild The guild where this channel belongs
  * @param extras Extra information to supply for creating this channel
  * @returns Any kind of channel.
- * @private
+ * @internal
  */
-export function createChannel(client: Client<true>, data: APIChannel, options?: ChannelCreateOptions): Channel;
+export function createChannel(
+  client: Client<true>,
+  data: APIChannel,
+  guild?: Guild,
+  extras?: CreateChannelOptions,
+): Channel;
 
 /**
  * Transforms API data into a component
@@ -12193,6 +12410,49 @@ export class Formatters extends null {
   /** @deprecated Import this method directly from discord.js instead. */
   public static userMention: typeof userMention;
 }
+
+/**
+ * Resolves a Base64Resolvable to a Base 64 image.
+ * @param data The base 64 resolvable you want to resolve
+ * @internal
+ */
+export function resolveBase64(data: Base64Resolvable): string;
+
+/**
+ * Resolves the string to a code based on the passed regex.
+ * @param data The string to resolve
+ * @param regex The RegExp used to extract the code
+ * @internal
+ */
+export function resolveCode(data: string, regex: RegExp): string;
+
+/**
+ * Resolves a BufferResolvable to a Buffer.
+ * @param resource The buffer or stream resolvable to resolve
+ * @internal
+ */
+export function resolveFile(resource: BufferResolvable | Stream): Promise<ResolvedFile>;
+
+/**
+ * Resolves a Base64Resolvable, a string, or a BufferResolvable to a Base 64 image.
+ * @param image The image to be resolved
+ * @internal
+ */
+export function resolveImage(resource: BufferResolvable | Base64Resolvable): Promise<string | null>;
+
+/**
+ * Resolves InviteResolvable to an invite code.
+ * @param data The invite resolvable to resolve
+ * @internal
+ */
+export function resolveInviteCode(data: InviteResolvable): string;
+
+/**
+ * Resolves GuildTemplateResolvable to a template code.
+ * @param data The template resolvable to resolve
+ * @internal
+ */
+export function resolveGuildTemplateCode(data: GuildTemplateResolvable): string;
 
 export type ComponentData =
   | MessageActionRowComponentData
@@ -12873,12 +13133,12 @@ export class WebSocketShard extends EventEmitter {
 
   public on<Event extends keyof WebSocketShardEventTypes>(
     event: Event,
-    listener: (...args: WebSocketShardEventTypes[Event]) => Awaitable<void>,
+    listener: (...args: WebSocketShardEventTypes[Event]) => void,
   ): this;
 
   public once<Event extends keyof WebSocketShardEventTypes>(
     event: Event,
-    listener: (...args: WebSocketShardEventTypes[Event]) => Awaitable<void>,
+    listener: (...args: WebSocketShardEventTypes[Event]) => void,
   ): this;
 }
 
@@ -13389,13 +13649,17 @@ export enum DiscordjsErrorCodes {
   SweepFilterReturn = 'SweepFilterReturn',
 
   GuildForumMessageRequired = 'GuildForumMessageRequired',
+
+  EntitlementCreateInvalidOwner = 'EntitlementCreateInvalidOwner',
 }
 
+/** @internal */
 export interface DiscordjsErrorFields<Name extends string> {
   readonly name: `${Name} [${DiscordjsErrorCodes}]`;
   get code(): DiscordjsErrorCodes;
 }
 
+/** @internal */
 export function DiscordjsErrorMixin<Entity, Name extends string>(
   Base: Constructable<Entity>,
   name: Name,
@@ -13973,7 +14237,119 @@ export class ChannelManager extends CachedManager<Snowflake, Channel, ChannelRes
   public fetch(id: Snowflake, options?: FetchChannelOptions): Promise<Channel | null>;
 }
 
-export type FetchGuildApplicationCommandFetchOptions = Omit<FetchApplicationCommandOptions, 'guildId'>;
+/**
+ * Data that resolves to give an Entitlement object.
+ */
+export type EntitlementResolvable = Snowflake | Entitlement;
+
+/**
+ * Data that resolves to give a SKU object.
+ */
+export type SKUResolvable = Snowflake | SKU;
+
+/**
+ * Options used to create a test guild entitlement
+ */
+export interface GuildEntitlementCreateOptions {
+  /**
+   * The id of the SKU to create the entitlement for
+   */
+  sku: SKUResolvable;
+
+  /**
+   * The guild to create the entitlement for
+   */
+  guild: GuildResolvable;
+}
+
+/**
+ * Options used to create a test user entitlement
+ */
+export interface UserEntitlementCreateOptions {
+  /**
+   * The id of the SKU to create the entitlement for
+   */
+  sku: SKUResolvable;
+
+  /**
+   * The user to create the entitlement for
+   */
+  user: UserResolvable;
+}
+
+/**
+ * Options used to fetch entitlements
+ */
+export interface FetchEntitlementsOptions {
+  /**
+   * The maximum number of entitlements to fetch
+   */
+  limit?: number;
+
+  /**
+   * The guild to fetch entitlements for
+   */
+  guild?: GuildResolvable;
+
+  /**
+   * The user to fetch entitlements for
+   */
+  user?: UserResolvable;
+
+  /**
+   * The SKUs to fetch entitlements for
+   */
+  skus?: readonly SKUResolvable[];
+
+  /**
+   * Whether to exclude ended entitlements
+   */
+  excludeEnded?: boolean;
+
+  /**
+   * Whether to cache the fetched entitlements
+   * @default true
+   */
+  cache?: boolean;
+
+  /**
+   * Consider only entitlements before this entitlement id
+   */
+  before?: Snowflake;
+
+  /**
+   * Consider only entitlements after this entitlement id
+   * <warn>If both `before` and `after` are provided, only `before` is respected</warn>
+   */
+  after?: Snowflake;
+}
+
+/**
+ * Manages API methods for entitlements and stores their cache.
+ */
+export class EntitlementManager extends CachedManager<Snowflake, Entitlement, EntitlementResolvable> {
+  private constructor(client: Client<true>, iterable: Iterable<APIEntitlement>);
+
+  /**
+   * Fetches entitlements for this application
+   * @param {} [options={}] Options for fetching the entitlements
+   */
+  public fetch(options?: FetchEntitlementsOptions): Promise<Collection<Snowflake, Entitlement>>;
+
+  /**
+   * Creates a test entitlement
+   * @param options Options for creating the test entitlement
+   */
+  public createTest(options: GuildEntitlementCreateOptions | UserEntitlementCreateOptions): Promise<Entitlement>;
+
+  /**
+   * Deletes a test entitlement
+   * @param entitlement The entitlement to delete
+   */
+  public deleteTest(entitlement: EntitlementResolvable): Promise<void>;
+}
+
+export interface FetchGuildApplicationCommandFetchOptions extends Omit<FetchApplicationCommandOptions, 'guildId'> {}
 
 /**
  * An extension for guild-specific application commands.
@@ -15097,7 +15473,7 @@ export class PermissionOverwriteManager extends CachedManager<
    * message.channel.permissionOverwrites.set([
    *   {
    *      id: message.author.id,
-   *      deny: [PermissionsFlagsBit.ViewChannel],
+   *      deny: [PermissionFlagsBits.ViewChannel],
    *   },
    * ], 'Needed to change permissions');
    */
@@ -15556,10 +15932,10 @@ export class ThreadMemberManager extends CachedManager<Snowflake, ThreadMember, 
 
   /**
    * Remove a user from the thread.
-   * @param id The id of the member to remove
+   * @param member The member to remove
    * @param reason The reason for removing this member from the thread
    */
-  public remove(id: Snowflake | '@me', reason?: string): Promise<Snowflake>;
+  public remove(member: UserResolvable | '@me', reason?: string): Promise<Snowflake>;
 }
 
 /**
@@ -15631,10 +16007,13 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 // to each of those classes
 
 export type Constructable<Entity> = abstract new (...args: any[]) => Entity;
+
+/** @internal */
 export function PartialTextBasedChannel<Entity>(
   Base?: Constructable<Entity>,
 ): Constructable<Entity & PartialTextBasedChannelFields<false>>;
 
+/** @internal */
 export function TextBasedChannelMixin<
   Entity,
   InGuild extends boolean = boolean,
@@ -15823,9 +16202,12 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
   setNSFW(nsfw?: boolean, reason?: string): Promise<this>;
 }
 
+/** @internal */
 export function PartialWebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & PartialWebhookFields>;
+/** @internal */
 export function WebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & WebhookFields>;
 
+/** @internal */
 export interface PartialWebhookFields {
   /**
    * The webhook's id
@@ -15899,6 +16281,7 @@ export interface PartialWebhookFields {
   ): Promise<APIMessage | Message>;
 }
 
+/** @internal */
 export interface WebhookFields extends PartialWebhookFields {
   /**
    * The time the webhook was created at
@@ -15949,7 +16332,7 @@ export interface WebhookFields extends PartialWebhookFields {
 /**
  * Options for setting activities
  */
-export type ActivitiesOptions = Omit<ActivityOptions, 'shardId'>;
+export interface ActivitiesOptions extends Omit<ActivityOptions, 'shardId'> {}
 
 /**
  * Options for setting activities
@@ -16847,22 +17230,16 @@ export interface AutoModerationTriggerMetadata {
 /**
  * An object containing the same properties as CollectorOptions, but a few more
  */
-export type AwaitMessageComponentOptions<Interaction extends CollectedMessageInteraction> = Omit<
-  MessageComponentCollectorOptions<Interaction>,
-  'max' | 'maxComponents' | 'maxUsers'
->;
+export interface AwaitMessageComponentOptions<Interaction extends CollectedMessageInteraction>
+  extends Omit<MessageComponentCollectorOptions<Interaction>, 'max' | 'maxComponents' | 'maxUsers'> {}
 
-export type ModalSubmitInteractionCollectorOptions<Interaction extends ModalSubmitInteraction> = Omit<
-  InteractionCollectorOptions<Interaction>,
-  'channel' | 'message' | 'guild' | 'interactionType'
->;
+export interface ModalSubmitInteractionCollectorOptions<Interaction extends ModalSubmitInteraction>
+  extends Omit<InteractionCollectorOptions<Interaction>, 'channel' | 'message' | 'guild' | 'interactionType'> {}
 
-export type AwaitModalSubmitOptions<Interaction extends ModalSubmitInteraction> = Omit<
-  ModalSubmitInteractionCollectorOptions<Interaction>,
-  'max' | 'maxComponents' | 'maxUsers'
-> & {
+export interface AwaitModalSubmitOptions<Interaction extends ModalSubmitInteraction>
+  extends Omit<ModalSubmitInteractionCollectorOptions<Interaction>, 'max' | 'maxComponents' | 'maxUsers'> {
   time: number;
-};
+}
 
 /**
  * An object containing the same properties as CollectorOptions, but a few more:
@@ -17121,7 +17498,7 @@ export type CacheWithLimitsOptions = {
 };
 
 /**
- * Options for creating a channel using {@link CategoryChannel.createChannel}.
+ * Options for creating a channel using {@link CategoryChannelChildManager.create}.
  */
 export interface CategoryCreateChannelOptions {
   /**
@@ -17389,6 +17766,27 @@ export interface ClientEvents {
    * @param newEmoji The new emoji
    */
   emojiUpdate: [oldEmoji: GuildEmoji, newEmoji: GuildEmoji];
+
+  /**
+   * Emitted whenever an entitlement is created.
+   * @param entitlement The entitlement that was created
+   */
+  entitlementCreate: [entitlement: Entitlement];
+
+  /**
+   * Emitted whenever an entitlement is deleted.
+   * <warn>Entitlements are not deleted when they expire.
+   * This is only triggered when Discord issues a refund or deletes the entitlement manually.</warn>
+   * @param entitlement The entitlement that was deleted
+   */
+  entitlementDelete: [entitlement: Entitlement];
+
+  /**
+   * Emitted whenever an entitlement is updated - i.e. when a user's subscription renews.
+   * @param oldEntitlement The entitlement before the update
+   * @param newEntitlement The entitlement after the update
+   */
+  entitlementUpdate: [oldEntitlement: Entitlement | null, newEntitlement: Entitlement];
 
   /**
    * Emitted when the client encounters an error.
@@ -18121,14 +18519,25 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
 /**
  * The full autocomplete option object.
  */
-export type AutocompleteFocusedOption = Pick<CommandInteractionOption, 'name'> & {
+export interface AutocompleteFocusedOption extends Pick<CommandInteractionOption, 'name'> {
+  /**
+   * Whether this option is currently in focus for autocomplete
+   */
   focused: true;
+
+  /**
+   * The type of the application command option
+   */
   type:
     | ApplicationCommandOptionType.String
     | ApplicationCommandOptionType.Integer
     | ApplicationCommandOptionType.Number;
+
+  /**
+   * The value of the option
+   */
   value: string;
-};
+}
 
 export declare const Colors: {
   /**
@@ -18318,6 +18727,23 @@ export enum Events {
    * Emitted when the client becomes ready to start working.
    */
   ClientReady = 'ready',
+
+  /**
+   * Emitted whenever an entitlement is created.
+   */
+  EntitlementCreate = 'entitlementCreate',
+
+  /**
+   * Emitted whenever an entitlement is deleted.
+   * <warn>Entitlements are not deleted when they expire.
+   * This is only triggered when Discord issues a refund or deletes the entitlement manually.</warn>
+   */
+  EntitlementDelete = 'entitlementDelete',
+
+  /**
+   * Emitted whenever an entitlement is updated - i.e. when a user's subscription renews.
+   */
+  EntitlementUpdate = 'entitlementUpdate',
 
   /**
    * Emitted whenever a guild audit log entry is created.
@@ -20567,7 +20993,7 @@ export interface InteractionDeferReplyOptions {
 /**
  * Options for deferring and updating the reply to a {@link MessageComponentInteraction}.
  */
-export type InteractionDeferUpdateOptions = Omit<InteractionDeferReplyOptions, 'ephemeral'>;
+export interface InteractionDeferUpdateOptions extends Omit<InteractionDeferReplyOptions, 'ephemeral'> {}
 
 /**
  * Options for a reply to a {@link BaseInteraction}.
@@ -20730,6 +21156,7 @@ export interface LifetimeFilterOptions<Key, Value> {
 
 /**
  * Options used to make an error object.
+ * @internal
  */
 export interface MakeErrorOptions {
   /**
@@ -20863,15 +21290,11 @@ export type CollectedMessageInteraction<Cached extends CacheType = CacheType> = 
   ModalSubmitInteraction
 >;
 
-export type MessageComponentCollectorOptions<Interaction extends CollectedMessageInteraction> = Omit<
-  InteractionCollectorOptions<Interaction>,
-  'channel' | 'message' | 'guild' | 'interactionType'
->;
+export interface MessageComponentCollectorOptions<Interaction extends CollectedMessageInteraction>
+  extends Omit<InteractionCollectorOptions<Interaction>, 'channel' | 'message' | 'guild' | 'interactionType'> {}
 
-export type MessageChannelComponentCollectorOptions<Interaction extends CollectedMessageInteraction> = Omit<
-  InteractionCollectorOptions<Interaction>,
-  'channel' | 'guild' | 'interactionType'
->;
+export interface MessageChannelComponentCollectorOptions<Interaction extends CollectedMessageInteraction>
+  extends Omit<InteractionCollectorOptions<Interaction>, 'channel' | 'guild' | 'interactionType'> {}
 
 /**
  * @external
@@ -21047,8 +21470,9 @@ export interface MessageCreateOptions extends BaseMessageOptions {
   >;
 }
 
-export type GuildForumThreadMessageCreateOptions = BaseMessageOptions &
-  Pick<MessageCreateOptions, 'flags' | 'stickers'>;
+export interface GuildForumThreadMessageCreateOptions
+  extends BaseMessageOptions,
+    Pick<MessageCreateOptions, 'flags' | 'stickers'> {}
 
 /**
  * Data used to reference an attachment.
@@ -21406,9 +21830,7 @@ export type PermissionResolvable = BitFieldResolvable<keyof typeof PermissionFla
 
 export type PermissionOverwriteResolvable = UserResolvable | RoleResolvable | PermissionOverwrites;
 
-export type RecursiveArray<ItemType> = ReadonlyArray<ItemType | RecursiveArray<ItemType>>;
-
-export type RecursiveReadonlyArray<ItemType> = ReadonlyArray<ItemType | RecursiveReadonlyArray<ItemType>>;
+export interface RecursiveReadonlyArray<ItemType> extends ReadonlyArray<ItemType | RecursiveReadonlyArray<ItemType>> {}
 
 /**
  * Recipient data received in a {@link PartialGroupDMChannel}.
@@ -21998,6 +22420,7 @@ export interface StageInstanceEditOptions {
 
 /**
  * Supportive data for interaction resolved data.
+ * @internal
  */
 export interface SupportingInteractionResolvedData {
   /**
@@ -22064,6 +22487,7 @@ export interface SweeperDefinitions {
   autoModerationRules: [Snowflake, AutoModerationRule];
   bans: [Snowflake, GuildBan];
   emojis: [Snowflake, GuildEmoji];
+  entitlements: [Snowflake, Entitlement];
   invites: [string, Invite, true];
   guildMembers: [Snowflake, GuildMember];
   messages: [Snowflake, Message, true];
@@ -22345,7 +22769,7 @@ export interface WebhookClientDataURL {
 /**
  * Options for a webhook client.
  */
-export type WebhookClientOptions = Pick<ClientOptions, 'allowedMentions' | 'rest'>;
+export interface WebhookClientOptions extends Pick<ClientOptions, 'allowedMentions' | 'rest'> {}
 
 /**
  * Options used for deleting a webhook.
