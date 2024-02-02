@@ -1,13 +1,15 @@
 'use strict';
 
 const { Routes } = require('discord-api-types/v10');
-const Structures = require('../util/Structures');
 const { resolveImage } = require('../util/DataResolver');
+const Structures = require('../util/Structures');
 
 /**
  * Represents the logged in client's Discord user.
  * @extends {User}
  */
+
+console.trace();
 class ClientUser extends Structures.get('User') {
   _patch(data) {
     super._patch(data);
