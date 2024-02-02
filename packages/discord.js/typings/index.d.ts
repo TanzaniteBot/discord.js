@@ -3744,6 +3744,10 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    * @param {} [required=false] Whether to throw an error if the option is not found.
    * @param {} [channelTypes=[]] The allowed types of channels. If empty, all channel types are allowed.
    * @returns The value of the option, or null if not set and not required.
+   * @privateRemarks
+   * The ternary in the return type is required.
+   * The `type` property of the {@link PublicThreadChannel} interface is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`.
+   * If the user were to pass only one of those channel types, the `Extract<>` would resolve to `never`.
    */
   public getChannel<const Type extends ChannelType = ChannelType>(
     name: string,
@@ -3752,14 +3756,17 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
-      // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
-      // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
-      // Hence the need for this ternary
       type: Type extends ChannelType.PublicThread | ChannelType.AnnouncementThread
         ? ChannelType.PublicThread | ChannelType.AnnouncementThread
         : Type;
     }
   >;
+  /**
+   * @privateRemarks
+   * The ternary in the return type is required.
+   * The `type` property of the {@link PublicThreadChannel} interface is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`.
+   * If the user were to pass only one of those channel types, the `Extract<>` would resolve to `never`.
+   */
   public getChannel<const Type extends ChannelType = ChannelType>(
     name: string,
     required?: boolean,
@@ -3767,9 +3774,6 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
   ): Extract<
     NonNullable<CommandInteractionOption<Cached>['channel']>,
     {
-      // The `type` property of the PublicThreadChannel class is typed as `ChannelType.PublicThread | ChannelType.AnnouncementThread`
-      // If the user only passed one of those channel types, the Extract<> would have resolved to `never`
-      // Hence the need for this ternary
       type: Type extends ChannelType.PublicThread | ChannelType.AnnouncementThread
         ? ChannelType.PublicThread | ChannelType.AnnouncementThread
         : Type;
@@ -22864,9 +22868,14 @@ export interface WebhookMessageCreateOptions extends Omit<MessageCreateOptions, 
   threadId?: Snowflake;
 
   /**
-   * Name of the thread to create (only available if webhook is in a forum channel)
+   * Name of the thread to create (only available if the webhook is in a forum channel)
    */
   threadName?: string;
+
+  /**
+   * The tags to apply to the created thread (only available if the webhook is in a forum channel)
+   */
+  appliedTags?: Snowflake[];
 }
 
 /**
