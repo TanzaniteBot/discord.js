@@ -18,18 +18,6 @@
   },
   "main": "./src/index.js",
   "types": "./typings/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./typings/index.d.mts",
-        "default": "./src/index.js"
-      },
-      "require": {
-        "types": "./typings/index.d.ts",
-        "default": "./src/index.js"
-      }
-    }
-  },
   "directories": {
     "lib": "src",
     "test": "test"
