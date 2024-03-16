@@ -402,7 +402,7 @@ export interface ActionRowData<ComponentType extends JSONEncodable<APIActionRowC
   /**
    * The components in this action row
    */
-  components: ComponentType[];
+  components: readonly ComponentType[];
 }
 
 /**
@@ -411,7 +411,7 @@ export interface ActionRowData<ComponentType extends JSONEncodable<APIActionRowC
 export class ActionRowBuilder<
   ComponentType extends AnyComponentBuilder = AnyComponentBuilder,
 > extends BuilderActionRow<ComponentType> {
-  constructor(
+  public constructor(
     data?: Partial<
       | ActionRowData<ActionRowComponentData | JSONEncodable<APIActionRowComponentTypes>>
       | APIActionRowComponent<APIMessageActionRowComponent | APIModalActionRowComponent>
@@ -713,7 +713,7 @@ export class AutoModerationRule extends Base {
    * @param keywordFilter The keyword filter of this auto moderation rule
    * @param reason The reason for changing the keyword filter of this auto moderation rule
    */
-  public setKeywordFilter(keywordFilter: string[], reason?: string): Promise<AutoModerationRule>;
+  public setKeywordFilter(keywordFilter: readonly string[], reason?: string): Promise<AutoModerationRule>;
 
   /**
    * Sets the regular expression patterns for this auto moderation rule.
@@ -721,21 +721,24 @@ export class AutoModerationRule extends Base {
    * <info>Only Rust-flavored regular expressions are supported.</info>
    * @param reason The reason for changing the regular expression patterns of this auto moderation rule
    */
-  public setRegexPatterns(regexPatterns: string[], reason?: string): Promise<AutoModerationRule>;
+  public setRegexPatterns(regexPatterns: readonly string[], reason?: string): Promise<AutoModerationRule>;
 
   /**
    * Sets the presets for this auto moderation rule.
    * @param presets The presets of this auto moderation rule
    * @param reason The reason for changing the presets of this auto moderation rule
    */
-  public setPresets(presets: AutoModerationRuleKeywordPresetType[], reason?: string): Promise<AutoModerationRule>;
+  public setPresets(
+    presets: readonly AutoModerationRuleKeywordPresetType[],
+    reason?: string,
+  ): Promise<AutoModerationRule>;
 
   /**
    * Sets the allow list for this auto moderation rule.
    * @param allowList The allow list of this auto moderation rule
    * @param reason The reason for changing the allow list of this auto moderation rule
    */
-  public setAllowList(allowList: string[], reason?: string): Promise<AutoModerationRule>;
+  public setAllowList(allowList: readonly string[], reason?: string): Promise<AutoModerationRule>;
 
   /**
    * Sets the mention total limit for this auto moderation rule.
@@ -759,7 +762,7 @@ export class AutoModerationRule extends Base {
    * @param actions The actions of this auto moderation rule
    * @param reason The reason for changing the actions of this auto moderation rule
    */
-  public setActions(actions: AutoModerationActionOptions[], reason?: string): Promise<AutoModerationRule>;
+  public setActions(actions: readonly AutoModerationActionOptions[], reason?: string): Promise<AutoModerationRule>;
 
   /**
    * Sets whether this auto moderation rule should be enabled.
@@ -774,7 +777,7 @@ export class AutoModerationRule extends Base {
    * @param reason The reason for changing the exempt roles of this auto moderation rule
    */
   public setExemptRoles(
-    roles: Collection<Snowflake, Role> | RoleResolvable[],
+    roles: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[],
     reason?: string,
   ): Promise<AutoModerationRule>;
 
@@ -784,7 +787,7 @@ export class AutoModerationRule extends Base {
    * @param reason The reason for changing the exempt channels of this auto moderation rule
    */
   public setExemptChannels(
-    channels: Collection<Snowflake, GuildBasedChannel> | GuildChannelResolvable[],
+    channels: ReadonlyCollection<Snowflake, GuildBasedChannel> | readonly GuildChannelResolvable[],
     reason?: string,
   ): Promise<AutoModerationRule>;
 }
@@ -1048,7 +1051,9 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * Edits the options of this ApplicationCommand
    * @param options The options to set for this command
    */
-  public setOptions(options: ApplicationCommandOptionData[]): Promise<ApplicationCommand<PermissionsFetchType>>;
+  public setOptions(
+    options: readonly ApplicationCommandOptionData[],
+  ): Promise<ApplicationCommand<PermissionsFetchType>>;
 
   /**
    * Whether this command equals another command. It compares all properties, so for most operations
@@ -1073,8 +1078,11 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
    * order in the array <info>The client may not always respect this ordering!</info>
    */
   public static optionsEqual(
-    existing: ApplicationCommandOption[],
-    options: ApplicationCommandOption[] | ApplicationCommandOptionData[] | APIApplicationCommandOption[],
+    existing: readonly ApplicationCommandOption[],
+    options:
+      | readonly ApplicationCommandOption[]
+      | readonly ApplicationCommandOptionData[]
+      | readonly APIApplicationCommandOption[],
     enforceOptionOrder?: boolean,
   ): boolean;
 
@@ -1210,7 +1218,7 @@ export abstract class Base {
 /**
  * The base class for all clients.
  */
-export class BaseClient extends EventEmitter {
+export class BaseClient extends EventEmitter implements AsyncDisposable {
   /**
    * @param {} [options={}]
    */
@@ -1245,6 +1253,7 @@ export class BaseClient extends EventEmitter {
    * Transforms the base client into a plain object.
    */
   public toJSON(...props: Record<string, boolean | string>[]): unknown;
+  public [Symbol.asyncDispose](): Promise<void>;
 }
 
 export type GuildCacheMessage<Cached extends CacheType> = CacheTypeReducer<
@@ -1671,10 +1680,13 @@ export class BaseGuildEmoji extends Emoji {
   public requiresColons: boolean | null;
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface BaseGuildTextChannel extends TextBasedChannelFields<true> {}
+
 /**
  * Represents a text-based guild channel on Discord.
  */
-export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, true) {
+export class BaseGuildTextChannel extends GuildChannel {
   /**
    * @param guild The guild the text channel is part of
    * @param data The data for the text channel
@@ -1762,13 +1774,13 @@ export class BaseGuildTextChannel extends TextBasedChannelMixin(GuildChannel, tr
   public setType(type: ChannelType.GuildAnnouncement, reason?: string): Promise<NewsChannel>;
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface BaseGuildVoiceChannel extends Omit<TextBasedChannelFields<true>, 'lastPinTimestamp' | 'lastPinAt'> {}
+
 /**
  * Represents a voice-based guild channel on Discord.
  */
-export class BaseGuildVoiceChannel extends TextBasedChannelMixin(GuildChannel, true, [
-  'lastPinTimestamp',
-  'lastPinAt',
-]) {
+export class BaseGuildVoiceChannel extends GuildChannel {
   public constructor(guild: Guild, data?: RawGuildChannelData);
 
   /**
@@ -2169,7 +2181,9 @@ export class StringSelectMenuBuilder extends BuilderStringSelectMenuComponent {
   public override setOptions(
     ...options: RestOrArray<BuildersSelectMenuOption | SelectMenuComponentOptionData | APISelectMenuOption>
   ): this;
-  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): StringSelectMenuBuilder;
+  public static from(
+    other: JSONEncodable<APIStringSelectComponent> | APIStringSelectComponent,
+  ): StringSelectMenuBuilder;
 }
 
 export {
@@ -2189,7 +2203,7 @@ export class UserSelectMenuBuilder extends BuilderUserSelectMenuComponent {
    * Creates a new select menu builder from JSON data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): UserSelectMenuBuilder;
+  public static from(other: JSONEncodable<APIUserSelectComponent> | APIUserSelectComponent): UserSelectMenuBuilder;
 }
 
 /**
@@ -2202,7 +2216,7 @@ export class RoleSelectMenuBuilder extends BuilderRoleSelectMenuComponent {
    * Creates a new select menu builder from JSON data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): RoleSelectMenuBuilder;
+  public static from(other: JSONEncodable<APIRoleSelectComponent> | APIRoleSelectComponent): RoleSelectMenuBuilder;
 }
 
 /**
@@ -2216,7 +2230,7 @@ export class MentionableSelectMenuBuilder extends BuilderMentionableSelectMenuCo
    * @param other The other data
    */
   public static from(
-    other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent,
+    other: JSONEncodable<APIMentionableSelectComponent> | APIMentionableSelectComponent,
   ): MentionableSelectMenuBuilder;
 }
 
@@ -2230,7 +2244,9 @@ export class ChannelSelectMenuBuilder extends BuilderChannelSelectMenuComponent 
    * Creates a new select menu builder from JSON data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APISelectMenuComponent> | APISelectMenuComponent): ChannelSelectMenuBuilder;
+  public static from(
+    other: JSONEncodable<APIChannelSelectComponent> | APIChannelSelectComponent,
+  ): ChannelSelectMenuBuilder;
 }
 
 /**
@@ -2262,7 +2278,9 @@ export class ModalBuilder extends BuildersModal {
    * Creates a new modal builder from JSON data
    * @param other The other data
    */
-  public static from(other: JSONEncodable<APIModalComponent> | APIModalComponent): ModalBuilder;
+  public static from(
+    other: JSONEncodable<APIModalInteractionResponseCallbackData> | APIModalInteractionResponseCallbackData,
+  ): ModalBuilder;
 }
 
 /**
@@ -2428,7 +2446,7 @@ export interface EmbedData {
   /**
    * The fields in this embed
    */
-  fields?: APIEmbedField[];
+  fields?: readonly APIEmbedField[];
 
   /**
    * Received video data
@@ -3162,7 +3180,7 @@ export class ClientApplication extends Application {
    * @param records The new role connection metadata records
    */
   public editRoleConnectionMetadataRecords(
-    records: ApplicationRoleConnectionMetadataEditOptions[],
+    records: readonly ApplicationRoleConnectionMetadataEditOptions[],
   ): Promise<ApplicationRoleConnectionMetadata[]>;
 }
 
@@ -3230,7 +3248,7 @@ export class ClientUser extends User {
    * @param {} [afk=true] Whether or not the user is AFK
    * @param shardId Shard Id(s) to have the AFK flag set on
    */
-  public setAFK(afk?: boolean, shardId?: number | number[]): ClientPresence;
+  public setAFK(afk?: boolean, shardId?: number | readonly number[]): ClientPresence;
 
   /**
    * Sets the avatar of the logged in client.
@@ -3260,7 +3278,7 @@ export class ClientUser extends User {
    * // Set the client user's status
    * client.user.setStatus('idle');
    */
-  public setStatus(status: PresenceStatusData, shardId?: number | number[]): ClientPresence;
+  public setStatus(status: PresenceStatusData, shardId?: number | readonly number[]): ClientPresence;
 
   /**
    * Sets the username of the logged in client.
@@ -3377,7 +3395,7 @@ export interface CollectorEventTypes<Key, Value, Extras extends unknown[] = []> 
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  end: [collected: Collection<Key, Value>, reason: string];
+  end: [collected: ReadonlyCollection<Key, Value>, reason: string];
 }
 
 /**
@@ -3639,7 +3657,7 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
    *  .then(() => console.log('Successfully responded to the autocomplete interaction'))
    *  .catch(console.error);
    */
-  public respond(options: ApplicationCommandOptionChoiceData[]): Promise<void>;
+  public respond(options: readonly ApplicationCommandOptionChoiceData[]): Promise<void>;
 }
 
 /**
@@ -3648,7 +3666,7 @@ export class AutocompleteInteraction<Cached extends CacheType = CacheType> exten
 export class CommandInteractionOptionResolver<Cached extends CacheType = CacheType> {
   public constructor(
     client: Client<true>,
-    options: CommandInteractionOption[],
+    options: readonly CommandInteractionOption[],
     resolved: CommandInteractionResolvedData,
   );
 
@@ -3693,14 +3711,14 @@ export class CommandInteractionOptionResolver<Cached extends CacheType = CacheTy
    */
   private _getTypedOption(
     name: string,
-    allowedTypes: ApplicationCommandOptionType[],
-    properties: (keyof ApplicationCommandOption)[],
+    allowedTypes: readonly ApplicationCommandOptionType[],
+    properties: readonly (keyof ApplicationCommandOption)[],
     required: true,
   ): CommandInteractionOption<Cached>;
   private _getTypedOption(
     name: string,
-    allowedTypes: ApplicationCommandOptionType[],
-    properties: (keyof ApplicationCommandOption)[],
+    allowedTypes: readonly ApplicationCommandOptionType[],
+    properties: readonly (keyof ApplicationCommandOption)[],
     required: boolean,
   ): CommandInteractionOption<Cached> | null;
 
@@ -3926,16 +3944,17 @@ export interface ResolvedFile {
   contentType?: string;
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface DMChannel
+  extends Omit<
+    TextBasedChannelFields<false>,
+    'bulkDelete' | 'fetchWebhooks' | 'createWebhook' | 'setRateLimitPerUser' | 'setNSFW'
+  > {}
+
 /**
  * Represents a direct message channel between two users.
  */
-export class DMChannel extends TextBasedChannelMixin(BaseChannel, false, [
-  'bulkDelete',
-  'fetchWebhooks',
-  'createWebhook',
-  'setRateLimitPerUser',
-  'setNSFW',
-]) {
+export class DMChannel extends BaseChannel {
   /**
    * @param client The instantiating client
    * @param data The data for the DM channel
@@ -5359,10 +5378,12 @@ export class GuildMemberFlagsBitField extends BitField<GuildMemberFlagsString> {
   public static resolve(bit?: BitFieldResolvable<GuildMemberFlagsString, GuildMemberFlags>): number;
 }
 
+export interface GuildMember extends PartialTextBasedChannelFields<false> {}
+
 /**
  * Represents a member of a guild on Discord.
  */
-export class GuildMember extends PartialTextBasedChannel(Base) {
+export class GuildMember extends Base {
   /**
    * @param client The instantiating client
    * @param data The data for the guild member
@@ -6833,8 +6854,10 @@ export class InteractionCollector<Interaction extends CollectedInteraction> exte
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public on(event: 'end', listener: (collected: Collection<Snowflake, Interaction>, reason: string) => void): this;
-
+  public on(
+    event: 'end',
+    listener: (collected: ReadonlyCollection<Snowflake, Interaction>, reason: string) => void,
+  ): this;
   public on(event: string, listener: (...args: any[]) => void): this;
 
   /**
@@ -6848,15 +6871,20 @@ export class InteractionCollector<Interaction extends CollectedInteraction> exte
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public once(event: 'end', listener: (collected: Collection<Snowflake, Interaction>, reason: string) => void): this;
-
+  public once(
+    event: 'end',
+    listener: (collected: ReadonlyCollection<Snowflake, Interaction>, reason: string) => void,
+  ): this;
   public once(event: string, listener: (...args: any[]) => void): this;
 }
+
+// tslint:disable-next-line no-empty-interface
+export interface InteractionWebhook extends PartialWebhookFields {}
 
 /**
  * Represents a webhook for an Interaction
  */
-export class InteractionWebhook extends PartialWebhookMixin() {
+export class InteractionWebhook {
   /**
    * @param client The instantiating client
    * @param id The application's id
@@ -8171,8 +8199,8 @@ export class MessageFlagsBitField extends BitField<MessageFlagsString> {
 export class MessageMentions<InGuild extends boolean = boolean> {
   public constructor(
     message: Message,
-    users: APIUser[] | Collection<Snowflake, User>,
-    roles: Snowflake[] | Collection<Snowflake, Role>,
+    users: readonly APIUser[] | ReadonlyCollection<Snowflake, User>,
+    roles: readonly Snowflake[] | ReadonlyCollection<Snowflake, Role>,
     everyone: boolean,
     repliedUser?: APIUser | User,
   );
@@ -8494,7 +8522,7 @@ export interface ModalComponentData {
   /**
    * The components within this modal
    */
-  components: (
+  components: readonly (
     | JSONEncodable<APIActionRowComponent<APIModalActionRowComponent>>
     | ActionRowData<ModalActionRowComponentData>
   )[];
@@ -8533,14 +8561,14 @@ export interface ActionRowModalData {
   /**
    * The components of this action row
    */
-  components: TextInputModalData[];
+  components: readonly TextInputModalData[];
 }
 
 /**
  * Represents the serialized fields from a modal submit interaction
  */
 export class ModalSubmitFields {
-  constructor(components: ModalActionRowComponent[][]);
+  public constructor(components: readonly (readonly ModalActionRowComponent[])[]);
 
   /**
    * The components within the modal
@@ -8937,20 +8965,24 @@ export interface DefaultReactionEmoji {
   name: string | null;
 }
 
+export interface ThreadOnlyChannel
+  extends Omit<
+    TextBasedChannelFields,
+    | 'send'
+    | 'lastMessage'
+    | 'lastPinAt'
+    | 'bulkDelete'
+    | 'sendTyping'
+    | 'createMessageCollector'
+    | 'awaitMessages'
+    | 'createMessageComponentCollector'
+    | 'awaitMessageComponent'
+  > {}
+
 /**
  * Represents symbols utilized by thread-only channels.
  */
-export abstract class ThreadOnlyChannel extends TextBasedChannelMixin(GuildChannel, true, [
-  'send',
-  'lastMessage',
-  'lastPinAt',
-  'bulkDelete',
-  'sendTyping',
-  'createMessageCollector',
-  'awaitMessages',
-  'createMessageComponentCollector',
-  'awaitMessageComponent',
-]) {
+export abstract class ThreadOnlyChannel extends GuildChannel {
   /**
    * The type of the channel
    */
@@ -9006,7 +9038,7 @@ export abstract class ThreadOnlyChannel extends TextBasedChannelMixin(GuildChann
    * @param availableTags The tags to set as available in this channel
    * @param reason Reason for changing the available tags
    */
-  public setAvailableTags(tags: GuildForumTagData[], reason?: string): Promise<this>;
+  public setAvailableTags(tags: readonly GuildForumTagData[], reason?: string): Promise<this>;
 
   /**
    * Sets the default reaction emoji for this channel
@@ -9395,8 +9427,10 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
    * @param collected The elements collected by the collector
    * @param reason The reason the collector ended
    */
-  public on(event: 'end', listener: (collected: Collection<Snowflake, MessageReaction>, reason: string) => void): this;
-
+  public on(
+    event: 'end',
+    listener: (collected: ReadonlyCollection<Snowflake, MessageReaction>, reason: string) => void,
+  ): this;
   public on(event: string, listener: (...args: any[]) => void): this;
 
   /**
@@ -9422,7 +9456,7 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
    */
   public once(
     event: 'end',
-    listener: (collected: Collection<Snowflake, MessageReaction>, reason: string) => void,
+    listener: (collected: ReadonlyCollection<Snowflake, MessageReaction>, reason: string) => void,
   ): this;
 
   public once(event: string, listener: (...args: any[]) => void): this;
@@ -10430,8 +10464,8 @@ export class ShardingManager extends EventEmitter {
    * @param shard Shard to run on, all if undefined
    * @returns Results of the method execution
    */
-  private _performOnShards(method: string, args: unknown[]): Promise<unknown[]>;
-  private _performOnShards(method: string, args: unknown[], shard: number): Promise<unknown>;
+  private _performOnShards(method: string, args: readonly unknown[]): Promise<unknown[]>;
+  private _performOnShards(method: string, args: readonly unknown[], shard: number): Promise<unknown>;
 
   /**
    * Path to the shard script file
@@ -11421,14 +11455,14 @@ export interface PrivateThreadChannel extends ThreadChannel<false> {
   type: ChannelType.PrivateThread;
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface ThreadChannel<ThreadOnly extends boolean = boolean>
+  extends Omit<TextBasedChannelFields<true>, 'fetchWebhooks' | 'createWebhook' | 'setNSFW'> {}
+
 /**
  * Represents a thread channel on Discord.
  */
-export class ThreadChannel<ThreadOnly extends boolean = boolean> extends TextBasedChannelMixin(BaseChannel, true, [
-  'fetchWebhooks',
-  'createWebhook',
-  'setNSFW',
-]) {
+export class ThreadChannel<ThreadOnly extends boolean = boolean> extends BaseChannel {
   /**
    * @param guild The guild the thread channel is part of
    * @param data The data for the thread channel
@@ -11724,12 +11758,13 @@ export class ThreadChannel<ThreadOnly extends boolean = boolean> extends TextBas
    */
   public setName(name: string, reason?: string): Promise<AnyThreadChannel>;
 
+  // The following 3 methods can only be run on forum threads.
   /**
    * Set the applied tags for this channel (only applicable to forum threads)
    * @param appliedTags The tags to set for this channel
    * @param reason Reason for changing the thread's applied tags
    */
-  public setAppliedTags(appliedTags: Snowflake[], reason?: string): Promise<ThreadChannel<true>>;
+  public setAppliedTags(appliedTags: readonly Snowflake[], reason?: string): Promise<ThreadChannel<true>>;
 
   /**
    * Pins this thread from the forum channel (only applicable to forum threads).
@@ -11887,10 +11922,13 @@ export class Typing extends Base {
   };
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface User extends PartialTextBasedChannelFields<false> {}
+
 /**
  * Represents a user on Discord.
  */
-export class User extends PartialTextBasedChannel(Base) {
+export class User extends Base {
   /**
    * @param client The instantiating client
    * @param data The data for the user
@@ -12166,7 +12204,7 @@ export function cleanContent(str: string, channel: TextBasedChannel): string;
  * @param collection Collection of objects to sort
  */
 export function discordSort<Key, Value extends { rawPosition: number; id: Snowflake }>(
-  collection: Collection<Key, Value>,
+  collection: ReadonlyCollection<Key, Value>,
 ): Collection<Key, Value>;
 
 /**
@@ -12212,7 +12250,13 @@ export function makePlainError(err: Error): MakeErrorOptions;
  * @param {} [offset=false] Move the element by an offset amount rather than to a set index
  * @internal
  */
-export function moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
+export function moveElementInArray(
+  // eslint-disable-next-line no-restricted-syntax
+  array: unknown[],
+  element: unknown,
+  newIndex: number,
+  offset?: boolean,
+): number;
 
 /**
  * Parses emoji info out of a string. The string must be one of:
@@ -12266,7 +12310,7 @@ export function setPosition<Item extends Channel | Role>(
   item: Item,
   position: number,
   relative: boolean,
-  sorted: Collection<Snowflake, Item>,
+  sorted: ReadonlyCollection<Snowflake, Item>,
   client: Client<true>,
   route: string,
   reason?: string,
@@ -12671,7 +12715,9 @@ export class VoiceState extends Base {
   public edit(options: VoiceStateEditOptions): Promise<this>;
 }
 
-export class Webhook extends WebhookMixin() {
+// tslint:disable-next-line no-empty-interface
+export interface Webhook extends WebhookFields {}
+export class Webhook {
   private constructor(client: Client<true>, data?: RawWebhookData);
 
   /**
@@ -12847,10 +12893,13 @@ export class Webhook extends WebhookMixin() {
   public send(options: string | MessagePayload | WebhookMessageCreateOptions): Promise<Message>;
 }
 
+// tslint:disable-next-line no-empty-interface
+export interface WebhookClient extends WebhookFields, BaseClient {}
+
 /**
  * The webhook client.
  */
-export class WebhookClient extends WebhookMixin(BaseClient) {
+export class WebhookClient extends BaseClient {
   /**
    * @param data The data of the webhook
    * @param options Options for the webhook client
@@ -13361,7 +13410,19 @@ export type NonSystemMessageType =
   | MessageType.ContextMenuCommand;
 
 /**
+ * The types of messages that cannot be deleted.
+ */
+export type UndeletableMessageType =
+  | MessageType.RecipientAdd
+  | MessageType.RecipientRemove
+  | MessageType.Call
+  | MessageType.ChannelNameChange
+  | MessageType.ChannelIconChange
+  | MessageType.ThreadStarterMessage;
+
+/**
  * The types of messages that can be deleted.
+ * @deprecated This type will no longer be updated. Use {@link UndeletableMessageType} instead.
  */
 export type DeletableMessageType =
   | MessageType.AutoModerationAction
@@ -13443,6 +13504,17 @@ export const Constants: {
   SelectMenuTypes: SelectMenuType[];
 
   /**
+   * The types of messages that cannot be deleted. The available types are:
+   * * {@link MessageType.RecipientAdd}
+   * * {@link MessageType.RecipientRemove}
+   * * {@link MessageType.Call}
+   * * {@link MessageType.ChannelNameChange}
+   * * {@link MessageType.ChannelIconChange}
+   * * {@link MessageType.ThreadStarterMessage}
+   */
+  UndeletableMessageTypes: UndeletableMessageType[];
+
+  /**
    * The types of messages that can be deleted. The available types are:
    * * {@link MessageType.AutoModerationAction}
    * * {@link MessageType.ChannelFollowAdd}
@@ -13465,6 +13537,7 @@ export const Constants: {
    * * {@link MessageType.StageTopic}
    * * {@link MessageType.ThreadCreated}
    * * {@link MessageType.UserJoin}
+   * @deprecated This list will no longer be updated. Use {@link Constants.UndeletableMessageTypes} instead.
    */
   DeletableMessageTypes: DeletableMessageType[];
 
@@ -13569,8 +13642,9 @@ export enum DiscordjsErrorCodes {
   ImageSize = 'ImageSize',
 
   MessageBulkDeleteType = 'MessageBulkDeleteType',
-  MessageNonceType = 'MessageNonceType',
   MessageContentType = 'MessageContentType',
+  MessageNonceRequired = 'MessageNonceRequired',
+  MessageNonceType = 'MessageNonceType',
 
   /** @deprecated No longer in use */
   SplitMaxLen = 'SplitMaxLen',
@@ -13657,23 +13731,23 @@ export enum DiscordjsErrorCodes {
   EntitlementCreateInvalidOwner = 'EntitlementCreateInvalidOwner',
 }
 
-/** @internal */
-export interface DiscordjsErrorFields<Name extends string> {
-  readonly name: `${Name} [${DiscordjsErrorCodes}]`;
-  get code(): DiscordjsErrorCodes;
+export class DiscordjsError extends Error {
+  private constructor(code: DiscordjsErrorCodes, ...args: unknown[]);
+  public readonly code: DiscordjsErrorCodes;
+  public get name(): `Error [${DiscordjsErrorCodes}]`;
 }
 
-/** @internal */
-export function DiscordjsErrorMixin<Entity, Name extends string>(
-  Base: Constructable<Entity>,
-  name: Name,
-): Constructable<Entity & DiscordjsErrorFields<Name>>;
+export class DiscordjsTypeError extends TypeError {
+  private constructor(code: DiscordjsErrorCodes, ...args: unknown[]);
+  public readonly code: DiscordjsErrorCodes;
+  public get name(): `TypeError [${DiscordjsErrorCodes}]`;
+}
 
-export class DiscordjsError extends DiscordjsErrorMixin(Error, 'Error') {}
-
-export class DiscordjsTypeError extends DiscordjsErrorMixin(TypeError, 'TypeError') {}
-
-export class DiscordjsRangeError extends DiscordjsErrorMixin(RangeError, 'RangeError') {}
+export class DiscordjsRangeError extends RangeError {
+  private constructor(code: DiscordjsErrorCodes, ...args: unknown[]);
+  public readonly code: DiscordjsErrorCodes;
+  public get name(): `RangeError [${DiscordjsErrorCodes}]`;
+}
 
 //#endregion
 
@@ -13947,7 +14021,6 @@ export class ApplicationCommandPermissionsManager<
    * @param options Options used to check permissions
    * <warn>The `command` parameter is not optional when the managers `commandId` is `null`</warn>
    * @example
-   * // Check whether a user has permission to use a command
    * guild.commands.permissions.has({ command: '123456789012345678', permissionId: '876543210123456789' })
    *  .then(console.log)
    *  .catch(console.error);
@@ -14457,7 +14530,7 @@ export class GuildApplicationCommandManager extends ApplicationCommandManager<Ap
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public set(commands: ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommand>>;
+  public set(commands: readonly ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommand>>;
 }
 
 export type MappedGuildChannelTypes = {
@@ -14729,7 +14802,7 @@ export class GuildEmojiRoleManager extends DataManager<Snowflake, Role, RoleReso
    * @param roleOrRoles The role or roles to add
    */
   public add(
-    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | Collection<Snowflake, Role>,
+    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>,
   ): Promise<GuildEmoji>;
 
   /**
@@ -14746,14 +14819,14 @@ export class GuildEmojiRoleManager extends DataManager<Snowflake, Role, RoleReso
    *    .then(console.log)
    *    .catch(console.error);
    */
-  public set(roles: readonly RoleResolvable[] | Collection<Snowflake, Role>): Promise<GuildEmoji>;
+  public set(roles: readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>): Promise<GuildEmoji>;
 
   /**
    * Removes a role (or multiple roles) from the list of roles that can use this emoji.
    * @param roleOrRoles The role or roles to remove
    */
   public remove(
-    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | Collection<Snowflake, Role>,
+    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>,
   ): Promise<GuildEmoji>;
 }
 
@@ -15305,26 +15378,13 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
    * @param reason Reason for adding the role(s)
    */
   public add(
-    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | Collection<Snowflake, Role>,
+    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>,
     reason?: string,
   ): Promise<GuildMember>;
-
-  /**
-   * Sets the roles applied to the member.
-   * @param roles The roles or role ids to apply
-   * @param reason Reason for applying the roles
-   * @example
-   * // Set the member's roles to a single role
-   * guildMember.roles.set(['391156570408615936'])
-   *   .then(console.log)
-   *   .catch(console.error);
-   * @example
-   * // Remove all the roles from a member
-   * guildMember.roles.set([])
-   *   .then(member => console.log(`Member roles is now of ${member.roles.cache.size} size`))
-   *   .catch(console.error);
-   */
-  public set(roles: readonly RoleResolvable[] | Collection<Snowflake, Role>, reason?: string): Promise<GuildMember>;
+  public set(
+    roles: readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>,
+    reason?: string,
+  ): Promise<GuildMember>;
 
   /**
    * Removes a role (or multiple roles) from the member.
@@ -15332,7 +15392,7 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
    * @param reason Reason for removing the role(s)
    */
   public remove(
-    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | Collection<Snowflake, Role>,
+    roleOrRoles: RoleResolvable | readonly RoleResolvable[] | ReadonlyCollection<Snowflake, Role>,
     reason?: string,
   ): Promise<GuildMember>;
 }
@@ -15482,7 +15542,7 @@ export class PermissionOverwriteManager extends CachedManager<
    * ], 'Needed to change permissions');
    */
   public set(
-    overwrites: readonly OverwriteResolvable[] | Collection<Snowflake, OverwriteResolvable>,
+    overwrites: readonly OverwriteResolvable[] | ReadonlyCollection<Snowflake, OverwriteResolvable>,
     reason?: string,
   ): Promise<NonThreadGuildBasedChannel>;
 
@@ -16012,22 +16072,6 @@ export class VoiceStateManager extends CachedManager<Snowflake, VoiceState, type
 
 export type Constructable<Entity> = abstract new (...args: any[]) => Entity;
 
-/** @internal */
-export function PartialTextBasedChannel<Entity>(
-  Base?: Constructable<Entity>,
-): Constructable<Entity & PartialTextBasedChannelFields<false>>;
-
-/** @internal */
-export function TextBasedChannelMixin<
-  Entity,
-  InGuild extends boolean = boolean,
-  IgnoredFields extends keyof TextBasedChannelFields<InGuild> = never,
->(
-  Base?: Constructable<Entity>,
-  inGuild?: InGuild,
-  ignore?: IgnoredFields[],
-): Constructable<Entity & Omit<TextBasedChannelFields<InGuild>, IgnoredFields>>;
-
 export interface PartialTextBasedChannelFields<InGuild extends boolean = boolean> {
   /**
    * Sends a message to this channel.
@@ -16205,11 +16249,6 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    */
   setNSFW(nsfw?: boolean, reason?: string): Promise<this>;
 }
-
-/** @internal */
-export function PartialWebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & PartialWebhookFields>;
-/** @internal */
-export function WebhookMixin<Entity>(Base?: Constructable<Entity>): Constructable<Entity & WebhookFields>;
 
 /** @internal */
 export interface PartialWebhookFields {
@@ -16395,7 +16434,7 @@ export interface AddGuildMemberOptions {
    * The roles to add to the member
    * <info>This property requires the {@link PermissionFlagsBits.ManageRoles} permission.</info>
    */
-  roles?: Collection<Snowflake, Role> | RoleResolvable[];
+  roles?: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[];
 
   /**
    * Whether the member should be muted
@@ -17201,24 +17240,24 @@ export interface AutoModerationTriggerMetadata {
   /**
    * The substrings that will be searched for in the content
    */
-  keywordFilter: string[];
+  keywordFilter: readonly string[];
 
   /**
    * The regular expression patterns which will be matched against the content
    * <info>Only Rust-flavored regular expressions are supported.</info>
    */
-  regexPatterns: string[];
+  regexPatterns: readonly string[];
 
   /**
    * The internally pre-defined wordsets which will be searched for in the content
    */
-  presets: AutoModerationRuleKeywordPresetType[];
+  presets: readonly AutoModerationRuleKeywordPresetType[];
 
   /**
    * The substrings that will be exempt from triggering
    * {@link AutoModerationRuleTriggerType.Keyword} and {@link AutoModerationRuleTriggerType.KeywordPreset}
    */
-  allowList: string[];
+  allowList: readonly string[];
 
   /**
    * The total number of role & user mentions allowed per message
@@ -17252,7 +17291,7 @@ export interface AwaitMessagesOptions extends MessageCollectorOptions {
   /**
    * Stop/end reasons that cause the promise to reject
    */
-  errors?: string[];
+  errors?: readonly string[];
 }
 
 /**
@@ -17262,7 +17301,7 @@ export interface AwaitReactionsOptions extends ReactionCollectorOptions {
   /**
    * Stop/end reasons that cause the promise to reject
    */
-  errors?: string[];
+  errors?: readonly string[];
 }
 
 /**
@@ -17513,7 +17552,7 @@ export interface CategoryCreateChannelOptions {
   /**
    * Permission overwrites of the new channel
    */
-  permissionOverwrites?: OverwriteResolvable[] | Collection<Snowflake, OverwriteResolvable>;
+  permissionOverwrites?: readonly OverwriteResolvable[] | ReadonlyCollection<Snowflake, OverwriteResolvable>;
 
   /**
    * The topic for the new channel
@@ -17569,7 +17608,7 @@ export interface CategoryCreateChannelOptions {
   /**
    * The tags that can be used in this channel (forum only).
    */
-  availableTags?: GuildForumTagData[];
+  availableTags?: readonly GuildForumTagData[];
 
   /**
    * The emoji to show in the add reaction button on a thread in a guild forum channel.
@@ -17875,7 +17914,7 @@ export interface ClientEvents {
    * @param chunk Properties of the received chunk
    */
   guildMembersChunk: [
-    members: Collection<Snowflake, GuildMember>,
+    members: ReadonlyCollection<Snowflake, GuildMember>,
     guild: Guild,
     data: {
       /**
@@ -17891,7 +17930,7 @@ export interface ClientEvents {
       /**
        * An array of whatever could not be found when using {@link GatewayOpcodes.RequestGuildMembers}
        */
-      notFound: unknown[];
+      notFound: readonly unknown[];
 
       /**
        * Nonce for this chunk
@@ -17947,7 +17986,7 @@ export interface ClientEvents {
    */
   messageReactionRemoveAll: [
     message: Message | PartialMessage,
-    reactions: Collection<string | Snowflake, MessageReaction>,
+    reactions: ReadonlyCollection<string | Snowflake, MessageReaction>,
   ];
 
   /**
@@ -17961,7 +18000,10 @@ export interface ClientEvents {
    * @param messages The deleted messages, mapped by their id
    * @param channel The channel that the messages were deleted in
    */
-  messageDeleteBulk: [messages: Collection<Snowflake, Message | PartialMessage>, channel: GuildTextBasedChannel];
+  messageDeleteBulk: [
+    messages: ReadonlyCollection<Snowflake, Message | PartialMessage>,
+    channel: GuildTextBasedChannel,
+  ];
 
   /**
    * Emitted whenever a reaction is added to a cached message.
@@ -18041,7 +18083,7 @@ export interface ClientEvents {
    * @param threads The threads that were synced
    * @param guild The guild that the threads were synced in
    */
-  threadListSync: [threads: Collection<Snowflake, AnyThreadChannel>, guild: Guild];
+  threadListSync: [threads: ReadonlyCollection<Snowflake, AnyThreadChannel>, guild: Guild];
 
   /**
    * Emitted whenever the client user's thread member is updated.
@@ -18058,8 +18100,8 @@ export interface ClientEvents {
    * @param thread The thread where members got updated
    */
   threadMembersUpdate: [
-    addedMembers: Collection<Snowflake, ThreadMember>,
-    removedMembers: Collection<Snowflake, ThreadMember | PartialThreadMember>,
+    addedMembers: ReadonlyCollection<Snowflake, ThreadMember>,
+    removedMembers: ReadonlyCollection<Snowflake, ThreadMember | PartialThreadMember>,
     thread: AnyThreadChannel,
   ];
 
@@ -18239,7 +18281,7 @@ export interface ClientOptions {
    * {@link ClientOptions.shardCount} shards. If set to `auto`, it will fetch the recommended amount of shards
    * from Discord and spawn that amount
    */
-  shards?: number | number[] | 'auto';
+  shards?: number | readonly number[] | 'auto';
 
   /**
    * The total amount of shards used by all processes of this bot
@@ -18274,7 +18316,7 @@ export interface ClientOptions {
    * [guide](https://discordjs.guide/popular-topics/partials.html) for some important usage information, as
    * partials require you to put checks in place when handling data.
    */
-  partials?: Partials[];
+  partials?: readonly Partials[];
 
   /**
    * The default value for {@link MessageReplyOptions.failIfNotExists}
@@ -18452,7 +18494,7 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   /**
    * Additional options if this option is a subcommand (group)
    */
-  options?: CommandInteractionOption[];
+  options?: readonly CommandInteractionOption[];
 
   /**
    * The resolved user
@@ -18492,32 +18534,32 @@ export interface CommandInteractionResolvedData<Cached extends CacheType = Cache
   /**
    * The resolved users
    */
-  users?: Collection<Snowflake, User>;
+  users?: ReadonlyCollection<Snowflake, User>;
 
   /**
    * The resolved guild members
    */
-  members?: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIInteractionDataResolvedGuildMember>>;
+  members?: ReadonlyCollection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIInteractionDataResolvedGuildMember>>;
 
   /**
    * The resolved roles
    */
-  roles?: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
+  roles?: ReadonlyCollection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
 
   /**
    * The resolved channels
    */
-  channels?: Collection<Snowflake, CacheTypeReducer<Cached, Channel, APIInteractionDataResolvedChannel>>;
+  channels?: ReadonlyCollection<Snowflake, CacheTypeReducer<Cached, Channel, APIInteractionDataResolvedChannel>>;
 
   /**
    * The resolved messages
    */
-  messages?: Collection<Snowflake, CacheTypeReducer<Cached, Message, APIMessage>>;
+  messages?: ReadonlyCollection<Snowflake, CacheTypeReducer<Cached, Message, APIMessage>>;
 
   /**
    * The resolved attachments
    */
-  attachments?: Collection<Snowflake, Attachment>;
+  attachments?: ReadonlyCollection<Snowflake, Attachment>;
 }
 
 /**
@@ -19449,13 +19491,12 @@ export interface FetchedThreads {
   /**
    * The threads that were fetched
    */
-
-  threads: Collection<Snowflake, AnyThreadChannel>;
+  threads: ReadonlyCollection<Snowflake, AnyThreadChannel>;
 
   /**
    * The thread members in the received threads
    */
-  members: Collection<Snowflake, ThreadMember>;
+  members: ReadonlyCollection<Snowflake, ThreadMember>;
 }
 
 /**
@@ -19595,7 +19636,7 @@ export interface FetchMembersOptions {
   /**
    * The user(s) to fetch
    */
-  user?: UserResolvable | UserResolvable[];
+  user?: UserResolvable | readonly UserResolvable[];
 
   /**
    * Limit fetch to members with similar usernames
@@ -19982,7 +20023,7 @@ export interface AutoModerationRuleCreateOptions {
   /**
    * The actions that will execute when the auto moderation rule is triggered
    */
-  actions: AutoModerationActionOptions[];
+  actions: readonly AutoModerationActionOptions[];
 
   /**
    * Whether the auto moderation rule should be enabled
@@ -19992,12 +20033,12 @@ export interface AutoModerationRuleCreateOptions {
   /**
    * The roles that should not be affected by the auto moderation rule
    */
-  exemptRoles?: Collection<Snowflake, Role> | RoleResolvable[];
+  exemptRoles?: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[];
 
   /**
    * The channels that should not be affected by the auto moderation rule
    */
-  exemptChannels?: Collection<Snowflake, GuildBasedChannel> | GuildChannelResolvable[];
+  exemptChannels?: ReadonlyCollection<Snowflake, GuildBasedChannel> | readonly GuildChannelResolvable[];
 
   /**
    * The reason for creating the auto moderation rule
@@ -20132,7 +20173,7 @@ export interface GuildChannelEditOptions {
   /**
    * Permission overwrites for the channel
    */
-  permissionOverwrites?: readonly OverwriteResolvable[] | Collection<Snowflake, OverwriteResolvable>;
+  permissionOverwrites?: readonly OverwriteResolvable[] | ReadonlyCollection<Snowflake, OverwriteResolvable>;
 
   /**
    * The default auto archive duration for all new threads in this channel
@@ -20152,7 +20193,7 @@ export interface GuildChannelEditOptions {
   /**
    * The tags to set as available in a forum channel
    */
-  availableTags?: GuildForumTagData[];
+  availableTags?: readonly GuildForumTagData[];
 
   /**
    * The emoji to set as the default reaction emoji
@@ -20234,12 +20275,12 @@ export interface GuildCreateOptions {
   /**
    * The roles for this guild
    */
-  roles?: PartialRoleData[];
+  roles?: readonly PartialRoleData[];
 
   /**
    * The channels for this guild
    */
-  channels?: PartialChannelData[];
+  channels?: readonly PartialChannelData[];
 
   /**
    * The AFK channel's id
@@ -20369,7 +20410,7 @@ export interface GuildEditOptions {
   /**
    * The features of the guild
    */
-  features?: `${GuildFeature}`[];
+  features?: readonly `${GuildFeature}`[];
 
   /**
    * The discovery description of the guild
@@ -20404,7 +20445,7 @@ export interface GuildEmojiCreateOptions {
   /**
    * The roles to limit the emoji to
    */
-  roles?: Collection<Snowflake, Role> | RoleResolvable[];
+  roles?: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[];
 
   /**
    * The reason for creating the emoji
@@ -20424,7 +20465,7 @@ export interface GuildEmojiEditOptions {
   /**
    * Roles to restrict emoji to
    */
-  roles?: Collection<Snowflake, Role> | RoleResolvable[];
+  roles?: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[];
 
   /**
    * Reason for editing this emoji
@@ -20499,7 +20540,7 @@ export interface GuildMemberEditOptions {
   /**
    * The roles or role ids to apply
    */
-  roles?: Collection<Snowflake, Role> | readonly RoleResolvable[];
+  roles?: ReadonlyCollection<Snowflake, Role> | readonly RoleResolvable[];
 
   /**
    * Whether or not the member should be muted
@@ -20575,7 +20616,7 @@ export interface GuildPruneMembersOptions {
   /**
    * Array of roles to bypass the "...and no roles" constraint when pruning
    */
-  roles?: RoleResolvable[];
+  roles?: readonly RoleResolvable[];
 }
 
 /**
@@ -21021,11 +21062,12 @@ export interface InteractionReplyOptions extends BaseMessageOptions {
 
   /**
    * Which flags to set for the message.
-   * <info>Only `MessageFlags.SuppressEmbeds` and `MessageFlags.Ephemeral` can be set.</info>
+   * <info>Only `MessageFlags.Ephemeral`, `MessageFlags.SuppressEmbeds`, and `MessageFlags.SuppressNotifications`
+   * can be set.</info>
    */
   flags?: BitFieldResolvable<
-    Extract<MessageFlagsString, 'Ephemeral' | 'SuppressEmbeds'>,
-    MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds
+    Extract<MessageFlagsString, 'Ephemeral' | 'SuppressEmbeds' | 'SuppressNotifications'>,
+    MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds | MessageFlags.SuppressNotifications
   >;
 }
 
@@ -21061,7 +21103,7 @@ export interface InviteGenerationOptions {
   /**
    * Scopes that should be requested
    */
-  scopes: OAuth2Scopes[];
+  scopes: readonly OAuth2Scopes[];
 }
 
 /**
@@ -21372,17 +21414,17 @@ export interface MessageMentionOptions {
   /**
    * Types of mentions to be parsed
    */
-  parse?: MessageMentionTypes[];
+  parse?: readonly MessageMentionTypes[];
 
   /**
    * Snowflakes of Roles to be parsed as mentions
    */
-  roles?: Snowflake[];
+  roles?: readonly Snowflake[];
 
   /**
    * Snowflakes of Users to be parsed as mentions
    */
-  users?: Snowflake[];
+  users?: readonly Snowflake[];
 
   /**
    * Whether the author of the Message being replied to should be pinged
@@ -21407,7 +21449,7 @@ export interface BaseMessageOptions {
    * The embeds for the message
    * (see [here](https://discord.com/developers/docs/resources/channel#embed-object) for more details)
    */
-  embeds?: (JSONEncodable<APIEmbed> | APIEmbed)[];
+  embeds?: readonly (JSONEncodable<APIEmbed> | APIEmbed)[];
 
   /**
    * Which mentions should be parsed from the message content
@@ -21418,7 +21460,7 @@ export interface BaseMessageOptions {
   /**
    * Files to send with the message
    */
-  files?: (
+  files?: readonly (
     | BufferResolvable
     | Stream
     | JSONEncodable<APIAttachment>
@@ -21430,7 +21472,7 @@ export interface BaseMessageOptions {
   /**
    * Action rows containing interactive components for the message (buttons, select menus)
    */
-  components?: (
+  components?: readonly (
     | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
     | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
     | APIActionRowComponent<APIMessageActionRowComponent>
@@ -21449,9 +21491,17 @@ export interface MessageCreateOptions extends BaseMessageOptions {
 
   /**
    * The nonce for the message
+   *  <info>This property is required if `enforceNonce` set to `true`.</info>
    * @default ''
    */
   nonce?: string | number;
+
+  /**
+   *  Whether the nonce should be checked for uniqueness in the past few minutes.
+   * If another message was created by the same author with the same nonce,
+   * that message will be returned and no new message will be created
+   */
+  enforceNonce?: boolean;
 
   /**
    * The options for replying to a message
@@ -21462,7 +21512,7 @@ export interface MessageCreateOptions extends BaseMessageOptions {
    * Stickers to send in the message
    * @default []
    */
-  stickers?: StickerResolvable[];
+  stickers?: readonly StickerResolvable[];
 
   /**
    * The flags to send with the message
@@ -21501,7 +21551,7 @@ export interface MessageEditOptions extends Omit<BaseMessageOptions, 'content'> 
   /**
    * An array of attachments to keep. All attachments will be kept if omitted
    */
-  attachments?: (Attachment | MessageEditAttachmentData)[];
+  attachments?: readonly (Attachment | MessageEditAttachmentData)[];
 
   /**
    * Which flags to set for the message
@@ -21586,7 +21636,7 @@ export interface StringSelectMenuComponentData extends BaseSelectMenuComponentDa
   /**
    * Options for the select menu
    */
-  options: SelectMenuComponentOptionData[];
+  options: readonly SelectMenuComponentOptionData[];
 }
 
 export interface UserSelectMenuComponentData extends BaseSelectMenuComponentData {
@@ -21619,7 +21669,7 @@ export interface ChannelSelectMenuComponentData extends BaseSelectMenuComponentD
   /**
    * Options for the select menu
    */
-  channelTypes?: ChannelType[];
+  channelTypes?: readonly ChannelType[];
 }
 
 export interface MessageSelectOption {
@@ -21863,12 +21913,12 @@ export interface PresenceData {
   /**
    * Activity the user is playing
    */
-  activities?: ActivitiesOptions[];
+  activities?: readonly ActivitiesOptions[];
 
   /**
    * Shard id(s) to have the activity set on
    */
-  shardId?: number | number[];
+  shardId?: number | readonly number[];
 }
 
 /**
@@ -21934,7 +21984,7 @@ export interface PartialChannelData {
   /**
    * Overwrites of the channel
    */
-  permissionOverwrites?: PartialOverwriteData[];
+  permissionOverwrites?: readonly PartialOverwriteData[];
 
   /**
    * The rate limit per user (slowmode) of the channel in seconds
@@ -22310,7 +22360,7 @@ export interface ShardingManagerOptions {
    * List of shards to spawn or "auto"
    * @default 'auto'
    */
-  shardList?: number[] | 'auto';
+  shardList?: readonly number[] | 'auto';
 
   /**
    * Which mode to use for shards
@@ -22334,7 +22384,7 @@ export interface ShardingManagerOptions {
    * Arguments to pass to the shard script when spawning (only available when mode is set to 'process')
    * @default []
    */
-  shardArgs?: string[];
+  shardArgs?: readonly string[];
 
   /**
    * Token to use for automatic shard count and passing to shards
@@ -22345,7 +22395,7 @@ export interface ShardingManagerOptions {
    * Arguments to pass to the shard script executable when spawning (only available when mode is set to 'process')
    * @default []
    */
-  execArgv?: string[];
+  execArgv?: readonly string[];
 }
 
 export { Snowflake };
@@ -22633,7 +22683,7 @@ export interface GuildForumThreadCreateOptions extends StartThreadOptions {
   /**
    * The tags to apply to the thread
    */
-  appliedTags?: Snowflake[];
+  appliedTags?: readonly Snowflake[];
 }
 
 /**
@@ -22674,7 +22724,7 @@ export interface ThreadEditOptions {
   /**
    * The tags to apply to the thread
    */
-  appliedTags?: Snowflake[];
+  appliedTags?: readonly Snowflake[];
 
   /**
    * The flags to set on the channel
@@ -22875,7 +22925,7 @@ export interface WebhookMessageCreateOptions extends Omit<MessageCreateOptions, 
   /**
    * The tags to apply to the created thread (only available if the webhook is in a forum channel)
    */
-  appliedTags?: Snowflake[];
+  appliedTags?: readonly Snowflake[];
 }
 
 /**
@@ -22987,7 +23037,7 @@ export interface WelcomeScreenEditOptions {
   /**
    * The welcome channel data for the welcome screen
    */
-  welcomeChannels?: WelcomeChannelData[];
+  welcomeChannels?: readonly WelcomeChannelData[];
 }
 
 /**
@@ -23044,7 +23094,7 @@ export interface ClientApplicationInstallParams {
   /**
    * The scopes to add the application to the server with
    */
-  scopes: OAuth2Scopes[];
+  scopes: readonly OAuth2Scopes[];
 
   /**
    * The permissions this bot will request upon joining
