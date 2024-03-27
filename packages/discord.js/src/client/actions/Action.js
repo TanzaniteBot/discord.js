@@ -1,5 +1,6 @@
 'use strict';
 
+const Events = require('../../util/Events');
 const Partials = require('../../util/Partials');
 
 /*
@@ -36,7 +37,13 @@ class GenericAction {
     } else {
       // Try to resolve the recipient, but do not add the client user.
       const recipient = data.author ?? data.user ?? { id: data.user_id };
-      if (recipient.id !== this.client.user.id) payloadData.recipients = [recipient];
+      if (recipient.id !== this.client.user.id) {
+        if (recipient.id === undefined) {
+          this.client.emit(Events.Debug, `Failed to resolve recipient in channel payload: ${JSON.stringify(data)}`);
+        } else {
+          payloadData.recipients = [recipient];
+        }
+      }
     }
 
     if (id !== undefined) payloadData.id = id;
