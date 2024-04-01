@@ -1217,7 +1217,10 @@ export abstract class Base {
 /**
  * The base class for all clients.
  */
-export class BaseClient extends EventEmitter implements AsyncDisposable {
+export class BaseClient<EventTypes extends Record<keyof EventTypes, any[]> | [never] = [never]>
+  extends EventEmitter<EventTypes>
+  implements AsyncDisposable
+{
   /**
    * @param {} [options={}]
    */
@@ -2778,7 +2781,10 @@ export type If<Value extends boolean, TrueResult, FalseResult = null> = Value ex
 /**
  * The main hub for interacting with the Discord API, and the starting point for any bot.
  */
-export class Client<Ready extends boolean = boolean> extends BaseClient {
+export class Client<
+  Ready extends boolean = boolean,
+  Events extends Record<keyof Events, any[]> & ClientEvents = ClientEvents,
+> extends BaseClient<Events> {
   /**
    * @param options Options for the client
    */
@@ -3031,30 +3037,6 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
    * Transforms the client into a plain object.
    */
   public toJSON(): unknown;
-
-  public on<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
-  public on<Event extends string | symbol>(
-    event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => void,
-  ): this;
-
-  public once<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
-  public once<Event extends string | symbol>(
-    event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => void,
-  ): this;
-
-  public emit<Event extends keyof ClientEvents>(event: Event, ...args: ClientEvents[Event]): boolean;
-  public emit<Event extends string | symbol>(event: Exclude<Event, keyof ClientEvents>, ...args: unknown[]): boolean;
-
-  public off<Event extends keyof ClientEvents>(event: Event, listener: (...args: ClientEvents[Event]) => void): this;
-  public off<Event extends string | symbol>(
-    event: Exclude<Event, keyof ClientEvents>,
-    listener: (...args: any[]) => void,
-  ): this;
-
-  public removeAllListeners<Event extends keyof ClientEvents>(event?: Event): this;
-  public removeAllListeners<Event extends string | symbol>(event?: Exclude<Event, keyof ClientEvents>): this;
 }
 
 /**
@@ -3400,7 +3382,9 @@ export interface CollectorEventTypes<Key, Value, Extras extends unknown[] = []> 
 /**
  * Abstract class for defining a new Collector.
  */
-export abstract class Collector<Key, Value, Extras extends unknown[] = []> extends EventEmitter {
+export abstract class Collector<Key, Value, Extras extends unknown[] = []> extends EventEmitter<
+  CollectorEventTypes<Key, Value, Extras>
+> {
   public constructor(client: Client<true>, options?: CollectorOptions<[Value, ...Extras]>);
 
   /**
@@ -3527,16 +3511,6 @@ export abstract class Collector<Key, Value, Extras extends unknown[] = []> exten
    * @returns Key to remove from the collection, if any
    */
   public abstract dispose(...args: unknown[]): Key | null;
-
-  public on<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
-    event: EventKey,
-    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => void,
-  ): this;
-
-  public once<EventKey extends keyof CollectorEventTypes<Key, Value, Extras>>(
-    event: EventKey,
-    listener: (...args: CollectorEventTypes<Key, Value, Extras>[EventKey]) => void,
-  ): this;
 }
 
 /**
@@ -6841,40 +6815,6 @@ export class InteractionCollector<Interaction extends CollectedInteraction> exte
    * @param interaction The interaction that could be disposed of
    */
   public dispose(interaction: Interaction): Snowflake;
-
-  /**
-   * Emitted whenever an interaction is collected/disposed/ignored.
-   * @param interaction The interaction that was collected/disposed/ignored
-   */
-  public on(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => void): this;
-
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public on(
-    event: 'end',
-    listener: (collected: ReadonlyCollection<Snowflake, Interaction>, reason: string) => void,
-  ): this;
-  public on(event: string, listener: (...args: any[]) => void): this;
-
-  /**
-   * Emitted whenever an interaction is collected/disposed/ignored.
-   * @param interaction The interaction that was collected/disposed/ignored
-   */
-  public once(event: 'collect' | 'dispose' | 'ignore', listener: (interaction: Interaction) => void): this;
-
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public once(
-    event: 'end',
-    listener: (collected: ReadonlyCollection<Snowflake, Interaction>, reason: string) => void,
-  ): this;
-  public once(event: string, listener: (...args: any[]) => void): this;
 }
 
 // tslint:disable-next-line no-empty-interface
@@ -9404,61 +9344,6 @@ export class ReactionCollector extends Collector<Snowflake | string, MessageReac
    * Empties this reaction collector.
    */
   public empty(): void;
-
-  /**
-   * **collect**: Emitted whenever a reaction is collected.
-   *
-   * **dispose**: Emitted when the reaction had all the users removed and the `dispose` option is set to true.
-   *
-   * **remove**: Emitted when the reaction had one user removed and the `dispose` option is set to true.
-   *
-   * **ignore**: Emitted when the reaction is ignored.
-   * @param reaction The reaction that was collected/disposed of/removed
-   * @param user The user that added/removed the reaction
-   */
-  public on(
-    event: 'collect' | 'dispose' | 'remove' | 'ignore',
-    listener: (reaction: MessageReaction, user: User) => void,
-  ): this;
-
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public on(
-    event: 'end',
-    listener: (collected: ReadonlyCollection<Snowflake, MessageReaction>, reason: string) => void,
-  ): this;
-  public on(event: string, listener: (...args: any[]) => void): this;
-
-  /**
-   * **collect**: Emitted whenever a reaction is collected.
-   *
-   * **dispose**: Emitted when the reaction had all the users removed and the `dispose` option is set to true.
-   *
-   * **remove**: Emitted when the reaction had one user removed and the `dispose` option is set to true.
-   *
-   * **ignore**: Emitted when the reaction is ignored.
-   * @param reaction The reaction that was collected/disposed of/removed
-   * @param user The user that added/removed the reaction
-   */
-  public once(
-    event: 'collect' | 'dispose' | 'remove' | 'ignore',
-    listener: (reaction: MessageReaction, user: User) => void,
-  ): this;
-
-  /**
-   * Emitted when the collector is finished collecting.
-   * @param collected The elements collected by the collector
-   * @param reason The reason the collector ended
-   */
-  public once(
-    event: 'end',
-    listener: (collected: ReadonlyCollection<Snowflake, MessageReaction>, reason: string) => void,
-  ): this;
-
-  public once(event: string, listener: (...args: any[]) => void): this;
 }
 
 /**
@@ -10160,7 +10045,7 @@ export interface ShardEventTypes {
  * spawn a new one to replace it as necessary.
  * @extends EventEmitter
  */
-export class Shard extends EventEmitter {
+export class Shard extends EventEmitter<ShardEventTypes> {
   /**
    * @param manager Manager that is creating this shard
    * @param id The shard's id
@@ -10300,16 +10185,6 @@ export class Shard extends EventEmitter {
    * before resolving (`-1` or `Infinity` for no wait)
    */
   public spawn(timeout?: number): Promise<ChildProcess>;
-
-  public on<Event extends keyof ShardEventTypes>(
-    event: Event,
-    listener: (...args: ShardEventTypes[Event]) => void,
-  ): this;
-
-  public once<Event extends keyof ShardEventTypes>(
-    event: Event,
-    listener: (...args: ShardEventTypes[Event]) => void,
-  ): this;
 }
 
 /**
@@ -10441,6 +10316,14 @@ export class ShardClientUtil {
   public static shardIdForGuildId(guildId: Snowflake, shardCount: number): number;
 }
 
+interface ShardingManagerEventTypes {
+  /**
+   * Emitted upon creating a shard.
+   * @param shard Shard that was created
+   */
+  shardCreate: [shard: Shard];
+}
+
 /**
  * This is a utility class that makes multi-process sharding of a bot an easy and painless experience.
  * It works by spawning a self-contained {@link ChildProcess} or {@link Worker} for each individual shard, each
@@ -10449,7 +10332,7 @@ export class ShardClientUtil {
  * with sharding. It can spawn a specific number of shards or the amount that Discord suggests for the bot, and takes a
  * path to your main bot script to launch for each one.
  */
-export class ShardingManager extends EventEmitter {
+export class ShardingManager extends EventEmitter<ShardingManagerEventTypes> {
   /**
    * @param file Path to your shard script file
    * @param options Options for the sharding manager
@@ -10564,18 +10447,6 @@ export class ShardingManager extends EventEmitter {
    * @param options Options for spawning shards
    */
   public spawn(options?: MultipleShardSpawnOptions): Promise<Collection<number, Shard>>;
-
-  /**
-   * Emitted upon creating a shard.
-   * @param shard Shard that was created
-   */
-  public on(event: 'shardCreate', listener: (shard: Shard) => void): this;
-
-  /**
-   * Emitted upon creating a shard.
-   * @param shard Shard that was created
-   */
-  public once(event: 'shardCreate', listener: (shard: Shard) => void): this;
 }
 
 export interface FetchRecommendedShardCountOptions {
@@ -12934,12 +12805,14 @@ export class WebhookClient extends BaseClient {
   public send(options: string | MessagePayload | WebhookMessageCreateOptions): Promise<APIMessage>;
 }
 
+type WebSocketManagerEventTypes = Record<GatewayDispatchEvents, [data: any, shardId: number]>;
+
 /**
  * The WebSocket manager for this client.
  * <info>This class forwards raw dispatch events,
  * read more about it here {@link https://discord.com/developers/docs/topics/gateway}</info>
  */
-export class WebSocketManager extends EventEmitter {
+export class WebSocketManager extends EventEmitter<WebSocketManagerEventTypes> {
   public constructor(client: Client);
 
   /* start added by tanzanite fork */
@@ -12985,10 +12858,6 @@ export class WebSocketManager extends EventEmitter {
    * The average ping of all WebSocketShards
    */
   public get ping(): number;
-
-  public on(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
-
-  public once(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
 
   /**
    * Emits a debug message.
@@ -13080,7 +12949,7 @@ export interface WebSocketShardEventTypes {
 /**
  * Represents a Shard's WebSocket connection
  */
-export class WebSocketShard extends EventEmitter {
+export class WebSocketShard extends EventEmitter<WebSocketShardEventTypes> {
   public constructor(manager: WebSocketManager, id: number);
 
   /**
@@ -13170,16 +13039,6 @@ export class WebSocketShard extends EventEmitter {
    * @param {} [important=false] If this packet should be added first in queue
    */
   public send(data: unknown, important?: boolean): void;
-
-  public on<Event extends keyof WebSocketShardEventTypes>(
-    event: Event,
-    listener: (...args: WebSocketShardEventTypes[Event]) => void,
-  ): this;
-
-  public once<Event extends keyof WebSocketShardEventTypes>(
-    event: Event,
-    listener: (...args: WebSocketShardEventTypes[Event]) => void,
-  ): this;
 }
 
 /**
