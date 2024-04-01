@@ -500,7 +500,7 @@ class Guild extends AnonymousGuild {
    */
   async fetchOwner(options) {
     if (!this.ownerId) {
-      throw new DiscordjsError(ErrorCodes.FetchOwnerId);
+      throw new DiscordjsError(ErrorCodes.FetchOwnerId, 'guild');
     }
     const member = await this.members.fetch({ ...options, user: this.ownerId });
     return member;

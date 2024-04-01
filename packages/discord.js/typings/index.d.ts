@@ -180,7 +180,6 @@ import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Stream } from 'node:stream';
 import { MessagePort, Worker } from 'node:worker_threads';
-import { Data as WebSocketData, WebSocket } from 'ws';
 import {
   RawActivityData,
   RawAnonymousGuildData,
@@ -3369,7 +3368,7 @@ export class ClientVoiceManager {
   public adapters: Map<Snowflake, InternalDiscordGatewayAdapterLibraryMethods>;
 }
 
-export { Collection } from '@discordjs/collection';
+export { Collection, ReadonlyCollection } from '@discordjs/collection';
 
 export interface CollectorEventTypes<Key, Value, Extras extends unknown[] = []> {
   /**
@@ -4591,7 +4590,7 @@ export class Guild extends AnonymousGuild {
    *   .then(webhooks => console.log(`Fetched ${webhooks.size} webhooks`))
    *   .catch(console.error);
    */
-  public fetchWebhooks(): Promise<Collection<Snowflake, Webhook>>;
+  public fetchWebhooks(): Promise<Collection<Snowflake, Webhook<WebhookType.ChannelFollower | WebhookType.Incoming>>>;
 
   /**
    * Fetches the welcome screen for this guild.
@@ -4882,7 +4881,7 @@ export class GuildAuditLogs<Event extends GuildAuditLogsResolvable = AuditLogEve
   /**
    * Cached webhooks
    */
-  private webhooks: Collection<Snowflake, Webhook>;
+  private webhooks: Collection<Snowflake, Webhook<WebhookType.ChannelFollower | WebhookType.Incoming>>;
 
   /**
    * Cached integrations
@@ -12716,8 +12715,8 @@ export class VoiceState extends Base {
 }
 
 // tslint:disable-next-line no-empty-interface
-export interface Webhook extends WebhookFields {}
-export class Webhook {
+export interface Webhook<Type extends WebhookType = WebhookType> extends WebhookFields {}
+export class Webhook<Type extends WebhookType = WebhookType> {
   private constructor(client: Client<true>, data?: RawWebhookData);
 
   /**
@@ -12754,32 +12753,36 @@ export class Webhook {
   /**
    * The owner of the webhook
    */
-  public owner: User | APIUser | null;
+  public owner: Type extends WebhookType.Incoming ? User | APIUser | null : User | APIUser;
 
   /**
    * The source guild of the webhook
    */
-  public sourceGuild: Guild | APIPartialGuild | null;
+  public sourceGuild: Type extends WebhookType.ChannelFollower ? Guild | APIPartialGuild : null;
 
   /**
    * The source channel of the webhook
    */
-  public sourceChannel: NewsChannel | APIPartialChannel | null;
+  public sourceChannel: Type extends WebhookType.ChannelFollower ? NewsChannel | APIPartialChannel : null;
 
   /**
    * The token for the webhook, unavailable for follower webhooks and webhooks owned by another application.
    */
-  public token: string | null;
+  public token: Type extends WebhookType.Incoming
+    ? string
+    : Type extends WebhookType.ChannelFollower
+      ? null
+      : string | null;
 
   /**
    * The type of the webhook
    */
-  public type: WebhookType;
+  public type: Type;
 
   /**
    * The application that created this webhook
    */
-  public applicationId: Snowflake | null;
+  public applicationId: Type extends WebhookType.Application ? Snowflake : null;
 
   /**
    * The channel the webhook belongs to
@@ -12789,40 +12792,24 @@ export class Webhook {
   /**
    * Whether this webhook is created by a user.
    */
-  public isUserCreated(): this is this & {
-    type: WebhookType.Incoming;
-    applicationId: null;
+  public isUserCreated(): this is Webhook<WebhookType.Incoming> & {
     owner: User | APIUser;
   };
 
   /**
    * Whether this webhook is created by an application.
    */
-  public isApplicationCreated(): this is this & {
-    type: WebhookType.Application;
-    applicationId: Snowflake;
-    owner: User | APIUser;
-  };
+  public isApplicationCreated(): this is Webhook<WebhookType.Application>;
 
   /**
    * Whether or not this webhook is an incoming webhook.
    */
-  public isIncoming(): this is this & {
-    type: WebhookType.Incoming;
-    token: string;
-  };
+  public isIncoming(): this is Webhook<WebhookType.Incoming>;
 
   /**
    * Whether or not this webhook is a channel follower webhook.
    */
-  public isChannelFollower(): this is this & {
-    type: WebhookType.ChannelFollower;
-    sourceGuild: Guild | APIPartialGuild;
-    sourceChannel: NewsChannel | APIPartialChannel;
-    token: null;
-    applicationId: null;
-    owner: User | APIUser;
-  };
+  public isChannelFollower(): this is Webhook<WebhookType.ChannelFollower>;
 
   /**
    * Edits a message that was sent by this webhook.
@@ -14609,7 +14596,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .then(console.log)
    *   .catch(console.error)
    */
-  public createWebhook(options: WebhookCreateOptions): Promise<Webhook>;
+  public createWebhook(options: WebhookCreateOptions): Promise<Webhook<WebhookType.Incoming>>;
 
   /**
    * Edits the channel.
@@ -14621,7 +14608,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .then(console.log)
    *   .catch(console.error);
    */
-  public edit(channel: GuildChannelResolvable, options: GuildChannelEditOptions): Promise<GuildChannel>;
+  public edit(channel: GuildChannelResolvable, data: GuildChannelEditOptions): Promise<GuildChannel>;
 
   /**
    * Obtains one or more guild channels from Discord, or the channel cache if they're already available.
@@ -14653,7 +14640,9 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    *   .then(hooks => console.log(`This channel has ${hooks.size} hooks`))
    *   .catch(console.error);
    */
-  public fetchWebhooks(channel: GuildChannelResolvable): Promise<Collection<Snowflake, Webhook>>;
+  public fetchWebhooks(
+    channel: GuildChannelResolvable,
+  ): Promise<Collection<Snowflake, Webhook<WebhookType.ChannelFollower | WebhookType.Incoming>>>;
 
   /**
    * Sets a new position for the guild channel.
@@ -16215,7 +16204,7 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    *   .then(console.log)
    *   .catch(console.error)
    */
-  createWebhook(options: ChannelWebhookCreateOptions): Promise<Webhook>;
+  createWebhook(options: ChannelWebhookCreateOptions): Promise<Webhook<WebhookType.Incoming>>;
 
   /**
    * Fetches all webhooks for the channel.
@@ -16225,7 +16214,7 @@ export interface TextBasedChannelFields<InGuild extends boolean = boolean>
    *   .then(hooks => console.log(`This channel has ${hooks.size} hooks`))
    *   .catch(console.error);
    */
-  fetchWebhooks(): Promise<Collection<Snowflake, Webhook>>;
+  fetchWebhooks(): Promise<Collection<Snowflake, Webhook<WebhookType.ChannelFollower | WebhookType.Incoming>>>;
 
   /**
    * Sends a typing indicator in the channel.
@@ -16346,7 +16335,7 @@ export interface WebhookFields extends PartialWebhookFields {
    * Edits this webhook.
    * @param options Options for editing the webhook
    */
-  edit(options: WebhookEditOptions): Promise<Webhook>;
+  edit(options: WebhookEditOptions): Promise<this>;
 
   /**
    * Sends a raw slack message with this webhook.
@@ -19316,17 +19305,6 @@ export type EmojiIdentifierResolvable =
 export type EmojiResolvable = Snowflake | GuildEmoji | ReactionEmoji;
 
 /**
- * @external ErrorEvent
- * @see {@link [ErrorEvent](https://developer.mozilla.org/en-US/docs/Web/API/ErrorEvent)}
- */
-export interface ErrorEvent {
-  error: unknown;
-  message: string;
-  type: string;
-  target: WebSocket;
-}
-
-/**
  * An extendable structure:
  */
 interface Extendable {
@@ -19932,7 +19910,7 @@ export interface GuildAuditLogsEntryExtraField {
 export interface GuildAuditLogsEntryTargetField<TActionType extends GuildAuditLogsActionType> {
   User: User | null;
   Guild: Guild;
-  Webhook: Webhook;
+  Webhook: Webhook<WebhookType.ChannelFollower | WebhookType.Incoming>;
   Invite: Invite;
   Message: TActionType extends AuditLogEvent.MessageBulkDelete ? Guild | { id: Snowflake } : User;
   Integration: Integration;
@@ -21343,16 +21321,6 @@ export interface MessageChannelComponentCollectorOptions<Interaction extends Col
   extends Omit<InteractionCollectorOptions<Interaction>, 'channel' | 'guild' | 'interactionType'> {}
 
 /**
- * @external
- * @see {@link [MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)}
- */
-export interface MessageEvent {
-  data: WebSocketData;
-  type: string;
-  target: WebSocket;
-}
-
-/**
  * Partial data of the interaction that a message is a reply to
  */
 export interface MessageInteraction {
@@ -21782,7 +21750,7 @@ export type MessageTarget =
   | TextBasedChannel
   | User
   | GuildMember
-  | Webhook
+  | Webhook<WebhookType.Incoming>
   | WebhookClient
   | Message
   | MessageManager;
