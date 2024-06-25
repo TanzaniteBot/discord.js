@@ -169,7 +169,7 @@ class Guild extends AnonymousGuild {
 
     if ('large' in data) {
       /**
-       * Whether the guild is "large" (has more than {@link WebsocketOptions large_threshold} members, 50 by default)
+       * Whether the guild is "large" (has more than {@link WebSocketOptions large_threshold} members, 50 by default)
        * @type {boolean}
        */
       this.large = Boolean(data.large);
@@ -296,7 +296,8 @@ class Guild extends AnonymousGuild {
     if ('max_presences' in data) {
       /**
        * The maximum amount of presences the guild can have (this is `null` for all but the largest of guilds)
-       * <info>You will need to fetch the guild using {@link Guild#fetch} if you want to receive this parameter</info>
+       * <info>You will need to fetch the guild using {@link BaseGuild#fetch} if you want to receive
+       * this parameter</info>
        * @type {?number}
        */
       this.maximumPresences = data.max_presences;
@@ -327,7 +328,8 @@ class Guild extends AnonymousGuild {
     if ('approximate_member_count' in data) {
       /**
        * The approximate amount of members the guild has
-       * <info>You will need to fetch the guild using {@link Guild#fetch} if you want to receive this parameter</info>
+       * <info>You will need to fetch the guild using {@link BaseGuild#fetch} if you want to receive
+       * this parameter</info>
        * @type {?number}
        */
       this.approximateMemberCount = data.approximate_member_count;
@@ -338,7 +340,8 @@ class Guild extends AnonymousGuild {
     if ('approximate_presence_count' in data) {
       /**
        * The approximate amount of presences the guild has
-       * <info>You will need to fetch the guild using {@link Guild#fetch} if you want to receive this parameter</info>
+       * <info>You will need to fetch the guild using {@link BaseGuild#fetch} if you want to receive
+       * this parameter</info>
        * @type {?number}
        */
       this.approximatePresenceCount = data.approximate_presence_count;

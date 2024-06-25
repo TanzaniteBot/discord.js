@@ -175,6 +175,12 @@ import {
   SKUType,
   APIEntitlement,
   EntitlementType,
+  APIPoll,
+  PollLayoutType,
+  APIPollAnswer,
+  APISelectMenuDefaultValue,
+  SelectMenuDefaultValueType,
+  InviteType,
 } from 'discord-api-types/v10';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -236,6 +242,7 @@ import {
   RawWidgetData,
   RawWidgetMemberData,
 } from './rawDataTypes.js';
+import { isMessageComponentGuildInteraction } from 'discord-api-types/utils/v9';
 
 declare module 'node:events' {
   class EventEmitter {
@@ -3243,6 +3250,17 @@ export class ClientUser extends User {
   public setAvatar(avatar: BufferResolvable | Base64Resolvable | null): Promise<this>;
 
   /**
+   * Sets the banner of the logged in client.
+   * @param banner The new banner
+   * @example
+   * // Set banner
+   * client.user.setBanner('./banner.png')
+   *   .then(user => console.log(`New banner set!`))
+   *   .catch(console.error);
+   */
+  public setBanner(banner: BufferResolvable | Base64Resolvable | null): Promise<this>;
+
+  /**
    * Sets the full presence of the client user.
    * @param data Data for the presence
    * @example
@@ -4075,6 +4093,12 @@ export class Entitlement extends Base {
   public type: EntitlementType;
 
   /**
+   * Whether this entitlement has been consumed
+   * @type {boolean}
+   */
+  public consumed: boolean;
+
+  /**
    * Whether this entitlement was deleted
    */
   public deleted: boolean;
@@ -4107,6 +4131,13 @@ export class Entitlement extends Base {
    * <info>This is only `null` for test entitlements</info>
    */
   public get endsAt(): Date | null;
+
+  /**
+   * Marks this entitlement as consumed
+   * <info>Only available for One-Time Purchase consumable SKUs.</info>
+   * @returns {Promise<void>}
+   */
+  public consume(): Promise<void>;
 
   /**
    * Fetches the user that is granted access to this entitlement's SKU
@@ -4185,13 +4216,15 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The approximate amount of members the guild has
-   * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
+   * <info>You will need to fetch the guild using {@link BaseGuild.fetch} if you want to receive
+   * this parameter</info>
    */
   public approximateMemberCount: number | null;
 
   /**
    * The approximate amount of presences the guild has
-   * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
+   * <info>You will need to fetch the guild using {@link BaseGuild#fetch} if you want to receive
+   * this parameter</info>
    */
   public approximatePresenceCount: number | null;
 
@@ -4256,7 +4289,7 @@ export class Guild extends AnonymousGuild {
   public joinedTimestamp: number;
 
   /**
-   * Whether the guild is "large" (has more than {@link WebsocketOptions large_threshold} members, 50 by default)
+   * Whether the guild is "large" (has more than {@link WebSocketOptions large_threshold} members, 50 by default)
    */
   public large: boolean;
 
@@ -4267,7 +4300,8 @@ export class Guild extends AnonymousGuild {
 
   /**
    * The maximum amount of presences the guild can have (this is `null` for all but the largest of guilds)
-   * <info>You will need to fetch the guild using {@link Guild.fetch} if you want to receive this parameter</info>
+   * <info>You will need to fetch the guild using {@link BaseGuild.fetch} if you want to receive
+   * this parameter</info>
    */
   public maximumPresences: number | null;
 
@@ -5988,7 +6022,7 @@ export class GuildScheduledEvent<Status extends GuildScheduledEventStatus = Guil
 
   /**
    * The time the guild scheduled event will start at
-   * <info>This can be potentially `null` only when it's an {@link AuditLogEntryTarget}</info>
+   * <info>This can be potentially `null` only when it's an {@link GuildAuditLogsEntry.target}</info>
    */
   public get scheduledStartAt(): Date | null;
 
@@ -6977,6 +7011,11 @@ export class Invite extends Base {
   public temporary: boolean | null;
 
   /**
+   * The type of this invite
+   */
+  public type: InviteType;
+
+  /**
    * The URL to the invite
    */
   public get url(): string;
@@ -7104,6 +7143,26 @@ export class LimitedCollection<Key, Value> extends Collection<Key, Value> {
    * A function called to check if an entry should be kept when the Collection is at max size.
    */
   public keepOverLimit: ((value: Value, key: Key, collection: this) => boolean) | null;
+}
+
+/**
+ * A call associated with a message
+ */
+export interface MessageCall {
+  /**
+   * The time the call ended
+   */
+  get endedAt(): Date | null;
+
+  /**
+   * The timestamp the call ended
+   */
+  endedTimestamp: number | null;
+
+  /**
+   * The ids of the users that participated in the call
+   */
+  participants: readonly Snowflake[];
 }
 
 export type MessageComponentType = Exclude<ComponentType, ComponentType.TextInput | ComponentType.ActionRow>;
@@ -7375,6 +7434,16 @@ export class Message<InGuild extends boolean = boolean> extends Base {
    * Whether or not the message was Text-To-Speech
    */
   public tts: boolean;
+
+  /**
+   * The poll that was sent with the message
+   */
+  public poll: Poll | null;
+
+  /**
+   * The call associated with the message
+   */
+  public call: MessageCall | null;
 
   /**
    * The type of the message
@@ -8787,6 +8856,13 @@ export class NewsChannel extends BaseGuildTextChannel {
 }
 
 /**
+ * Data that can be resolved to a News Channel object. This can be:
+ * * A NewsChannel object
+ * * A Snowflake
+ */
+export type NewsChannelResolvable = NewsChannel | Snowflake;
+
+/**
  * A partial guild received when using {@link GuildManager.fetch} to fetch multiple guilds.
  */
 export class OAuth2Guild extends BaseGuild {
@@ -9140,7 +9216,7 @@ export class PermissionOverwrites extends Base {
   ): ResolvedOverwriteOptions;
 
   /**
-   * Resolves an overwrite into {@link RawOverwriteData}.
+   * Resolves an overwrite into {@link APIOverwrite}.
    * @param overwrite The overwrite-like data to resolve
    * @param guild The guild to resolve from
    */
@@ -9265,6 +9341,126 @@ export class Presence extends Base {
    * @param presence The presence to compare with
    */
   public equals(presence: Presence): boolean;
+}
+
+/**
+ * The media for a poll's question
+ */
+export interface PollQuestionMedia {
+  /**
+   * The text of this question
+   */
+  text: string;
+}
+
+/**
+ * Represents a Poll
+ */
+export class Poll extends Base {
+  private constructor(client: Client<true>, data: APIPoll, message: Message);
+
+  /**
+   * The message that started this poll
+   */
+  public readonly message: Message;
+
+  /**
+   * The media for this poll's question
+   */
+  public question: PollQuestionMedia;
+
+  /**
+   * The answers of this poll
+   */
+  public answers: Collection<number, PollAnswer>;
+
+  /**
+   * The timestamp when this poll expires
+   */
+  public expiresTimestamp: number;
+
+  /**
+   * The date when this poll expires
+   */
+  public get expiresAt(): Date;
+
+  /**
+   * Whether this poll allows multiple answers
+   */
+  public allowMultiselect: boolean;
+
+  /**
+   * The layout type of this poll
+   */
+  public layoutType: PollLayoutType;
+
+  /**
+   * Whether this poll's results have been precisely counted
+   */
+  public resultsFinalized: boolean;
+
+  /**
+   * Ends this poll.
+   */
+  public end(): Promise<Message>;
+}
+
+/**
+ * Options used for fetching voters of a poll answer.
+ */
+export interface BaseFetchPollAnswerVotersOptions {
+  /**
+   * The maximum number of voters to fetch
+   */
+  after?: Snowflake;
+
+  /**
+   * The user id to fetch voters after
+   */
+  limit?: number;
+}
+
+/**
+ * Represents an answer to a {@link Poll}
+ */
+export class PollAnswer extends Base {
+  private constructor(client: Client<true>, data: APIPollAnswer & { count?: number }, poll: Poll);
+
+  /**
+   * The raw emoji of this answer
+   */
+  private _emoji: APIPartialEmoji | null;
+
+  /**
+   * The {@link Poll} this answer is part of
+   */
+  public readonly poll: Poll;
+
+  /**
+   * The id of this answer
+   */
+  public id: number;
+
+  /**
+   * The text of this answer
+   */
+  public text: string | null;
+
+  /**
+   * The amount of votes this answer has
+   */
+  public voteCount: number;
+
+  /**
+   * The emoji of this answer
+   */
+  public get emoji(): GuildEmoji | Emoji | null;
+
+  /**
+   * Fetches the users that voted for this answer.
+   * @param {} [options={}] The options for fetching voters
+   */
+  public fetchVoters(options?: BaseFetchPollAnswerVotersOptions): Promise<Collection<Snowflake, User>>;
 }
 
 /**
@@ -11559,7 +11755,7 @@ export class ThreadChannel<ThreadOnly extends boolean = boolean> extends BaseCha
    * Fetches the message that started this thread, if any.
    * <info>The `Promise` will reject if the original message in a forum post is deleted
    * or when the original message in the parent channel is deleted.
-   * If you just need the id of that message, use {@link ThreadChannel.id} instead.</info>
+   * If you just need the id of that message, use {@link BaseChannel.id} instead.</info>
    * @param options Additional options for this fetch
    */
   public fetchStarterMessage(options?: BaseFetchOptions): Promise<Message<true> | null>;
@@ -11792,6 +11988,18 @@ export class Typing extends Base {
   };
 }
 
+export interface AvatarDecorationData {
+  /**
+   * The avatar decoration hash
+   */
+  asset: string;
+
+  /**
+   * The id of the avatar decoration's SKU
+   */
+  skuId: Snowflake;
+}
+
 // tslint:disable-next-line no-empty-interface
 export interface User extends PartialTextBasedChannelFields<false> {}
 
@@ -11824,8 +12032,14 @@ export class User extends Base {
 
   /**
    * The user avatar decoration's hash
+   * @deprecated Use {@link User.avatarDecorationData} instead
    */
   public avatarDecoration: string | null;
+
+  /**
+   * The user avatar decoration's data
+   */
+  public avatarDecorationData: AvatarDecorationData | null;
 
   /**
    * The user banner's hash
@@ -12812,7 +13026,7 @@ type WebSocketManagerEventTypes = Record<GatewayDispatchEvents, [data: any, shar
  * <info>This class forwards raw dispatch events,
  * read more about it here {@link https://discord.com/developers/docs/topics/gateway}</info>
  */
-export class WebSocketManager extends EventEmitter<WebSocketManagerEventTypes> {
+export class WebSocketManager extends EventEmitter {
   public constructor(client: Client);
 
   /* start added by tanzanite fork */
@@ -12859,12 +13073,15 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEventTypes> {
    */
   public get ping(): number;
 
+  public on(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
+  public once(event: GatewayDispatchEvents, listener: (data: any, shardId: number) => void): this;
+
   /**
    * Emits a debug message.
-   * @param message The debug message
+   * @param messages The debug message
    * @param shardId The id of the shard that emitted this message, if any
    */
-  private debug(message: string, shardId?: number): void;
+  private debug(messages: readonly string[], shardId?: number): void;
 
   /**
    * Connects this manager to the gateway.
@@ -13002,7 +13219,7 @@ export class WebSocketShard extends EventEmitter<WebSocketShardEventTypes> {
    * Emits a debug event.
    * @param message The debug message
    */
-  private debug(message: string): void;
+  private debug(messages: readonly string[]): void;
 
   /**
    * Called when the shard receives the READY payload.
@@ -13575,6 +13792,10 @@ export enum DiscordjsErrorCodes {
   GuildForumMessageRequired = 'GuildForumMessageRequired',
 
   EntitlementCreateInvalidOwner = 'EntitlementCreateInvalidOwner',
+
+  BulkBanUsersOptionEmpty = 'BulkBanUsersOptionEmpty',
+
+  PollAlreadyExpired = 'PollAlreadyExpired',
 }
 
 export class DiscordjsError extends Error {
@@ -14270,6 +14491,13 @@ export class EntitlementManager extends CachedManager<Snowflake, Entitlement, En
    * @param entitlement The entitlement to delete
    */
   public deleteTest(entitlement: EntitlementResolvable): Promise<void>;
+
+  /**
+   * Marks an entitlement as consumed
+   * <info>Only available for One-Time Purchase consumable SKUs.</info>
+   * @param entitlementId The id of the entitlement to consume
+   */
+  public consume(entitlementId: Snowflake): Promise<void>;
 }
 
 export interface FetchGuildApplicationCommandFetchOptions extends Omit<FetchApplicationCommandOptions, 'guildId'> {}
@@ -14410,7 +14638,7 @@ export class GuildChannelManager extends CachedManager<Snowflake, GuildBasedChan
    * @returns Returns created target webhook id.
    */
   public addFollower(
-    channel: NewsChannel | Snowflake,
+    channel: NewsChannelResolvable,
     targetChannel: TextChannelResolvable,
     reason?: string,
   ): Promise<Snowflake>;
@@ -14777,6 +15005,26 @@ export class GuildMemberManager extends CachedManager<Snowflake, GuildMember, Gu
   public ban(user: UserResolvable, options?: BanOptions): Promise<GuildMember | User | Snowflake>;
 
   /**
+   * Bulk ban users from a guild, and optionally delete previous messages sent by them.
+   * @param users The users to ban
+   * @param options The options for bulk banning users
+   * @returns Returns an object with `bannedUsers` key containing the IDs of the banned users
+   * and the key `failedUsers` with the IDs that could not be banned or were already banned.
+   * Internally calls the GuildBanManager#bulkCreate method.
+   * @example
+   * // Bulk ban users by ids (or with user/guild member objects) and delete all their messages from the past 7 days
+   * guild.members.bulkBan(['84484653687267328'], { deleteMessageSeconds: 7 * 24 * 60 * 60 })
+   *   .then(result => {
+   *     console.log(`Banned ${result.bannedUsers.length} users, failed to ban ${result.failedUsers.length} users.`)
+   *   })
+   *   .catch(console.error);
+   */
+  public bulkBan(
+    users: ReadonlyCollection<Snowflake, UserResolvable> | readonly UserResolvable[],
+    options?: BulkBanOptions,
+  ): Promise<BulkBanResult>;
+
+  /**
    * Edits a member of the guild.
    * <info>The user must be a member of the guild</info>
    * @param user The member to edit
@@ -14976,6 +15224,25 @@ export class GuildBanManager extends CachedManager<Snowflake, GuildBan, GuildBan
    *   .catch(console.error);
    */
   public remove(user: UserResolvable, reason?: string): Promise<User | null>;
+
+  /**
+   * Bulk ban users from a guild, and optionally delete previous messages sent by them.
+   * @param users The users to ban
+   * @param options The options for bulk banning users
+   * @returns Returns an object with `bannedUsers` key containing the IDs of the banned users
+   * and the key `failedUsers` with the IDs that could not be banned or were already banned.
+   * @example
+   * // Bulk ban users by ids (or with user/guild member objects) and delete all their messages from the past 7 days
+   * guild.bans.bulkCreate(['84484653687267328'], { deleteMessageSeconds: 7 * 24 * 60 * 60 })
+   *   .then(result => {
+   *     console.log(`Banned ${result.bannedUsers.length} users, failed to ban ${result.failedUsers.length} users.`)
+   *   })
+   *   .catch(console.error);
+   */
+  public bulkCreate(
+    users: ReadonlyCollection<Snowflake, UserResolvable> | readonly UserResolvable[],
+    options?: BulkBanOptions,
+  ): Promise<BulkBanResult>;
 }
 
 /**
@@ -15246,6 +15513,21 @@ export class GuildMemberRoleManager extends DataManager<Snowflake, Role, RoleRes
 }
 
 /**
+ * Options used for fetching voters of an answer in a poll.
+ */
+export interface FetchPollAnswerVotersOptions extends BaseFetchPollAnswerVotersOptions {
+  /**
+   * The id of the message
+   */
+  messageId: Snowflake;
+
+  /**
+   * The id of the answer
+   */
+  answerId: number;
+}
+
+/**
  * Manages API methods for Messages and holds their cache.
  */
 export abstract class MessageManager<InGuild extends boolean = boolean> extends CachedManager<
@@ -15339,6 +15621,18 @@ export abstract class MessageManager<InGuild extends boolean = boolean> extends 
    * @param message The message to unpin
    */
   public unpin(message: MessageResolvable, reason?: string): Promise<void>;
+
+  /**
+   * Ends a poll.
+   * @param messageId The id of the message
+   */
+  public endPoll(messageId: Snowflake): Promise<Message>;
+
+  /**
+   * Fetches the users that voted for a poll answer.
+   * @param options The options for fetching the poll answer voters
+   */
+  public fetchPollAnswerVoters(options: FetchPollAnswerVotersOptions): Promise<Collection<Snowflake, User>>;
 }
 
 /**
@@ -17103,7 +17397,9 @@ export interface AutoModerationTriggerMetadata {
 
   /**
    * The substrings that will be exempt from triggering
-   * {@link AutoModerationRuleTriggerType.Keyword} and {@link AutoModerationRuleTriggerType.KeywordPreset}
+   * {@link AutoModerationRuleTriggerType.Keyword},
+   * {@link AutoModerationRuleTriggerType.KeywordPreset},
+   * and {@link AutoModerationRuleTriggerType.MemberProfile}
    */
   allowList: readonly string[];
 
@@ -17173,6 +17469,72 @@ export interface BanOptions {
    * The reason for the ban
    */
   reason?: string;
+}
+
+/**
+ * Options used for bulk banning users from a guild.
+ */
+export interface BulkBanOptions extends Omit<BanOptions, 'deleteMessageDays'> {}
+
+/**
+ * Result of bulk banning users from a guild.
+ */
+
+export interface BulkBanResult {
+  /**
+   * IDs of the banned users
+   */
+  bannedUsers: readonly Snowflake[];
+
+  /**
+   * IDs of the users that could not be banned or were already banned
+   */
+  failedUsers: readonly Snowflake[];
+}
+
+/**
+ * Represents the data for a poll.
+ */
+export interface PollData {
+  /**
+   * The question for the poll
+   */
+  question: PollQuestionMedia;
+
+  /**
+   * The answers for the poll
+   */
+  answers: readonly PollAnswerData[];
+
+  /**
+   * The duration in hours for the poll
+   */
+  duration: number;
+
+  /**
+   * Whether the poll allows multiple answers
+   */
+  allowMultiselect: boolean;
+
+  /**
+   * The layout type for the poll
+   */
+  layoutType?: PollLayoutType;
+}
+
+/**
+ * Represents the data for a poll answer.
+ */
+export interface PollAnswerData {
+  /**
+   * The text for the poll answer
+   */
+  text: string;
+
+  /**
+   * The emoji for the poll answer
+   */
+  emoji?: EmojiIdentifierResolvable;
 }
 
 /**
@@ -17554,6 +17916,31 @@ export interface WebhookCreateOptions extends ChannelWebhookCreateOptions {
   channel: TextChannel | NewsChannel | VoiceChannel | StageChannel | ForumChannel | MediaChannel | Snowflake;
 }
 
+/**
+ * Represents the properties of a guild members chunk
+ */
+export interface GuildMembersChunk {
+  /**
+   * Index of the received chunk
+   */
+  index: number;
+
+  /**
+   * Number of chunks the client should receive
+   */
+  count: number;
+
+  /**
+   * An array of whatever could not be found when using {@link GatewayOpcodes.RequestGuildMembers}
+   */
+  notFound: readonly unknown[];
+
+  /**
+   * Nonce for this chunk
+   */
+  nonce: string | undefined;
+}
+
 export interface ClientEvents {
   /**
    * Emitted whenever permissions for an application command in a guild were updated.
@@ -17761,31 +18148,7 @@ export interface ClientEvents {
    * @param guild The guild related to the member chunk
    * @param chunk Properties of the received chunk
    */
-  guildMembersChunk: [
-    members: ReadonlyCollection<Snowflake, GuildMember>,
-    guild: Guild,
-    data: {
-      /**
-       * Index of the received chunk
-       */
-      index: number;
-
-      /**
-       * Number of chunks the client should receive
-       */
-      count: number;
-
-      /**
-       * An array of whatever could not be found when using {@link GatewayOpcodes.RequestGuildMembers}
-       */
-      notFound: readonly unknown[];
-
-      /**
-       * Nonce for this chunk
-       */
-      nonce: string | undefined;
-    },
-  ];
+  guildMembersChunk: [members: ReadonlyCollection<Snowflake, GuildMember>, guild: Guild, data: GuildMembersChunk];
 
   /**
    * Emitted whenever a guild member changes - i.e. new role, removed role, nickname.
@@ -17826,6 +18189,20 @@ export interface ClientEvents {
    * @param message The deleted message
    */
   messageDelete: [message: Message | PartialMessage];
+
+  /**
+   * Emitted whenever a user votes in a poll.
+   * @param pollAnswer The answer that was voted on
+   * @param userId The id of the user that voted
+   */
+  messagePollVoteAdd: [pollAnswer: PollAnswer, userId: Snowflake];
+
+  /**
+   * Emitted whenever a user removes their vote in a poll.
+   * @param pollAnswer The answer where the vote was removed
+   * @param userId The id of the user that removed their vote
+   */
+  messagePollVoteRemove: [pollAnswer: PollAnswer, userId: Snowflake];
 
   /**
    * Emitted whenever all reactions are removed from a cached message.
@@ -18239,6 +18616,11 @@ export interface ClientUserEditOptions {
    * The new avatar
    */
   avatar?: BufferResolvable | Base64Resolvable | null;
+
+  /**
+   * The new banner
+   */
+  banner?: BufferResolvable | Base64Resolvable | null;
 }
 
 /**
@@ -18793,6 +19175,16 @@ export enum Events {
    * Emitted whenever messages are deleted in bulk.
    */
   MessageBulkDelete = 'messageDeleteBulk',
+
+  /**
+   * Emitted whenever a user votes in a poll.
+   */
+  MessagePollVoteAdd = 'messagePollVoteAdd',
+
+  /**
+   * Emitted whenever a user removes their vote in a poll.
+   */
+  MessagePollVoteRemove = 'messagePollVoteRemove',
 
   /**
    * Emitted whenever a reaction is added to a cached message.
@@ -19852,8 +20244,10 @@ export interface AutoModerationRuleCreateOptions {
   /**
    * The trigger metadata of the auto moderation rule
    * <info>This property is required if using a `triggerType` of
-   * {@link AutoModerationRuleTriggerType.Keyword}, {@link AutoModerationRuleTriggerType.KeywordPreset},
-   * or {@link AutoModerationRuleTriggerType.MentionSpam}.</info>
+   * {@link AutoModerationRuleTriggerType.Keyword},
+   * {@link AutoModerationRuleTriggerType.KeywordPreset},
+   * {@link AutoModerationRuleTriggerType.MentionSpam},
+   * or {@link AutoModerationRuleTriggerType.MemberProfile}.</info>
    */
   triggerMetadata?: AutoModerationTriggerMetadataOptions;
 
@@ -21304,6 +21698,11 @@ export interface BaseMessageOptions {
     | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
     | APIActionRowComponent<APIMessageActionRowComponent>
   )[];
+
+  /**
+   * The poll to send with the message
+   */
+  poll?: PollData;
 }
 
 /**
@@ -21352,7 +21751,7 @@ export interface MessageCreateOptions extends BaseMessageOptions {
 }
 
 export interface GuildForumThreadMessageCreateOptions
-  extends BaseMessageOptions,
+  extends Omit<BaseMessageOptions, 'poll'>,
     Pick<MessageCreateOptions, 'flags' | 'stickers'> {}
 
 /**
@@ -21398,12 +21797,12 @@ export type MessageReactionResolvable = MessageReaction | Snowflake | string;
 /**
  * Reference data sent in a message that contains ids identifying the referenced message.
  * This can be present in the following types of message:
- * * Crossposted messages (`MessageFlags.Crossposted`)
- * * {@link MessageType.ChannelFollowAdd}
+ * * Crossposted messages ({@link MessageFlags.Crossposted})
  * * {@link MessageType.ChannelPinnedMessage}
+ * * {@link MessageType.ChannelFollowAdd}
  * * {@link MessageType.Reply}
  * * {@link MessageType.ThreadStarterMessage}
- * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-types)}
+ * * @see {@link [Message Types](https://discord.com/developers/docs/resources/channel#message-types)}
  */
 export interface MessageReference {
   /**
@@ -21471,6 +21870,7 @@ export interface UserSelectMenuComponentData extends BaseSelectMenuComponentData
    * The type of component
    */
   type: ComponentType.UserSelect;
+  defaultValues?: readonly APISelectMenuDefaultValue<SelectMenuDefaultValueType.User>[];
 }
 
 export interface RoleSelectMenuComponentData extends BaseSelectMenuComponentData {
@@ -21478,6 +21878,7 @@ export interface RoleSelectMenuComponentData extends BaseSelectMenuComponentData
    * The type of component
    */
   type: ComponentType.RoleSelect;
+  defaultValues?: readonly APISelectMenuDefaultValue<SelectMenuDefaultValueType.Role>[];
 }
 
 export interface MentionableSelectMenuComponentData extends BaseSelectMenuComponentData {
@@ -21485,6 +21886,9 @@ export interface MentionableSelectMenuComponentData extends BaseSelectMenuCompon
    * The type of component
    */
   type: ComponentType.MentionableSelect;
+  defaultValues?: readonly APISelectMenuDefaultValue<
+    SelectMenuDefaultValueType.Role | SelectMenuDefaultValueType.User
+  >[];
 }
 
 export interface ChannelSelectMenuComponentData extends BaseSelectMenuComponentData {
@@ -21497,6 +21901,7 @@ export interface ChannelSelectMenuComponentData extends BaseSelectMenuComponentD
    * Options for the select menu
    */
   channelTypes?: readonly ChannelType[];
+  defaultValues?: readonly APISelectMenuDefaultValue<SelectMenuDefaultValueType.Channel>[];
 }
 
 export interface MessageSelectOption {
@@ -21686,7 +22091,7 @@ export interface OverwriteData {
 }
 
 /**
- * Data that can be resolved into {@link RawOverwriteData}.
+ * Data that can be resolved into {@link APIOverwrite}.
  */
 export type OverwriteResolvable = PermissionOverwrites | OverwriteData;
 
@@ -22169,7 +22574,7 @@ export interface SetRolePositionOptions {
 /**
  * The mode to spawn shards with for a {@link ShardingManager}. Can be either one of:
  * * 'process' to use child processes
- * * 'worker' to use [Worker threads](https://nodejs.org/api/worker_threads.html)
+ * * 'worker' to use {@link Worker} threads
  */
 export type ShardingManagerMode = 'process' | 'worker';
 
@@ -22428,6 +22833,11 @@ export type TextBasedChannel = Exclude<
   Extract<Channel, { type: TextChannelType }>,
   PartialGroupDMChannel | ForumChannel | MediaChannel
 >;
+
+/**
+ * The channels that are text-based.
+ */
+export type TextBasedChannels = TextBasedChannel;
 
 /**
  * The types of channels that are text-based.
