@@ -55,13 +55,7 @@ class Structures extends null {
       throw new TypeError(`"structure" argument must be a string (received ${typeof structure})`);
     }
 
-    const res = structures[structure];
-
-    if (res === undefined) {
-      throw new RangeError(`"${structure}" is not a valid structure`);
-    }
-
-    return res;
+    return structures[structure];
   }
 
   /**
