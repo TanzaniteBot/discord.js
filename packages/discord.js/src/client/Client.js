@@ -66,6 +66,8 @@ class Client extends BaseClient {
       this.options.ws.shardCount = Number(data.SHARD_COUNT);
     }
 
+    const ClientPresence = Structures.get('ClientPresence');
+
     /**
      * The presence of the Client
      * @private
@@ -127,7 +129,6 @@ class Client extends BaseClient {
      */
     this.channels = new ChannelManager(this);
 
-    const ClientPresence = Structures.get('ClientPresence');
     /**
      * The sweeping functions and their intervals used to periodically sweep caches
      * @type {Sweepers}
