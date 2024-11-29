@@ -2876,7 +2876,7 @@ export class Client<
     eventEmitter: Emitter,
     eventName: Emitter extends Client ? Event : string | symbol,
     options?: { signal?: AbortSignal | undefined },
-  ): AsyncIterableIterator<Emitter extends Client ? ClientEvents[Event] : any[]>;
+  ): NodeJS.AsyncIterator<Emitter extends Client ? ClientEvents[Event] : any[]>;
 
   /**
    * The action manager of the client
