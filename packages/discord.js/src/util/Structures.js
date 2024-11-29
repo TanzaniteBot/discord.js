@@ -87,8 +87,9 @@ class Structures extends null {
    * });
    */
   static extend(structure, extender) {
-    if (structures[structure] === undefined)
+    if (structures[structure] === undefined) {
       throw new RangeError(`"${structure}" is not a valid extensible structure.`);
+    }
     if (typeof extender !== 'function') {
       const received = `(received ${typeof extender})`;
       throw new TypeError(
