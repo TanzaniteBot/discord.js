@@ -7,7 +7,7 @@
  * * **`TextChannel`**
  * * **`VoiceChannel`**
  * * **`CategoryChannel`**
- * * **`NewsChannel`**
+ * * **`AnnouncementChannel`**
  * * **`StageChannel`**
  * * **`ThreadChannel`**
  * * **`GuildMember`**
@@ -23,7 +23,6 @@
  * * **`StageInstance`**
  * * **`ChatInputCommandInteraction`**
  * * **`ButtonInteraction`**
- * * **`SelectMenuInteraction`**
  * * **`ChannelSelectMenuInteraction`**
  * * **`MentionableSelectMenuInteraction`**
  * * **`RoleSelectMenuInteraction`**
@@ -38,6 +37,7 @@
  * * **`ThreadOnlyChannel`**
  * * **`ForumChannel`**
  * * **`MediaChannel`**
+ * * **`ApplicationEmoji`**
  * @typedef {string} ExtendableStructure
  */
 
@@ -47,12 +47,21 @@
 class Structures extends null {
   /**
    * Retrieves a structure class.
-   * @param {string} structure Name of the structure to retrieve
+   * @param {ExtendableStructure} structure Name of the structure to retrieve
    * @returns {Function}
    */
   static get(structure) {
-    if (typeof structure === 'string') return structures[structure];
-    throw new TypeError(`"structure" argument must be a string (received ${typeof structure})`);
+    if (typeof structure !== 'string') {
+      throw new TypeError(`"structure" argument must be a string (received ${typeof structure})`);
+    }
+
+    const res = structures[structure];
+
+    if (res === undefined) {
+      throw new RangeError(`"${structure}" is not a valid structure`);
+    }
+
+    return res;
   }
 
   /**
@@ -78,7 +87,8 @@ class Structures extends null {
    * });
    */
   static extend(structure, extender) {
-    if (!structures[structure]) throw new RangeError(`"${structure}" is not a valid extensible structure.`);
+    if (structures[structure] === undefined)
+      throw new RangeError(`"${structure}" is not a valid extensible structure.`);
     if (typeof extender !== 'function') {
       const received = `(received ${typeof extender})`;
       throw new TypeError(
@@ -112,7 +122,7 @@ const structures = {
   TextChannel: require('../structures/TextChannel'),
   VoiceChannel: require('../structures/VoiceChannel'),
   CategoryChannel: require('../structures/CategoryChannel'),
-  NewsChannel: require('../structures/NewsChannel'),
+  AnnouncementChannel: require('../structures/AnnouncementChannel'),
   StageChannel: require('../structures/StageChannel'),
   ThreadChannel: require('../structures/ThreadChannel'),
   GuildMember: require('../structures/GuildMember').GuildMember,
@@ -128,7 +138,6 @@ const structures = {
   StageInstance: require('../structures/StageInstance').StageInstance,
   ChatInputCommandInteraction: require('../structures/ChatInputCommandInteraction'),
   ButtonInteraction: require('../structures/ButtonInteraction'),
-  SelectMenuInteraction: require('../structures/SelectMenuInteraction'),
   ChannelSelectMenuInteraction: require('../structures/ChannelSelectMenuInteraction'),
   MentionableSelectMenuInteraction: require('../structures/MentionableSelectMenuInteraction'),
   RoleSelectMenuInteraction: require('../structures/RoleSelectMenuInteraction'),
@@ -143,6 +152,7 @@ const structures = {
   ThreadOnlyChannel: require('../structures/ThreadOnlyChannel'),
   ForumChannel: require('../structures/ForumChannel'),
   MediaChannel: require('../structures/MediaChannel'),
+  ApplicationEmoji: require('../structures/ApplicationEmoji'),
 };
 
 module.exports = Structures;

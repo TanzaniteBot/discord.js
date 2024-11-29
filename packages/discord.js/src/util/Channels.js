@@ -5,7 +5,7 @@ const { ChannelType } = require('discord-api-types/v10');
 
 const getCategoryChannel = lazy(() => require('../util/Structures').get('CategoryChannel'));
 const getDMChannel = lazy(() => require('../util/Structures').get('DMChannel'));
-const getNewsChannel = lazy(() => require('../util/Structures').get('NewsChannel'));
+const getAnnouncementChannel = lazy(() => require('../util/Structures').get('AnnouncementChannel'));
 const getStageChannel = lazy(() => require('../util/Structures').get('StageChannel'));
 const getTextChannel = lazy(() => require('../util/Structures').get('TextChannel'));
 const getThreadChannel = lazy(() => require('../util/Structures').get('ThreadChannel'));
@@ -58,7 +58,7 @@ function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
           break;
         }
         case ChannelType.GuildAnnouncement: {
-          channel = new (getNewsChannel())(guild, data, client);
+          channel = new (getAnnouncementChannel())(guild, data, client);
           break;
         }
         case ChannelType.GuildStageVoice: {

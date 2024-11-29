@@ -27,7 +27,6 @@ const RoleManager = require('../managers/RoleManager');
 const StageInstanceManager = require('../managers/StageInstanceManager');
 const VoiceStateManager = require('../managers/VoiceStateManager');
 const { resolveImage } = require('../util/DataResolver');
-const Status = require('../util/Status');
 const SystemChannelFlagsBitField = require('../util/SystemChannelFlagsBitField');
 const { discordSort, getSortableGroupTypes, resolvePartialEmoji } = require('../util/Util');
 
@@ -124,15 +123,6 @@ class Guild extends AnonymousGuild {
      * @type {number}
      */
     this.shardId = data.shardId;
-  }
-
-  /**
-   * The Shard this Guild belongs to.
-   * @type {WebSocketShard}
-   * @readonly
-   */
-  get shard() {
-    return this.client.ws.shards.get(this.shardId);
   }
 
   /**
@@ -529,7 +519,7 @@ class Guild extends AnonymousGuild {
 
   /**
    * Widget channel for this guild
-   * @type {?(TextChannel|NewsChannel|VoiceChannel|StageChannel|ForumChannel|MediaChannel)}
+   * @type {?(TextChannel|AnnouncementChannel|VoiceChannel|StageChannel|ForumChannel|MediaChannel)}
    * @readonly
    */
   get widgetChannel() {
@@ -702,7 +692,7 @@ class Guild extends AnonymousGuild {
    * Data for the Guild Widget Settings object
    * @typedef {Object} GuildWidgetSettings
    * @property {boolean} enabled Whether the widget is enabled
-   * @property {?(TextChannel|NewsChannel|VoiceChannel|StageChannel|ForumChannel|MediaChannel)} channel
+   * @property {?(TextChannel|AnnouncementChannel|VoiceChannel|StageChannel|ForumChannel|MediaChannel)} channel
    * The widget invite channel
    */
 
@@ -710,8 +700,8 @@ class Guild extends AnonymousGuild {
    * The Guild Widget Settings object
    * @typedef {Object} GuildWidgetSettingsData
    * @property {boolean} enabled Whether the widget is enabled
-   * @property {?(TextChannel|NewsChannel|VoiceChannel|StageChannel|ForumChannel|MediaChannel|Snowflake)} channel
-   * The widget invite channel
+   * @property {?(TextChannel|AnnouncementChannel|VoiceChannel|StageChannel|ForumChannel|
+   * MediaChannel|Snowflake)} channel The widget invite channel
    */
 
   /**
@@ -973,7 +963,7 @@ class Guild extends AnonymousGuild {
    * Welcome channel data
    * @typedef {Object} WelcomeChannelData
    * @property {string} description The description to show for this welcome channel
-   * @property {TextChannel|NewsChannel|ForumChannel|MediaChannel|Snowflake} channel
+   * @property {TextChannel|AnnouncementChannel|ForumChannel|MediaChannel|Snowflake} channel
    * The channel to link for this welcome channel
    * @property {EmojiIdentifierResolvable} [emoji] The emoji to display for this welcome channel
    */
@@ -989,9 +979,9 @@ class Guild extends AnonymousGuild {
   /**
    * Data that can be resolved to a GuildTextChannel object. This can be:
    * * A TextChannel
-   * * A NewsChannel
+   * * A AnnouncementChannel
    * * A Snowflake
-   * @typedef {TextChannel|NewsChannel|Snowflake} GuildTextChannelResolvable
+   * @typedef {TextChannel|AnnouncementChannel|Snowflake} GuildTextChannelResolvable
    */
 
   /**
@@ -1423,8 +1413,7 @@ class Guild extends AnonymousGuild {
       this.client.voice.adapters.set(this.id, methods);
       return {
         sendPayload: data => {
-          if (this.shard.status !== Status.Ready) return false;
-          this.shard.send(data);
+          this.client.ws.send(this.shardId, data);
           return true;
         },
         destroy: () => {
