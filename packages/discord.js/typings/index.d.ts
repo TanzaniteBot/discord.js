@@ -2785,8 +2785,8 @@ export type If<Value extends boolean, TrueResult, FalseResult = null> = Value ex
  */
 export class Client<
   Ready extends boolean = boolean,
-  Events extends Record<keyof Events, any[]> & ClientEvents = ClientEvents,
-> extends BaseClient<Events> {
+  Events extends Record<keyof Events, any[]> = ClientEvents,
+> extends BaseClient<Events | ClientEvents> {
   /**
    * @param options Options for the client
    */
