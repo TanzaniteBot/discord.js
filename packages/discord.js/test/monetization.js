@@ -40,9 +40,7 @@ client.on(Events.InteractionCreate, async interaction => {
       content: ':3:3:3',
       components: [
         new ActionRowBuilder().setComponents(
-          new ButtonBuilder().setCustomId('test').setLabel('test')
-.setStyle(ButtonStyle.Premium)
-.setSKUId(skuId),
+          new ButtonBuilder().setCustomId('test').setLabel('test').setStyle(ButtonStyle.Premium).setSKUId(skuId),
         ),
       ],
     });
