@@ -2523,7 +2523,10 @@ export type If<Value extends boolean, TrueResult, FalseResult = null> = Value ex
 /**
  * The main hub for interacting with the Discord API, and the starting point for any bot.
  */
-export class Client<Ready extends boolean = boolean> extends BaseClient<ClientEventTypes> {
+export class Client<
+  Ready extends boolean = boolean,
+  Events extends ClientEventTypes = ClientEventTypes,
+> extends BaseClient<Events> {
   /**
    * @param options Options for the client
    */
