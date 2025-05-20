@@ -6,32 +6,32 @@ const { Collection } = require('@discordjs/collection');
 const { makeURLSearchParams } = require('@discordjs/rest');
 const { WebSocketManager, WebSocketShardEvents, WebSocketShardStatus } = require('@discordjs/ws');
 const { GatewayDispatchEvents, GatewayIntentBits, OAuth2Scopes, Routes } = require('discord-api-types/v10');
-const BaseClient = require('./BaseClient');
-const ActionsManager = require('./actions/ActionsManager');
-const ClientVoiceManager = require('./voice/ClientVoiceManager');
-const PacketHandlers = require('./websocket/handlers');
-const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors');
-const BaseGuildEmojiManager = require('../managers/BaseGuildEmojiManager');
-const ChannelManager = require('../managers/ChannelManager');
-const GuildManager = require('../managers/GuildManager');
-const UserManager = require('../managers/UserManager');
-const ShardClientUtil = require('../sharding/ShardClientUtil');
-const GuildPreview = require('../structures/GuildPreview');
-const GuildTemplate = require('../structures/GuildTemplate');
-const Invite = require('../structures/Invite');
-const { Sticker } = require('../structures/Sticker');
-const StickerPack = require('../structures/StickerPack');
-const VoiceRegion = require('../structures/VoiceRegion');
-const Webhook = require('../structures/Webhook');
-const Widget = require('../structures/Widget');
-const { resolveInviteCode, resolveGuildTemplateCode } = require('../util/DataResolver');
-const Events = require('../util/Events');
-const IntentsBitField = require('../util/IntentsBitField');
-const Options = require('../util/Options');
-const PermissionsBitField = require('../util/PermissionsBitField');
-const Status = require('../util/Status');
-const Structures = require('../util/Structures');
-const Sweepers = require('../util/Sweepers');
+const { BaseClient } = require('./BaseClient.js');
+const { ActionsManager } = require('./actions/ActionsManager.js');
+const { ClientVoiceManager } = require('./voice/ClientVoiceManager.js');
+const { PacketHandlers } = require('./websocket/handlers/index.js');
+const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { ChannelManager } = require('../managers/ChannelManager.js');
+const { GuildManager } = require('../managers/GuildManager.js');
+const { UserManager } = require('../managers/UserManager.js');
+const { ShardClientUtil } = require('../sharding/ShardClientUtil.js');
+const { GuildPreview } = require('../structures/GuildPreview.js');
+const { GuildTemplate } = require('../structures/GuildTemplate.js');
+const { Invite } = require('../structures/Invite.js');
+const { SoundboardSound } = require('../structures/SoundboardSound.js');
+const { Sticker } = require('../structures/Sticker.js');
+const { StickerPack } = require('../structures/StickerPack.js');
+const { VoiceRegion } = require('../structures/VoiceRegion.js');
+const { Webhook } = require('../structures/Webhook.js');
+const { Widget } = require('../structures/Widget.js');
+const { resolveInviteCode, resolveGuildTemplateCode } = require('../util/DataResolver.js');
+const { Events } = require('../util/Events.js');
+const { IntentsBitField } = require('../util/IntentsBitField.js');
+const { Options } = require('../util/Options.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
+const { Status } = require('../util/Status.js');
+const { Structures } = require('../util/Structures.js');
+const { Sweepers } = require('../util/Sweepers.js');
 
 const WaitingForGuildEvents = [GatewayDispatchEvents.GuildCreate, GatewayDispatchEvents.GuildDelete];
 const BeforeReadyWhitelist = [
@@ -59,7 +59,8 @@ class Client extends BaseClient {
     const defaults = Options.createDefault();
 
     if (this.options.ws.shardIds === defaults.ws.shardIds && 'SHARDS' in data) {
-      this.options.ws.shardIds = JSON.parse(data.SHARDS);
+      const shards = JSON.parse(data.SHARDS);
+      this.options.ws.shardIds = Array.isArray(shards) ? shards : [shards];
     }
 
     if (this.options.ws.shardCount === defaults.ws.shardCount && 'SHARD_COUNT' in data) {
@@ -198,7 +199,7 @@ class Client extends BaseClient {
 
     /**
      * The last time a ping was sent (a timestamp) for each WebSocketShard connection
-     * @type {Collection<number,number>}
+     * @type {Collection<number, number>}
      */
     this.lastPingTimestamps = new Collection();
 
@@ -217,19 +218,6 @@ class Client extends BaseClient {
     Object.defineProperty(this, 'incomingPacketQueue', { value: [] });
 
     this._attachEvents();
-  }
-
-  /**
-   * A manager of all the custom emojis that the client has access to
-   * @type {BaseGuildEmojiManager}
-   * @readonly
-   */
-  get emojis() {
-    const emojis = new BaseGuildEmojiManager(this);
-    for (const guild of this.guilds.cache.values()) {
-      if (guild.available) for (const emoji of guild.emojis.cache.values()) emojis.cache.set(emoji.id, emoji);
-    }
-    return emojis;
   }
 
   /**
@@ -294,7 +282,6 @@ class Client extends BaseClient {
       (await this.ws.fetchStatus()).every(status => status === WebSocketShardStatus.Ready)
     ) {
       this.emit(Events.Debug, 'Client received all its guilds. Marking as fully ready.');
-      this.status = Status.Ready;
 
       this._triggerClientReady();
       return;
@@ -317,7 +304,6 @@ class Client extends BaseClient {
         );
 
         this.readyTimeout = null;
-        this.status = Status.Ready;
 
         this._triggerClientReady();
       },
@@ -457,7 +443,6 @@ class Client extends BaseClient {
     const code = resolveInviteCode(invite);
     const query = makeURLSearchParams({
       with_counts: true,
-      with_expiration: true,
       guild_scheduled_event_id: options?.guildScheduledEventId,
     });
     const data = await this.rest.get(Routes.invite(code), { query });
@@ -551,6 +536,19 @@ class Client extends BaseClient {
 
     const data = await this.rest.get(Routes.stickerPacks());
     return new Collection(data.sticker_packs.map(stickerPack => [stickerPack.id, new StickerPack(this, stickerPack)]));
+  }
+
+  /**
+   * Obtains the list of default soundboard sounds.
+   * @returns {Promise<Collection<string, SoundboardSound>>}
+   * @example
+   * client.fetchDefaultSoundboardSounds()
+   *  .then(sounds => console.log(`Available soundboard sounds are: ${sounds.map(sound => sound.name).join(', ')}`))
+   *  .catch(console.error);
+   */
+  async fetchDefaultSoundboardSounds() {
+    const data = await this.rest.get(Routes.soundboardDefaultSounds());
+    return new Collection(data.map(sound => [sound.sound_id, new SoundboardSound(this, sound)]));
   }
 
   /**
@@ -672,7 +670,7 @@ class Client extends BaseClient {
   }
 
   /**
-   * Calls {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval} on a script
+   * Calls {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/eval} on a script
    * with the client as `this`.
    * @param {string} script Script to eval
    * @returns {*}
@@ -734,7 +732,7 @@ class Client extends BaseClient {
   }
 }
 
-module.exports = Client;
+exports.Client = Client;
 
 /**
  * @class SnowflakeUtil
@@ -749,7 +747,7 @@ module.exports = Client;
  */
 
 /**
- * A {@link https://developer.twitter.com/en/docs/twitter-ids Twitter snowflake},
+ * A {@link https://docs.x.com/resources/fundamentals/x-ids Twitter snowflake},
  * except the epoch is 2015-01-01T00:00:00.000Z.
  *
  * If we have a snowflake '266241948824764416' we can represent it as binary:

@@ -1,8 +1,8 @@
 'use strict';
 
 const { ChannelType, Routes } = require('discord-api-types/v10');
-const Base = require('./Base');
-const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors');
+const { Base } = require('./Base.js');
+const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
 
 /**
  * Represents the voice state for a Guild Member.
@@ -313,4 +313,4 @@ class VoiceState extends Base {
   }
 }
 
-module.exports = VoiceState;
+exports.VoiceState = VoiceState;

@@ -3,12 +3,12 @@
 const { Collection } = require('@discordjs/collection');
 const { makeURLSearchParams } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const { Message } = require('../structures/Message');
-const MessagePayload = require('../structures/MessagePayload');
-const { MakeCacheOverrideSymbol } = require('../util/Symbols');
-const { resolvePartialEmoji } = require('../util/Util');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { Message } = require('../structures/Message.js');
+const { MessagePayload } = require('../structures/MessagePayload.js');
+const { MakeCacheOverrideSymbol } = require('../util/Symbols.js');
+const { resolvePartialEmoji } = require('../util/Util.js');
 
 /**
  * Manages API methods for Messages and holds their cache.
@@ -197,29 +197,16 @@ class MessageManager extends CachedManager {
   }
 
   /**
-   * Publishes a message in an announcement channel to all channels following it, even if it's not cached.
-   * @param {MessageResolvable} message The message to publish
-   * @returns {Promise<Message>}
-   */
-  async crosspost(message) {
-    message = this.resolveId(message);
-    if (!message) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
-
-    const data = await this.client.rest.post(Routes.channelMessageCrosspost(this.channel.id, message));
-    return this.cache.get(data.id) ?? this._add(data);
-  }
-
-  /**
    * Pins a message to the channel's pinned messages, even if it's not cached.
    * @param {MessageResolvable} message The message to pin
    * @param {string} [reason] Reason for pinning
    * @returns {Promise<void>}
    */
   async pin(message, reason) {
-    message = this.resolveId(message);
-    if (!message) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
+    const messageId = this.resolveId(message);
+    if (!messageId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
 
-    await this.client.rest.put(Routes.channelPin(this.channel.id, message), { reason });
+    await this.client.rest.put(Routes.channelPin(this.channel.id, messageId), { reason });
   }
 
   /**
@@ -229,10 +216,10 @@ class MessageManager extends CachedManager {
    * @returns {Promise<void>}
    */
   async unpin(message, reason) {
-    message = this.resolveId(message);
-    if (!message) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
+    const messageId = this.resolveId(message);
+    if (!messageId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
 
-    await this.client.rest.delete(Routes.channelPin(this.channel.id, message), { reason });
+    await this.client.rest.delete(Routes.channelPin(this.channel.id, messageId), { reason });
   }
 
   /**
@@ -242,17 +229,17 @@ class MessageManager extends CachedManager {
    * @returns {Promise<void>}
    */
   async react(message, emoji) {
-    message = this.resolveId(message);
-    if (!message) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
+    const messageId = this.resolveId(message);
+    if (!messageId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
 
-    emoji = resolvePartialEmoji(emoji);
-    if (!emoji) throw new DiscordjsTypeError(ErrorCodes.EmojiType, 'emoji', 'EmojiIdentifierResolvable');
+    const resolvedEmoji = resolvePartialEmoji(emoji);
+    if (!resolvedEmoji) throw new DiscordjsTypeError(ErrorCodes.EmojiType, 'emoji', 'EmojiIdentifierResolvable');
 
-    const emojiId = emoji.id
-      ? `${emoji.animated ? 'a:' : ''}${emoji.name}:${emoji.id}`
-      : encodeURIComponent(emoji.name);
+    const emojiId = resolvedEmoji.id
+      ? `${resolvedEmoji.animated ? 'a:' : ''}${resolvedEmoji.name}:${resolvedEmoji.id}`
+      : encodeURIComponent(resolvedEmoji.name);
 
-    await this.client.rest.put(Routes.channelMessageOwnReaction(this.channel.id, message, emojiId));
+    await this.client.rest.put(Routes.channelMessageOwnReaction(this.channel.id, messageId, emojiId));
   }
 
   /**
@@ -261,10 +248,10 @@ class MessageManager extends CachedManager {
    * @returns {Promise<void>}
    */
   async delete(message) {
-    message = this.resolveId(message);
-    if (!message) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
+    const messageId = this.resolveId(message);
+    if (!messageId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'message', 'MessageResolvable');
 
-    await this.client.rest.delete(Routes.channelMessage(this.channel.id, message));
+    await this.client.rest.delete(Routes.channelMessage(this.channel.id, messageId));
   }
 
   /**
@@ -298,4 +285,4 @@ class MessageManager extends CachedManager {
   }
 }
 
-module.exports = MessageManager;
+exports.MessageManager = MessageManager;

@@ -1,7 +1,7 @@
 'use strict';
 
 const { Collection } = require('@discordjs/collection');
-const Base = require('./Base');
+const { Base } = require('./Base.js');
 const { Emoji } = require('./Emoji.js');
 
 /**
@@ -79,7 +79,7 @@ class GuildOnboardingPromptOption extends Base {
    */
   get emoji() {
     if (!this._emoji.id && !this._emoji.name) return null;
-    return this.client.emojis.cache.get(this._emoji.id) ?? new Emoji(this.client, this._emoji);
+    return this.guild.emojis.cache.get(this._emoji.id) ?? new Emoji(this.client, this._emoji);
   }
 }
 

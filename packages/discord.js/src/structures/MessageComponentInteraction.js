@@ -1,11 +1,12 @@
 'use strict';
 
 const { lazy } = require('@discordjs/util');
-const BaseInteraction = require('./BaseInteraction');
-const InteractionWebhook = require('./InteractionWebhook');
-const InteractionResponses = require('./interfaces/InteractionResponses');
+const { BaseInteraction } = require('./BaseInteraction.js');
+const { InteractionWebhook } = require('./InteractionWebhook.js');
+const { InteractionResponses } = require('./interfaces/InteractionResponses.js');
+const { findComponentByCustomId } = require('../util/Components.js');
 
-const getMessage = lazy(() => require('./Message').Message);
+const getMessage = lazy(() => require('./Message.js').Message);
 
 /**
  * Represents a message component interaction.
@@ -79,13 +80,11 @@ class MessageComponentInteraction extends BaseInteraction {
 
   /**
    * The component which was interacted with
-   * @type {MessageActionRowComponent|APIMessageActionRowComponent}
+   * @type {MessageActionRowComponent|APIComponentInMessageActionRow}
    * @readonly
    */
   get component() {
-    return this.message.components
-      .flatMap(row => row.components)
-      .find(component => (component.customId ?? component.custom_id) === this.customId);
+    return findComponentByCustomId(this.message.components, this.customId);
   }
 
   // These are here only for documentation purposes - they are implemented by InteractionResponses
@@ -98,10 +97,11 @@ class MessageComponentInteraction extends BaseInteraction {
   followUp() {}
   deferUpdate() {}
   update() {}
+  launchActivity() {}
   showModal() {}
   awaitModalSubmit() {}
 }
 
 InteractionResponses.applyToClass(MessageComponentInteraction);
 
-module.exports = MessageComponentInteraction;
+exports.MessageComponentInteraction = MessageComponentInteraction;

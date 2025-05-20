@@ -3,10 +3,10 @@
 const process = require('node:process');
 const { Collection } = require('@discordjs/collection');
 const { OverwriteType, Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const PermissionOverwrites = require('../structures/PermissionOverwrites');
-const { Role } = require('../structures/Role');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { PermissionOverwrites } = require('../structures/PermissionOverwrites.js');
+const { Role } = require('../structures/Role.js');
 
 let cacheWarningEmitted = false;
 
@@ -62,15 +62,13 @@ class PermissionOverwriteManager extends CachedManager {
    *   },
    * ], 'Needed to change permissions');
    */
-  set(overwrites, reason) {
+  async set(overwrites, reason) {
     if (!Array.isArray(overwrites) && !(overwrites instanceof Collection)) {
-      return Promise.reject(
-        new DiscordjsTypeError(
-          ErrorCodes.InvalidType,
-          'overwrites',
-          'Array or Collection of Permission Overwrites',
-          true,
-        ),
+      throw new DiscordjsTypeError(
+        ErrorCodes.InvalidType,
+        'overwrites',
+        'Array or Collection of Permission Overwrites',
+        true,
       );
     }
     return this.channel.edit({ permissionOverwrites: overwrites, reason });
@@ -93,19 +91,20 @@ class PermissionOverwriteManager extends CachedManager {
    * @returns {Promise<GuildChannel>}
    * @private
    */
-  async upsert(userOrRole, options, overwriteOptions = {}, existing) {
-    let userOrRoleId = this.channel.guild.roles.resolveId(userOrRole) ?? this.client.users.resolveId(userOrRole);
-    let { type, reason } = overwriteOptions;
-    if (typeof type !== 'number') {
-      userOrRole = this.channel.guild.roles.resolve(userOrRole) ?? this.client.users.resolve(userOrRole);
-      if (!userOrRole) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'parameter', 'User nor a Role');
-      type = userOrRole instanceof Role ? OverwriteType.Role : OverwriteType.Member;
+  async upsert(userOrRole, options, { reason, type } = {}, existing) {
+    const userOrRoleId = this.channel.guild.roles.resolveId(userOrRole) ?? this.client.users.resolveId(userOrRole);
+
+    let resolvedType = type;
+    if (typeof resolvedType !== 'number') {
+      const resolvedUserOrRole = this.channel.guild.roles.resolve(userOrRole) ?? this.client.users.resolve(userOrRole);
+      if (!resolvedUserOrRole) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'parameter', 'User nor a Role');
+      resolvedType = resolvedUserOrRole instanceof Role ? OverwriteType.Role : OverwriteType.Member;
     }
 
     const { allow, deny } = PermissionOverwrites.resolveOverwriteOptions(options, existing);
 
     await this.client.rest.put(Routes.channelPermission(this.channel.id, userOrRoleId), {
-      body: { id: userOrRoleId, type, allow, deny },
+      body: { id: userOrRoleId, type: resolvedType, allow, deny },
       reason,
     });
     return this.channel;
@@ -165,4 +164,4 @@ class PermissionOverwriteManager extends CachedManager {
   }
 }
 
-module.exports = PermissionOverwriteManager;
+exports.PermissionOverwriteManager = PermissionOverwriteManager;

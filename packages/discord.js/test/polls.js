@@ -1,7 +1,7 @@
 'use strict';
 
 const { token, owner } = require('./auth.js');
-const { Client, Events, codeBlock, GatewayIntentBits } = require('../src');
+const { Client, Events, codeBlock, GatewayIntentBits } = require('../src/index.js');
 
 const client = new Client({
   intents: GatewayIntentBits.Guilds | GatewayIntentBits.GuildMessages | GatewayIntentBits.GuildMessagePolls,
@@ -12,7 +12,7 @@ client.on('raw', console.log);
 client.on(Events.ClientReady, async () => {
   const channel = client.channels.cache.get('1220510756286631968');
 
-  // const message = await channel.messages.fetch('1220680560414818325');
+  // Const message = await channel.messages.fetch('1220680560414818325');
   // console.dir(message.poll, { depth: Infinity });
 
   // const answer = message.poll.answers.first();

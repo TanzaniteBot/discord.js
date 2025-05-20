@@ -3,11 +3,11 @@
 const { makeURLSearchParams } = require('@discordjs/rest');
 const { isJSONEncodable } = require('@discordjs/util');
 const { InteractionResponseType, MessageFlags, Routes, InteractionType } = require('discord-api-types/v10');
-const { DiscordjsError, ErrorCodes } = require('../../errors');
-const InteractionCallbackResponse = require('../InteractionCallbackResponse');
-const InteractionCollector = require('../InteractionCollector');
-const InteractionResponse = require('../InteractionResponse');
-const MessagePayload = require('../MessagePayload');
+const { DiscordjsError, ErrorCodes } = require('../../errors/index.js');
+const { MessageFlagsBitField } = require('../../util/MessageFlagsBitField.js');
+const { InteractionCallbackResponse } = require('../InteractionCallbackResponse.js');
+const { InteractionCollector } = require('../InteractionCollector.js');
+const { MessagePayload } = require('../MessagePayload.js');
 
 /**
  * @typedef {Object} ModalComponentData
@@ -24,8 +24,8 @@ class InteractionResponses {
   /**
    * Options for deferring the reply to an {@link BaseInteraction}.
    * @typedef {Object} InteractionDeferReplyOptions
-   * @property {MessageFlagsResolvable} [flags] Flags for the reply.
    * @property {boolean} [withResponse] Whether to return an {@link InteractionCallbackResponse} as the response
+   * @property {MessageFlagsResolvable} [flags] Flags for the reply.
    * <info>Only `MessageFlags.Ephemeral` can be set.</info>
    */
 
@@ -52,6 +52,12 @@ class InteractionResponses {
    */
 
   /**
+   * Options for launching activity in response to a {@link BaseInteraction}
+   * @typedef {Object} LaunchActivityOptions
+   * @property {boolean} [withResponse] Whether to return an {@link InteractionCallbackResponse} as the response
+   */
+
+  /**
    * Options for showing a modal in response to a {@link BaseInteraction}
    * @typedef {Object} ShowModalOptions
    * @property {boolean} [withResponse] Whether to return an {@link InteractionCallbackResponse} as the response
@@ -60,7 +66,7 @@ class InteractionResponses {
   /**
    * Defers the reply to this interaction.
    * @param {InteractionDeferReplyOptions} [options] Options for deferring the reply to this interaction
-   * @returns {Promise<InteractionResponse|InteractionCallbackResponse>}
+   * @returns {Promise<InteractionCallbackResponse|undefined>}
    * @example
    * // Defer the reply to this interaction
    * interaction.deferReply()
@@ -75,11 +81,13 @@ class InteractionResponses {
   async deferReply(options = {}) {
     if (this.deferred || this.replied) throw new DiscordjsError(ErrorCodes.InteractionAlreadyReplied);
 
+    const resolvedFlags = new MessageFlagsBitField(options.flags);
+
     const response = await this.client.rest.post(Routes.interactionCallback(this.id, this.token), {
       body: {
         type: InteractionResponseType.DeferredChannelMessageWithSource,
         data: {
-          flags: options.flags,
+          flags: resolvedFlags.bitfield,
         },
       },
       auth: false,
@@ -87,18 +95,16 @@ class InteractionResponses {
     });
 
     this.deferred = true;
-    this.ephemeral = Boolean(options.flags & MessageFlags.Ephemeral);
+    this.ephemeral = resolvedFlags.has(MessageFlags.Ephemeral);
 
-    return options.withResponse
-      ? new InteractionCallbackResponse(this.client, response)
-      : new InteractionResponse(this);
+    return options.withResponse ? new InteractionCallbackResponse(this.client, response) : undefined;
   }
 
   /**
    * Creates a reply to this interaction.
    * <info>Use the `withResponse` option to get the interaction callback response.</info>
    * @param {string|MessagePayload|InteractionReplyOptions} options The options for the reply
-   * @returns {Promise<InteractionResponse|InteractionCallbackResponse>}
+   * @returns {Promise<InteractionCallbackResponse|undefined>}
    * @example
    * // Reply to the interaction and fetch the response
    * interaction.reply({ content: 'Pong!', withResponse: true })
@@ -131,12 +137,10 @@ class InteractionResponses {
       query: makeURLSearchParams({ with_response: options.withResponse ?? false }),
     });
 
-    this.ephemeral = Boolean(options.flags & MessageFlags.Ephemeral);
+    this.ephemeral = Boolean(data.flags & MessageFlags.Ephemeral);
     this.replied = true;
 
-    return options.withResponse
-      ? new InteractionCallbackResponse(this.client, response)
-      : new InteractionResponse(this);
+    return options.withResponse ? new InteractionCallbackResponse(this.client, response) : undefined;
   }
 
   /**
@@ -200,15 +204,17 @@ class InteractionResponses {
    * @param {string|MessagePayload|InteractionReplyOptions} options The options for the reply
    * @returns {Promise<Message>}
    */
-  followUp(options) {
-    if (!this.deferred && !this.replied) return Promise.reject(new DiscordjsError(ErrorCodes.InteractionNotReplied));
-    return this.webhook.send(options);
+  async followUp(options) {
+    if (!this.deferred && !this.replied) throw new DiscordjsError(ErrorCodes.InteractionNotReplied);
+    const msg = await this.webhook.send(options);
+    this.replied = true;
+    return msg;
   }
 
   /**
    * Defers an update to the message to which the component was attached.
    * @param {InteractionDeferUpdateOptions} [options] Options for deferring the update to this interaction
-   * @returns {Promise<InteractionResponse|InteractionCallbackResponse>}
+   * @returns {Promise<InteractionCallbackResponse|undefined>}
    * @example
    * // Defer updating and reset the component's loading state
    * interaction.deferUpdate()
@@ -226,15 +232,13 @@ class InteractionResponses {
     });
     this.deferred = true;
 
-    return options.withResponse
-      ? new InteractionCallbackResponse(this.client, response)
-      : new InteractionResponse(this, this.message?.interaction?.id);
+    return options.withResponse ? new InteractionCallbackResponse(this.client, response) : undefined;
   }
 
   /**
    * Updates the original message of the component on which the interaction was received on.
    * @param {string|MessagePayload|InteractionUpdateOptions} options The options for the updated message
-   * @returns {Promise<InteractionResponse|InteractionCallbackResponse>}
+   * @returns {Promise<InteractionCallbackResponse|undefined>}
    * @example
    * // Remove the components from the message
    * interaction.update({
@@ -264,9 +268,26 @@ class InteractionResponses {
     });
     this.replied = true;
 
-    return options.withResponse
-      ? new InteractionCallbackResponse(this.client, response)
-      : new InteractionResponse(this, this.message.interaction?.id);
+    return options.withResponse ? new InteractionCallbackResponse(this.client, response) : undefined;
+  }
+
+  /**
+   * Launches this application's activity, if enabled
+   * @param {LaunchActivityOptions} [options={}] Options for launching the activity
+   * @returns {Promise<InteractionCallbackResponse|undefined>}
+   */
+  async launchActivity({ withResponse } = {}) {
+    if (this.deferred || this.replied) throw new DiscordjsError(ErrorCodes.InteractionAlreadyReplied);
+    const response = await this.client.rest.post(Routes.interactionCallback(this.id, this.token), {
+      query: makeURLSearchParams({ with_response: withResponse ?? false }),
+      body: {
+        type: InteractionResponseType.LaunchActivity,
+      },
+      auth: false,
+    });
+    this.replied = true;
+
+    return withResponse ? new InteractionCallbackResponse(this.client, response) : undefined;
   }
 
   /**
@@ -309,7 +330,7 @@ class InteractionResponses {
    *   .then(interaction => console.log(`${interaction.customId} was submitted!`))
    *   .catch(console.error);
    */
-  awaitModalSubmit(options) {
+  async awaitModalSubmit(options) {
     if (typeof options.time !== 'number') throw new DiscordjsError(ErrorCodes.InvalidType, 'time', 'number');
     const _options = { ...options, max: 1, interactionType: InteractionType.ModalSubmit };
     return new Promise((resolve, reject) => {
@@ -332,6 +353,7 @@ class InteractionResponses {
       'followUp',
       'deferUpdate',
       'update',
+      'launchActivity',
       'showModal',
       'awaitModalSubmit',
     ];
@@ -347,4 +369,4 @@ class InteractionResponses {
   }
 }
 
-module.exports = InteractionResponses;
+exports.InteractionResponses = InteractionResponses;

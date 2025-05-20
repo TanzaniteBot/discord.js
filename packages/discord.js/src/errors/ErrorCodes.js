@@ -61,6 +61,7 @@
  * @property {'GuildChannelUnowned'} GuildChannelUnowned
  * @property {'GuildOwned'} GuildOwned
  * @property {'GuildMembersTimeout'} GuildMembersTimeout
+ * @property {'GuildSoundboardSoundsTimeout'} GuildSoundboardSoundsTimeout
  * @property {'GuildUncachedMe'} GuildUncachedMe
  * @property {'ChannelNotCached'} ChannelNotCached
  * @property {'StageChannelResolve'} StageChannelResolve
@@ -85,6 +86,8 @@
  * @property {'EmojiManaged'} EmojiManaged
  * @property {'MissingManageGuildExpressionsPermission'} MissingManageGuildExpressionsPermission
  *
+
+ * @property {'NotGuildSoundboardSound'} NotGuildSoundboardSound
  * @property {'NotGuildSticker'} NotGuildSticker
 
  * @property {'ReactionResolveUser'} ReactionResolveUser
@@ -129,6 +132,9 @@
  * @property {'BulkBanUsersOptionEmpty'} BulkBanUsersOptionEmpty
 
  * @property {'PollAlreadyExpired'} PollAlreadyExpired
+
+ * @property {'PermissionOverwritesTypeMandatory'} PermissionOverwritesTypeMandatory
+ * @property {'PermissionOverwritesTypeMismatch'} PermissionOverwritesTypeMismatch
  */
 
 const keys = [
@@ -190,6 +196,7 @@ const keys = [
   'GuildChannelUnowned',
   'GuildOwned',
   'GuildMembersTimeout',
+  'GuildSoundboardSoundsTimeout',
   'GuildUncachedMe',
   'ChannelNotCached',
   'StageChannelResolve',
@@ -214,6 +221,7 @@ const keys = [
   'EmojiManaged',
   'MissingManageGuildExpressionsPermission',
 
+  'NotGuildSoundboardSound',
   'NotGuildSticker',
 
   'ReactionResolveUser',
@@ -258,6 +266,9 @@ const keys = [
   'BulkBanUsersOptionEmpty',
 
   'PollAlreadyExpired',
+
+  'PermissionOverwritesTypeMandatory',
+  'PermissionOverwritesTypeMismatch',
 ];
 
 // JSDoc for IntelliSense purposes
@@ -265,4 +276,6 @@ const keys = [
  * @type {DiscordjsErrorCodes}
  * @ignore
  */
-module.exports = Object.fromEntries(keys.map(key => [key, key]));
+const ErrorCodes = Object.fromEntries(keys.map(key => [key, key]));
+
+exports.ErrorCodes = ErrorCodes;

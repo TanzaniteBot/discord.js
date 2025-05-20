@@ -1,6 +1,6 @@
 'use strict';
 
-const Base = require('./Base');
+const { Base } = require('./Base.js');
 
 /**
  * Represents a ban in a guild on Discord.
@@ -61,4 +61,4 @@ class GuildBan extends Base {
   }
 }
 
-module.exports = GuildBan;
+exports.GuildBan = GuildBan;

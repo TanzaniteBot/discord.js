@@ -1,14 +1,13 @@
 'use strict';
 
-const Base = require('./Base');
-const ThreadMemberFlagsBitField = require('../util/ThreadMemberFlagsBitField');
+const { Base } = require('./Base.js');
+const { ThreadMemberFlagsBitField } = require('../util/ThreadMemberFlagsBitField.js');
 
 /**
  * Represents a Member for a Thread.
  * @extends {Base}
  */
 class ThreadMember extends Base {
-  // eslint-disable-next-line valid-jsdoc
   /**
    * @param {ThreadChannel} thread The thread that this member is associated with
    * @param {APIThreadMember} data The data for the thread member
@@ -114,4 +113,4 @@ class ThreadMember extends Base {
   }
 }
 
-module.exports = ThreadMember;
+exports.ThreadMember = ThreadMember;

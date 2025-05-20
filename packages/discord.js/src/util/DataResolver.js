@@ -4,8 +4,8 @@ const { Buffer } = require('node:buffer');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { fetch } = require('undici');
-const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors');
-const Invite = require('../structures/Invite');
+const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { Invite } = require('../structures/Invite.js');
 
 /**
  * Data that can be resolved to give an invite code. This can be:
@@ -49,7 +49,7 @@ function resolveInviteCode(data) {
  * @private
  */
 function resolveGuildTemplateCode(data) {
-  const GuildTemplate = require('../structures/GuildTemplate');
+  const { GuildTemplate } = require('../structures/GuildTemplate.js');
   return resolveCode(data, GuildTemplate.GuildTemplatesPattern);
 }
 
@@ -113,13 +113,14 @@ async function resolveFile(resource) {
  */
 
 /**
- * Resolves a Base64Resolvable to a Base 64 image.
+ * Resolves a Base64Resolvable to a Base 64 string.
  * @param {Base64Resolvable} data The base 64 resolvable you want to resolve
- * @returns {?string}
+ * @param {string} [contentType='image/jpg'] The content type of the data
+ * @returns {string}
  * @private
  */
-function resolveBase64(data) {
-  if (Buffer.isBuffer(data)) return `data:image/jpg;base64,${data.toString('base64')}`;
+function resolveBase64(data, contentType = 'image/jpg') {
+  if (Buffer.isBuffer(data)) return `data:${contentType};base64,${data.toString('base64')}`;
   return data;
 }
 
@@ -138,4 +139,9 @@ async function resolveImage(image) {
   return resolveBase64(file.data);
 }
 
-module.exports = { resolveCode, resolveInviteCode, resolveGuildTemplateCode, resolveImage, resolveBase64, resolveFile };
+exports.resolveCode = resolveCode;
+exports.resolveInviteCode = resolveInviteCode;
+exports.resolveGuildTemplateCode = resolveGuildTemplateCode;
+exports.resolveImage = resolveImage;
+exports.resolveBase64 = resolveBase64;
+exports.resolveFile = resolveFile;

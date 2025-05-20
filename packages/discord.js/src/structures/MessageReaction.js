@@ -1,11 +1,11 @@
 'use strict';
 
 const { Routes } = require('discord-api-types/v10');
-const ApplicationEmoji = require('./ApplicationEmoji');
-const GuildEmoji = require('./GuildEmoji');
-const ReactionEmoji = require('./ReactionEmoji');
-const ReactionUserManager = require('../managers/ReactionUserManager');
-const { flatten } = require('../util/Util');
+const { ApplicationEmoji } = require('./ApplicationEmoji.js');
+const { GuildEmoji } = require('./GuildEmoji.js');
+const { ReactionEmoji } = require('./ReactionEmoji.js');
+const { ReactionUserManager } = require('../managers/ReactionUserManager.js');
+const { flatten, resolveGuildEmoji } = require('../util/Util.js');
 
 /**
  * Represents a reaction to a message.
@@ -132,14 +132,9 @@ class MessageReaction {
         this._emoji = emoji;
         return emoji;
       }
-      const emojis = this.message.client.emojis.cache;
-      if (emojis.has(this._emoji.id)) {
-        const emoji = emojis.get(this._emoji.id);
-        this._emoji = emoji;
-        return emoji;
-      }
     }
-    return this._emoji;
+    const emoji = resolveGuildEmoji(this.client, this._emoji.id);
+    return emoji ?? this._emoji;
   }
 
   /**
@@ -202,4 +197,4 @@ class MessageReaction {
   }
 }
 
-module.exports = MessageReaction;
+exports.MessageReaction = MessageReaction;

@@ -3,18 +3,18 @@
 const process = require('node:process');
 const { Collection } = require('@discordjs/collection');
 const { ChannelType, Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const GuildTextThreadManager = require('./GuildTextThreadManager');
-const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors');
-const GuildChannel = require('../structures/GuildChannel');
-const PermissionOverwrites = require('../structures/PermissionOverwrites');
-const ThreadChannel = require('../structures/ThreadChannel');
-const Webhook = require('../structures/Webhook');
-const ChannelFlagsBitField = require('../util/ChannelFlagsBitField');
-const { transformGuildForumTag, transformGuildDefaultReaction } = require('../util/Channels');
-const { ThreadChannelTypes } = require('../util/Constants');
-const { resolveImage } = require('../util/DataResolver');
-const { setPosition } = require('../util/Util');
+const { CachedManager } = require('./CachedManager.js');
+const { GuildTextThreadManager } = require('./GuildTextThreadManager.js');
+const { DiscordjsError, DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { GuildChannel } = require('../structures/GuildChannel.js');
+const { PermissionOverwrites } = require('../structures/PermissionOverwrites.js');
+const { ThreadChannel } = require('../structures/ThreadChannel.js');
+const { Webhook } = require('../structures/Webhook.js');
+const { ChannelFlagsBitField } = require('../util/ChannelFlagsBitField.js');
+const { transformGuildForumTag, transformGuildDefaultReaction } = require('../util/Channels.js');
+const { ThreadChannelTypes } = require('../util/Constants.js');
+const { resolveImage } = require('../util/DataResolver.js');
+const { setPosition } = require('../util/Util.js');
 
 let cacheWarningEmitted = false;
 
@@ -53,7 +53,7 @@ class GuildChannelManager extends CachedManager {
   get channelCountWithoutThreads() {
     return this.cache.reduce((acc, channel) => {
       if (ThreadChannelTypes.includes(channel.type)) return acc;
-      return ++acc;
+      return acc + 1;
     }, 0);
   }
 
@@ -106,11 +106,18 @@ class GuildChannelManager extends CachedManager {
    */
 
   /**
+   * Represents the followed channel data.
+   * @typedef {Object} FollowedChannelData
+   * @property {Snowflake} channelId Source channel id
+   * @property {Snowflake} webhookId Created webhook id in the target channel
+   */
+
+  /**
    * Adds the target channel to a channel's followers.
    * @param {AnnouncementChannelResolvable} channel The channel to follow
    * @param {TextChannelResolvable} targetChannel The channel where published announcements will be posted at
    * @param {string} [reason] Reason for creating the webhook
-   * @returns {Promise<Snowflake>} Returns created target webhook id.
+   * @returns {Promise<FollowedChannelData>} Returns the data for the followed channel
    */
   async addFollower(channel, targetChannel, reason) {
     const channelId = this.resolveId(channel);
@@ -121,11 +128,11 @@ class GuildChannelManager extends CachedManager {
     if (!targetChannelId) {
       throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'targetChannel', 'TextChannelResolvable');
     }
-    const { webhook_id } = await this.client.rest.post(Routes.channelFollowers(channelId), {
+    const data = await this.client.rest.post(Routes.channelFollowers(channelId), {
       body: { webhook_channel_id: targetChannelId },
       reason,
     });
-    return webhook_id;
+    return { channelId: data.channel_id, webhookId: data.webhook_id };
   }
 
   /**
@@ -177,9 +184,6 @@ class GuildChannelManager extends CachedManager {
     defaultForumLayout,
     reason,
   }) {
-    parent &&= this.client.channels.resolveId(parent);
-    permissionOverwrites &&= permissionOverwrites.map(overwrite => PermissionOverwrites.resolve(overwrite, this.guild));
-
     const data = await this.client.rest.post(Routes.guildChannels(this.guild.id), {
       body: {
         name,
@@ -188,9 +192,11 @@ class GuildChannelManager extends CachedManager {
         nsfw,
         bitrate,
         user_limit: userLimit,
-        parent_id: parent,
+        parent_id: parent && this.client.channels.resolveId(parent),
         position,
-        permission_overwrites: permissionOverwrites,
+        permission_overwrites: permissionOverwrites?.map(overwrite =>
+          PermissionOverwrites.resolve(overwrite, this.guild),
+        ),
         rate_limit_per_user: rateLimitPerUser,
         rtc_region: rtcRegion,
         video_quality_mode: videoQualityMode,
@@ -228,18 +234,19 @@ class GuildChannelManager extends CachedManager {
    *   .catch(console.error)
    */
   async createWebhook({ channel, name, avatar, reason }) {
-    const id = this.resolveId(channel);
-    if (!id) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'channel', 'GuildChannelResolvable');
-    if (typeof avatar === 'string' && !avatar.startsWith('data:')) {
-      avatar = await resolveImage(avatar);
-    }
-    const data = await this.client.rest.post(Routes.channelWebhooks(id), {
+    const channelId = this.resolveId(channel);
+    if (!channelId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'channel', 'GuildChannelResolvable');
+
+    const resolvedAvatar = await resolveImage(avatar);
+
+    const data = await this.client.rest.post(Routes.channelWebhooks(channelId), {
       body: {
         name,
-        avatar,
+        avatar: resolvedAvatar,
       },
       reason,
     });
+
     return new Webhook(this.client, data);
   }
 
@@ -354,13 +361,14 @@ class GuildChannelManager extends CachedManager {
    *   .catch(console.error);
    */
   async setPosition(channel, position, { relative, reason } = {}) {
-    channel = this.resolve(channel);
-    if (!channel) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'channel', 'GuildChannelResolvable');
+    const resolvedChannel = this.resolve(channel);
+    if (!resolvedChannel) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'channel', 'GuildChannelResolvable');
+
     const updatedChannels = await setPosition(
-      channel,
+      resolvedChannel,
       position,
       relative,
-      this.guild._sortedChannels(channel),
+      this.guild._sortedChannels(resolvedChannel),
       this.client,
       Routes.guildChannels(this.guild.id),
       reason,
@@ -370,7 +378,8 @@ class GuildChannelManager extends CachedManager {
       guild_id: this.guild.id,
       channels: updatedChannels,
     });
-    return channel;
+
+    return resolvedChannel;
   }
 
   /**
@@ -452,17 +461,18 @@ class GuildChannelManager extends CachedManager {
    *   .catch(console.error);
    */
   async setPositions(channelPositions) {
-    channelPositions = channelPositions.map(channelPosition => ({
+    const resolvedChannelPositions = channelPositions.map(channelPosition => ({
       id: this.client.channels.resolveId(channelPosition.channel),
       position: channelPosition.position,
       lock_permissions: channelPosition.lockPermissions,
       parent_id: channelPosition.parent !== undefined ? this.resolveId(channelPosition.parent) : undefined,
     }));
 
-    await this.client.rest.patch(Routes.guildChannels(this.guild.id), { body: channelPositions });
+    await this.client.rest.patch(Routes.guildChannels(this.guild.id), { body: resolvedChannelPositions });
+
     return this.client.actions.GuildChannelsPositionUpdate.handle({
       guild_id: this.guild.id,
-      channels: channelPositions,
+      channels: resolvedChannelPositions,
     }).guild;
   }
 
@@ -516,4 +526,4 @@ class GuildChannelManager extends CachedManager {
   }
 }
 
-module.exports = GuildChannelManager;
+exports.GuildChannelManager = GuildChannelManager;

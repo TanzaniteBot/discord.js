@@ -1,10 +1,4 @@
-import {
-	ApplicationCommandType,
-	ApplicationIntegrationType,
-	InteractionContextType,
-	Locale,
-	PermissionFlagsBits,
-} from 'discord-api-types/v10';
+import { ApplicationIntegrationType, InteractionContextType, Locale, PermissionFlagsBits } from 'discord-api-types/v10';
 import { describe, test, expect } from 'vitest';
 import { MessageContextCommandBuilder } from '../../src/index.js';
 
@@ -33,6 +27,11 @@ describe('Context Menu Commands', () => {
 
 				// Translation: thx (according to GTranslate)
 				expect(() => getBuilder().setName('どうも')).not.toThrowError();
+
+				expect(() => getBuilder().setName('🎉').toJSON()).not.toThrowError();
+				expect(() => getBuilder().setName('🫆').toJSON()).not.toThrowError();
+				expect(() => getBuilder().setName('🎉 abc').toJSON()).not.toThrowError();
+				expect(() => getBuilder().setName('🫆 abc').toJSON()).not.toThrowError();
 			});
 		});
 
@@ -111,7 +110,7 @@ describe('Context Menu Commands', () => {
 		});
 
 		describe('integration types', () => {
-			test('GIVEN a builder with valid integraton types THEN does not throw an error', () => {
+			test('GIVEN a builder with valid integration types THEN does not throw an error', () => {
 				expect(() =>
 					getBuilder().setIntegrationTypes([
 						ApplicationIntegrationType.GuildInstall,

@@ -3,9 +3,9 @@
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { ApplicationCommandOptionType } = require('discord-api-types/v10');
 const isEqual = require('fast-deep-equal');
-const Base = require('./Base');
-const ApplicationCommandPermissionsManager = require('../managers/ApplicationCommandPermissionsManager');
-const PermissionsBitField = require('../util/PermissionsBitField');
+const { Base } = require('./Base.js');
+const { ApplicationCommandPermissionsManager } = require('../managers/ApplicationCommandPermissionsManager.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
 
 /**
  * Represents an application command.
@@ -140,18 +140,6 @@ class ApplicationCommand extends Base {
       this.defaultMemberPermissions ??= null;
     }
 
-    if ('dm_permission' in data) {
-      /**
-       * Whether the command can be used in DMs
-       * <info>This property is always `null` on guild commands</info>
-       * @type {?boolean}
-       * @deprecated Use {@link ApplicationCommand#contexts} instead.
-       */
-      this.dmPermission = data.dm_permission;
-    } else {
-      this.dmPermission ??= null;
-    }
-
     if ('integration_types' in data) {
       /**
        * Installation context(s) where the command is available
@@ -172,6 +160,12 @@ class ApplicationCommand extends Base {
       this.contexts = data.contexts;
     } else {
       this.contexts ??= null;
+    }
+
+    if ('handler' in data) {
+      this.handler = data.handler;
+    } else {
+      this.handler ??= null;
     }
 
     if ('version' in data) {
@@ -216,15 +210,19 @@ class ApplicationCommand extends Base {
    * @property {string} name The name of the command, must be in all lowercase if type is
    * {@link ApplicationCommandType.ChatInput}
    * @property {Object<Locale, string>} [nameLocalizations] The localizations for the command name
-   * @property {string} description The description of the command, if type is {@link ApplicationCommandType.ChatInput}
+   * @property {string} description The description of the command,
+   * if type is {@link ApplicationCommandType.ChatInput} or {@link ApplicationCommandType.PrimaryEntryPoint}
    * @property {boolean} [nsfw] Whether the command is age-restricted
    * @property {Object<Locale, string>} [descriptionLocalizations] The localizations for the command description,
-   * if type is {@link ApplicationCommandType.ChatInput}
+   * if type is {@link ApplicationCommandType.ChatInput} or {@link ApplicationCommandType.PrimaryEntryPoint}
    * @property {ApplicationCommandType} [type=ApplicationCommandType.ChatInput] The type of the command
    * @property {ApplicationCommandOptionData[]} [options] Options for the command
    * @property {?PermissionResolvable} [defaultMemberPermissions] The bitfield used to determine the default permissions
    * a member needs in order to run the command
-   * @property {boolean} [dmPermission] Whether the command is enabled in DMs
+   * @property {ApplicationIntegrationType[]} [integrationTypes] Installation contexts where the command is available
+   * @property {InteractionContextType[]} [contexts] Interaction contexts where the command can be used
+   * @property {EntryPointCommandHandlerType} [handler] Whether the interaction is handled by the app's
+   * interactions handler or by Discord.
    */
 
   /**
@@ -295,7 +293,7 @@ class ApplicationCommand extends Base {
    * @returns {Promise<ApplicationCommand>}
    * @example
    * // Edit the name localizations of this command
-   * command.setLocalizedNames({
+   * command.setNameLocalizations({
    *   'en-GB': 'test',
    *   'pt-BR': 'teste',
    * })
@@ -342,15 +340,6 @@ class ApplicationCommand extends Base {
   }
 
   /**
-   * Edits the DM permission of this ApplicationCommand
-   * @param {boolean} [dmPermission=true] Whether the command can be used in DMs
-   * @returns {Promise<ApplicationCommand>}
-   */
-  setDMPermission(dmPermission = true) {
-    return this.edit({ dmPermission });
-  }
-
-  /**
    * Edits the options of this ApplicationCommand
    * @param {ApplicationCommandOptionData[]} options The options to set for this command
    * @returns {Promise<ApplicationCommand>}
@@ -386,7 +375,6 @@ class ApplicationCommand extends Base {
     if (command.id && this.id !== command.id) return false;
 
     let defaultMemberPermissions = null;
-    let dmPermission = command.dmPermission ?? command.dm_permission;
 
     if ('default_member_permissions' in command) {
       defaultMemberPermissions = command.default_member_permissions
@@ -412,14 +400,14 @@ class ApplicationCommand extends Base {
       // TODO: remove ?? 0 on each when nullable
       (command.options?.length ?? 0) !== (this.options?.length ?? 0) ||
       defaultMemberPermissions !== (this.defaultMemberPermissions?.bitfield ?? null) ||
-      (dmPermission !== undefined && dmPermission !== this.dmPermission) ||
       !isEqual(command.nameLocalizations ?? command.name_localizations ?? {}, this.nameLocalizations ?? {}) ||
       !isEqual(
         command.descriptionLocalizations ?? command.description_localizations ?? {},
         this.descriptionLocalizations ?? {},
       ) ||
       !isEqual(command.integrationTypes ?? command.integration_types ?? [], this.integrationTypes ?? []) ||
-      !isEqual(command.contexts ?? [], this.contexts ?? [])
+      !isEqual(command.contexts ?? [], this.contexts ?? []) ||
+      ('handler' in command && command.handler !== this.handler)
     ) {
       return false;
     }
@@ -612,7 +600,7 @@ class ApplicationCommand extends Base {
   }
 }
 
-module.exports = ApplicationCommand;
+exports.ApplicationCommand = ApplicationCommand;
 
 /* eslint-disable max-len */
 /**

@@ -2,7 +2,7 @@
 
 const { lazy } = require('@discordjs/util');
 
-const getMessage = lazy(() => require('../util/Structures.js').get('Message'));
+const getMessage = lazy(() => require('../util/Structures.js').Structures.get('Message'));
 
 /**
  * Represents the resource that was created by the interaction response.
@@ -49,4 +49,4 @@ class InteractionCallbackResource {
   }
 }
 
-module.exports = InteractionCallbackResource;
+exports.InteractionCallbackResource = InteractionCallbackResource;

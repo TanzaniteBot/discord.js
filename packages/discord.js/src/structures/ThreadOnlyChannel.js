@@ -1,9 +1,9 @@
 'use strict';
 
-const GuildChannel = require('./GuildChannel');
-const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const GuildForumThreadManager = require('../managers/GuildForumThreadManager');
-const { transformAPIGuildForumTag, transformAPIGuildDefaultReaction } = require('../util/Channels');
+const { GuildChannel } = require('./GuildChannel.js');
+const { TextBasedChannel } = require('./interfaces/TextBasedChannel.js');
+const { GuildForumThreadManager } = require('../managers/GuildForumThreadManager.js');
+const { transformAPIGuildForumTag, transformAPIGuildDefaultReaction } = require('../util/Channels.js');
 
 /**
  * @typedef {Object} GuildForumTagEmoji
@@ -36,7 +36,7 @@ const { transformAPIGuildForumTag, transformAPIGuildDefaultReaction } = require(
  */
 
 /**
- * Represents symbols utilised by thread-only channels.
+ * Represents symbols utilized by thread-only channels.
  * @extends {GuildChannel}
  * @implements {TextBasedChannel}
  * @abstract
@@ -234,7 +234,7 @@ class ThreadOnlyChannel extends GuildChannel {
   setRateLimitPerUser() {}
 }
 
-TextBasedChannel.applyToClass(ThreadOnlyChannel, true, [
+TextBasedChannel.applyToClass(ThreadOnlyChannel, [
   'send',
   'lastMessage',
   'lastPinAt',
@@ -246,4 +246,4 @@ TextBasedChannel.applyToClass(ThreadOnlyChannel, true, [
   'awaitMessageComponent',
 ]);
 
-module.exports = ThreadOnlyChannel;
+exports.ThreadOnlyChannel = ThreadOnlyChannel;

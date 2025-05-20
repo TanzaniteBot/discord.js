@@ -1,8 +1,8 @@
 'use strict';
 
 const { Routes } = require('discord-api-types/v10');
-const { resolveImage } = require('../util/DataResolver');
-const Structures = require('../util/Structures');
+const { resolveImage } = require('../util/DataResolver.js');
+const { Structures } = require('../util/Structures.js');
 
 /**
  * Represents the logged in client's Discord user.
@@ -203,4 +203,4 @@ class ClientUser extends Structures.get('User') {
   }
 }
 
-module.exports = ClientUser;
+exports.ClientUser = ClientUser;

@@ -1,17 +1,15 @@
 'use strict';
 
 const { PermissionFlagsBits } = require('discord-api-types/v10');
-const Base = require('./Base');
-const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const { DiscordjsError, ErrorCodes } = require('../errors');
-const GuildMemberRoleManager = require('../managers/GuildMemberRoleManager');
-const { GuildMemberFlagsBitField } = require('../util/GuildMemberFlagsBitField');
-const PermissionsBitField = require('../util/PermissionsBitField');
+const { Base } = require('./Base.js');
+const { DiscordjsError, ErrorCodes } = require('../errors/index.js');
+const { GuildMemberRoleManager } = require('../managers/GuildMemberRoleManager.js');
+const { GuildMemberFlagsBitField } = require('../util/GuildMemberFlagsBitField.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
 let Structures;
 
 /**
  * Represents a member of a guild on Discord.
- * @implements {TextBasedChannel}
  * @extends {Base}
  */
 class GuildMember extends Base {
@@ -159,7 +157,7 @@ class GuildMember extends Base {
    * @readonly
    */
   get voice() {
-    Structures ??= require('../util/Structures');
+    Structures ??= require('../util/Structures.js').Structures;
     const VoiceState = Structures.get('VoiceState');
     return this.guild.voiceStates.cache.get(this.id) ?? new VoiceState(this.guild, { user_id: this.id });
   }
@@ -355,9 +353,9 @@ class GuildMember extends Base {
    * @returns {Readonly<PermissionsBitField>}
    */
   permissionsIn(channel) {
-    channel = this.guild.channels.resolve(channel);
-    if (!channel) throw new DiscordjsError(ErrorCodes.GuildChannelResolve);
-    return channel.permissionsFor(this);
+    const resolvedChannel = this.guild.channels.resolve(channel);
+    if (!resolvedChannel) throw new DiscordjsError(ErrorCodes.GuildChannelResolve);
+    return resolvedChannel.permissionsFor(this);
   }
 
   /**
@@ -419,24 +417,22 @@ class GuildMember extends Base {
   /**
    * Kicks this member from the guild.
    * @param {string} [reason] Reason for kicking user
-   * @returns {Promise<GuildMember>}
+   * @returns {Promise<void>}
    */
-  kick(reason) {
-    return this.guild.members.kick(this, reason);
+  async kick(reason) {
+    await this.guild.members.kick(this, reason);
   }
 
   /**
    * Bans this guild member.
    * @param {BanOptions} [options] Options for the ban
-   * @returns {Promise<GuildMember>}
+   * @returns {Promise<void>}
    * @example
    * // Ban a guild member, deleting a week's worth of messages
-   * guildMember.ban({ deleteMessageSeconds: 60 * 60 * 24 * 7, reason: 'They deserved it' })
-   *   .then(console.log)
-   *   .catch(console.error);
+   * await guildMember.ban({ deleteMessageSeconds: 60 * 60 * 24 * 7, reason: 'They deserved it' });
    */
-  ban(options) {
-    return this.guild.bans.create(this, options);
+  async ban(options) {
+    await this.guild.bans.create(this, options);
   }
 
   /**
@@ -483,6 +479,22 @@ class GuildMember extends Base {
    */
   fetch(force = true) {
     return this.guild.members.fetch({ user: this.id, cache: true, force });
+  }
+
+  /**
+   * Sends a message to this user.
+   * @param {string|MessagePayload|MessageCreateOptions} options The options to provide
+   * @returns {Promise<Message>}
+   * @example
+   * // Send a direct message
+   * guildMember.send('Hello!')
+   *   .then(message => console.log(`Sent message: ${message.content} to ${guildMember.displayName}`))
+   *   .catch(console.error);
+   */
+  async send(options) {
+    const dmChannel = await this.createDM();
+
+    return this.client.channels.createMessage(dmChannel, options);
   }
 
   /**
@@ -535,21 +547,5 @@ class GuildMember extends Base {
     return json;
   }
 }
-
-/**
- * Sends a message to this user.
- * @method send
- * @memberof GuildMember
- * @instance
- * @param {string|MessagePayload|MessageCreateOptions} options The options to provide
- * @returns {Promise<Message>}
- * @example
- * // Send a direct message
- * guildMember.send('Hello!')
- *   .then(message => console.log(`Sent message: ${message.content} to ${guildMember.displayName}`))
- *   .catch(console.error);
- */
-
-TextBasedChannel.applyToClass(GuildMember);
 
 exports.GuildMember = GuildMember;

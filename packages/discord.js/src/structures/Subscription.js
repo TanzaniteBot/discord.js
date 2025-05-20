@@ -1,6 +1,6 @@
 'use strict';
 
-const Base = require('./Base');
+const { Base } = require('./Base.js');
 
 /**
  * Represents a Subscription
@@ -55,6 +55,14 @@ class Subscription extends Base {
      * @type {SubscriptionStatus}
      */
     this.status = data.status;
+
+    if ('renewal_sku_ids' in data) {
+      /**
+       * The SKU ids that this user will be subscribed to at renewal
+       * @type {?Snowflake[]}
+       */
+      this.renewalSkuIds = data.renewal_sku_ids;
+    }
 
     if ('canceled_at' in data) {
       /**

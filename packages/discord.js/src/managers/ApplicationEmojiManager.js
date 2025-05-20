@@ -2,10 +2,10 @@
 
 const { Collection } = require('@discordjs/collection');
 const { Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const ApplicationEmoji = require('../structures/ApplicationEmoji');
-const { resolveImage } = require('../util/DataResolver');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { ApplicationEmoji } = require('../structures/ApplicationEmoji.js');
+const { resolveImage } = require('../util/DataResolver.js');
 
 /**
  * Manages API methods for ApplicationEmojis and stores their cache.
@@ -49,10 +49,10 @@ class ApplicationEmojiManager extends CachedManager {
    *   .catch(console.error);
    */
   async create({ attachment, name }) {
-    attachment = await resolveImage(attachment);
-    if (!attachment) throw new DiscordjsTypeError(ErrorCodes.ReqResourceType);
+    const image = await resolveImage(attachment);
+    if (!image) throw new DiscordjsTypeError(ErrorCodes.ReqResourceType);
 
-    const body = { image: attachment, name };
+    const body = { image, name };
 
     const emoji = await this.client.rest.post(Routes.applicationEmojis(this.application.id), { body });
     return this._add(emoji);
@@ -139,4 +139,4 @@ class ApplicationEmojiManager extends CachedManager {
   }
 }
 
-module.exports = ApplicationEmojiManager;
+exports.ApplicationEmojiManager = ApplicationEmojiManager;

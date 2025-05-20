@@ -29,6 +29,7 @@
  * * **`StringSelectMenuInteraction`**
  * * **`UserSelectMenuInteraction`**
  * * **`MessageContextMenuCommandInteraction`**
+ * * **`PrimaryEntryPointCommandInteraction`**
  * * **`AutocompleteInteraction`**
  * * **`UserContextMenuCommandInteraction`**
  * * **`ModalSubmitInteraction`**
@@ -112,42 +113,47 @@ class Structures extends null {
 }
 
 const structures = {
-  GuildEmoji: require('../structures/GuildEmoji'),
-  DMChannel: require('../structures/DMChannel'),
-  TextChannel: require('../structures/TextChannel'),
-  VoiceChannel: require('../structures/VoiceChannel'),
-  CategoryChannel: require('../structures/CategoryChannel'),
-  AnnouncementChannel: require('../structures/AnnouncementChannel'),
-  StageChannel: require('../structures/StageChannel'),
-  ThreadChannel: require('../structures/ThreadChannel'),
-  GuildMember: require('../structures/GuildMember').GuildMember,
-  ThreadMember: require('../structures/ThreadMember'),
-  Guild: require('../structures/Guild').Guild,
-  Message: require('../structures/Message').Message,
-  MessageReaction: require('../structures/MessageReaction'),
-  Presence: require('../structures/Presence').Presence,
-  ClientPresence: require('../structures/ClientPresence'),
-  VoiceState: require('../structures/VoiceState'),
-  Role: require('../structures/Role').Role,
-  User: require('../structures/User'),
-  StageInstance: require('../structures/StageInstance').StageInstance,
-  ChatInputCommandInteraction: require('../structures/ChatInputCommandInteraction'),
-  ButtonInteraction: require('../structures/ButtonInteraction'),
-  ChannelSelectMenuInteraction: require('../structures/ChannelSelectMenuInteraction'),
-  MentionableSelectMenuInteraction: require('../structures/MentionableSelectMenuInteraction'),
-  RoleSelectMenuInteraction: require('../structures/RoleSelectMenuInteraction'),
-  StringSelectMenuInteraction: require('../structures/StringSelectMenuInteraction'),
-  UserSelectMenuInteraction: require('../structures/UserSelectMenuInteraction'),
-  MessageContextMenuCommandInteraction: require('../structures/MessageContextMenuCommandInteraction'),
-  AutocompleteInteraction: require('../structures/AutocompleteInteraction'),
-  UserContextMenuCommandInteraction: require('../structures/UserContextMenuCommandInteraction'),
-  ModalSubmitInteraction: require('../structures/ModalSubmitInteraction'),
-  DirectoryChannel: require('../structures/DirectoryChannel'),
-  PartialGroupDMChannel: require('../structures/PartialGroupDMChannel'),
-  ThreadOnlyChannel: require('../structures/ThreadOnlyChannel'),
-  ForumChannel: require('../structures/ForumChannel'),
-  MediaChannel: require('../structures/MediaChannel'),
-  ApplicationEmoji: require('../structures/ApplicationEmoji'),
+  GuildEmoji: require('../structures/GuildEmoji.js').GuildEmoji,
+  DMChannel: require('../structures/DMChannel.js').DMChannel,
+  TextChannel: require('../structures/TextChannel.js').TextChannel,
+  VoiceChannel: require('../structures/VoiceChannel.js').VoiceChannel,
+  CategoryChannel: require('../structures/CategoryChannel.js').CategoryChannel,
+  AnnouncementChannel: require('../structures/AnnouncementChannel.js').AnnouncementChannel,
+  StageChannel: require('../structures/StageChannel.js').StageChannel,
+  ThreadChannel: require('../structures/ThreadChannel.js').ThreadChannel,
+  GuildMember: require('../structures/GuildMember.js').GuildMember,
+  ThreadMember: require('../structures/ThreadMember.js').ThreadMember,
+  Guild: require('../structures/Guild.js').Guild,
+  Message: require('../structures/Message.js').Message,
+  MessageReaction: require('../structures/MessageReaction.js').MessageReaction,
+  Presence: require('../structures/Presence.js').Presence,
+  ClientPresence: require('../structures/ClientPresence.js').ClientPresence,
+  VoiceState: require('../structures/VoiceState.js').VoiceState,
+  Role: require('../structures/Role.js').Role,
+  User: require('../structures/User.js').User,
+  StageInstance: require('../structures/StageInstance.js').StageInstance,
+  ChatInputCommandInteraction: require('../structures/ChatInputCommandInteraction.js').ChatInputCommandInteraction,
+  ButtonInteraction: require('../structures/ButtonInteraction.js').ButtonInteraction,
+  ChannelSelectMenuInteraction: require('../structures/ChannelSelectMenuInteraction.js').ChannelSelectMenuInteraction,
+  MentionableSelectMenuInteraction: require('../structures/MentionableSelectMenuInteraction.js')
+    .MentionableSelectMenuInteraction,
+  RoleSelectMenuInteraction: require('../structures/RoleSelectMenuInteraction.js').RoleSelectMenuInteraction,
+  StringSelectMenuInteraction: require('../structures/StringSelectMenuInteraction.js').StringSelectMenuInteraction,
+  UserSelectMenuInteraction: require('../structures/UserSelectMenuInteraction.js').UserSelectMenuInteraction,
+  MessageContextMenuCommandInteraction: require('../structures/MessageContextMenuCommandInteraction.js')
+    .MessageContextMenuCommandInteraction,
+  PrimaryEntryPointCommandInteraction: require('../structures/PrimaryEntryPointCommandInteraction.js')
+    .PrimaryEntryPointCommandInteraction,
+  AutocompleteInteraction: require('../structures/AutocompleteInteraction.js').AutocompleteInteraction,
+  UserContextMenuCommandInteraction: require('../structures/UserContextMenuCommandInteraction.js')
+    .UserContextMenuCommandInteraction,
+  ModalSubmitInteraction: require('../structures/ModalSubmitInteraction.js').ModalSubmitInteraction,
+  DirectoryChannel: require('../structures/DirectoryChannel.js').DirectoryChannel,
+  PartialGroupDMChannel: require('../structures/PartialGroupDMChannel.js').PartialGroupDMChannel,
+  ThreadOnlyChannel: require('../structures/ThreadOnlyChannel.js').ThreadOnlyChannel,
+  ForumChannel: require('../structures/ForumChannel.js').ForumChannel,
+  MediaChannel: require('../structures/MediaChannel.js').MediaChannel,
+  ApplicationEmoji: require('../structures/ApplicationEmoji.js').ApplicationEmoji,
 };
 
-module.exports = Structures;
+module.Structures = Structures;

@@ -1,7 +1,7 @@
 'use strict';
 
-const Action = require('./Action');
-const Events = require('../../util/Events');
+const { Action } = require('./Action.js');
+const { Events } = require('../../util/Events.js');
 
 class MessagePollVoteRemoveAction extends Action {
   handle(data) {
@@ -11,12 +11,17 @@ class MessagePollVoteRemoveAction extends Action {
     const message = this.getMessage(data, channel);
     if (!message) return false;
 
-    const { poll } = message;
+    const poll = this.getPoll(data, message, channel);
+    if (!poll) return false;
 
-    const answer = poll?.answers.get(data.answer_id);
+    const answer = poll.answers.get(data.answer_id);
     if (!answer) return false;
 
-    answer.voteCount--;
+    answer.voters.cache.delete(data.user_id);
+
+    if (answer.voteCount > 0) {
+      answer.voteCount--;
+    }
 
     /**
      * Emitted whenever a user removes their vote in a poll.
@@ -30,4 +35,4 @@ class MessagePollVoteRemoveAction extends Action {
   }
 }
 
-module.exports = MessagePollVoteRemoveAction;
+exports.MessagePollVoteRemoveAction = MessagePollVoteRemoveAction;

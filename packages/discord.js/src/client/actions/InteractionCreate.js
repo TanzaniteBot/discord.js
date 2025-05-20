@@ -1,9 +1,9 @@
 'use strict';
 
 const { InteractionType, ComponentType, ApplicationCommandType } = require('discord-api-types/v10');
-const Action = require('./Action');
-const Events = require('../../util/Events');
-const Structures = require('../../util/Structures');
+const { Action } = require('./Action.js');
+const { Events } = require('../../util/Events.js');
+const { Structures } = require('../../util/Structures.js');
 
 class InteractionCreateAction extends Action {
   handle(data) {
@@ -27,6 +27,9 @@ class InteractionCreateAction extends Action {
           case ApplicationCommandType.Message:
             if (channel && !channel.isTextBased()) return;
             InteractionClass = Structures.get('MessageContextMenuCommandInteraction');
+            break;
+          case ApplicationCommandType.PrimaryEntryPoint:
+            InteractionClass = Structures.get('PrimaryEntryPointCommandInteraction');
             break;
           default:
             client.emit(
@@ -88,4 +91,4 @@ class InteractionCreateAction extends Action {
   }
 }
 
-module.exports = InteractionCreateAction;
+exports.InteractionCreateAction = InteractionCreateAction;

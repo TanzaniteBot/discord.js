@@ -3,13 +3,11 @@
 const { userMention } = require('@discordjs/formatters');
 const { calculateUserDefaultAvatarIndex } = require('@discordjs/rest');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
-const Base = require('./Base');
-const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const UserFlagsBitField = require('../util/UserFlagsBitField');
+const { Base } = require('./Base.js');
+const { UserFlagsBitField } = require('../util/UserFlagsBitField.js');
 
 /**
  * Represents a user on Discord.
- * @implements {TextBasedChannel}
  * @extends {Base}
  */
 class User extends Base {
@@ -282,6 +280,22 @@ class User extends Base {
   }
 
   /**
+   * Sends a message to this user.
+   * @param {string|MessagePayload|MessageCreateOptions} options The options to provide
+   * @returns {Promise<Message>}
+   * @example
+   * // Send a direct message
+   * user.send('Hello!')
+   *   .then(message => console.log(`Sent message: ${message.content} to ${user.tag}`))
+   *   .catch(console.error);
+   */
+  async send(options) {
+    const dmChannel = await this.createDM();
+
+    return this.client.channels.createMessage(dmChannel, options);
+  }
+
+  /**
    * Checks if the user is equal to another.
    * It compares id, username, discriminator, avatar, banner, accent color, and bot flags.
    * It is recommended to compare equality by using `user.id === user2.id` unless you want to compare all properties.
@@ -365,20 +379,4 @@ class User extends Base {
   }
 }
 
-/**
- * Sends a message to this user.
- * @method send
- * @memberof User
- * @instance
- * @param {string|MessagePayload|MessageCreateOptions} options The options to provide
- * @returns {Promise<Message>}
- * @example
- * // Send a direct message
- * user.send('Hello!')
- *   .then(message => console.log(`Sent message: ${message.content} to ${user.tag}`))
- *   .catch(console.error);
- */
-
-TextBasedChannel.applyToClass(User);
-
-module.exports = User;
+exports.User = User;

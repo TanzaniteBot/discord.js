@@ -1,6 +1,6 @@
+import type { Collection } from '@discordjs/collection';
 import type { REST } from '@discordjs/rest';
 import { range, type Awaitable } from '@discordjs/util';
-import { polyfillDispose } from '@discordjs/util';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import {
 	Routes,
@@ -16,10 +16,7 @@ import {
 import type { IShardingStrategy } from '../strategies/sharding/IShardingStrategy.js';
 import type { IIdentifyThrottler } from '../throttling/IIdentifyThrottler.js';
 import { DefaultWebSocketManagerOptions, type CompressionMethod, type Encoding } from '../utils/constants.js';
-import type { WebSocketShardDestroyOptions, WebSocketShardEvents } from './WebSocketShard.js';
-
-// We put this here because in index.ts WebSocketManager seems to be outputted before polyfillDispose() is called from tsup.
-polyfillDispose();
+import type { WebSocketShardDestroyOptions, WebSocketShardEvents, WebSocketShardStatus } from './WebSocketShard.js';
 
 /**
  * Represents a range of shard ids
@@ -63,10 +60,6 @@ export interface RequiredWebSocketManagerOptions {
 	 * The intents to request
 	 */
 	intents: GatewayIntentBits | 0;
-	/**
-	 * The REST instance to use for fetching gateway information
-	 */
-	rest: REST;
 }
 
 /**
@@ -104,6 +97,21 @@ export interface OptionalWebSocketManagerOptions {
 	 */
 	encoding: Encoding;
 	/**
+	 * Fetches the initial gateway URL used to connect to Discord. When missing, this will default to the gateway URL
+	 * that Discord returns from the `/gateway/bot` route.
+	 *
+	 * @example
+	 * ```ts
+	 * const manager = new WebSocketManager({
+	 *  token: process.env.DISCORD_TOKEN,
+	 *  fetchGatewayInformation() {
+	 *    return rest.get(Routes.gatewayBot());
+	 *  },
+	 * })
+	 * ```
+	 */
+	fetchGatewayInformation(): Awaitable<RESTGetAPIGatewayBotResult>;
+	/**
 	 * How long to wait for a shard to connect before giving up
 	 */
 	handshakeTimeout: number | null;
@@ -127,6 +135,12 @@ export interface OptionalWebSocketManagerOptions {
 	 * How long to wait for a shard's READY packet before giving up
 	 */
 	readyTimeout: number | null;
+	/**
+	 * The REST instance to use for fetching gateway information
+	 *
+	 * @deprecated Providing a REST instance is deprecated. Provide the `fetchGatewayInformation` function instead.
+	 */
+	rest?: REST;
 	/**
 	 * Function used to retrieve session information (and attempt to resume) for a given shard
 	 *
@@ -257,8 +271,24 @@ export class WebSocketManager extends AsyncEventEmitter<ManagerShardEventsMap> i
 	}
 
 	public constructor(options: CreateWebSocketManagerOptions) {
+		if (!options.rest && !options.fetchGatewayInformation) {
+			throw new RangeError('Either a REST instance or a fetchGatewayInformation function must be provided');
+		}
+
 		super();
-		this.options = { ...DefaultWebSocketManagerOptions, ...options };
+		this.options = {
+			...DefaultWebSocketManagerOptions,
+			fetchGatewayInformation:
+				options.fetchGatewayInformation ??
+				(async () => {
+					if (!options.rest) {
+						throw new RangeError('A REST instance must be provided if no fetchGatewayInformation function is provided');
+					}
+
+					return options.rest.get(Routes.gatewayBot()) as Promise<RESTGetAPIGatewayBotResult>;
+				}),
+			...options,
+		};
 		this.strategy = this.options.buildStrategy(this);
 		this.#token = options.token ?? null;
 	}
@@ -277,7 +307,7 @@ export class WebSocketManager extends AsyncEventEmitter<ManagerShardEventsMap> i
 			}
 		}
 
-		const data = (await this.options.rest.get(Routes.gatewayBot())) as RESTGetAPIGatewayBotResult;
+		const data = await this.options.fetchGatewayInformation();
 
 		// For single sharded bots session_start_limit.reset_after will be 0, use 5 seconds as a minimum expiration time
 		this.gatewayInformation = { data, expiresAt: Date.now() + (data.session_start_limit.reset_after || 5_000) };
@@ -371,7 +401,7 @@ export class WebSocketManager extends AsyncEventEmitter<ManagerShardEventsMap> i
 		return this.strategy.send(shardId, payload);
 	}
 
-	public fetchStatus() {
+	public fetchStatus(): Awaitable<Collection<number, WebSocketShardStatus>> {
 		return this.strategy.fetchStatus();
 	}
 

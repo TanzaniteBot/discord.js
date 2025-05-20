@@ -3,10 +3,10 @@
 const { roleMention } = require('@discordjs/formatters');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { PermissionFlagsBits } = require('discord-api-types/v10');
-const Base = require('./Base');
-const { DiscordjsError, ErrorCodes } = require('../errors');
-const PermissionsBitField = require('../util/PermissionsBitField');
-const RoleFlagsBitField = require('../util/RoleFlagsBitField');
+const { Base } = require('./Base.js');
+const { DiscordjsError, ErrorCodes } = require('../errors/index.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
+const { RoleFlagsBitField } = require('../util/RoleFlagsBitField.js');
 
 /**
  * Represents a role on Discord.
@@ -269,9 +269,9 @@ class Role extends Base {
    * @returns {Readonly<PermissionsBitField>}
    */
   permissionsIn(channel, checkAdmin = true) {
-    channel = this.guild.channels.resolve(channel);
-    if (!channel) throw new DiscordjsError(ErrorCodes.GuildChannelResolve);
-    return channel.rolePermissions(this, checkAdmin);
+    const resolvedChannel = this.guild.channels.resolve(channel);
+    if (!resolvedChannel) throw new DiscordjsError(ErrorCodes.GuildChannelResolve);
+    return resolvedChannel.rolePermissions(this, checkAdmin);
   }
 
   /**

@@ -1,7 +1,7 @@
 'use strict';
 
-const Base = require('./Base');
-const { Emoji } = require('./Emoji');
+const { Base } = require('./Base.js');
+const { Emoji } = require('./Emoji.js');
 
 /**
  * Represents a channel link in a guild's welcome screen.
@@ -53,8 +53,8 @@ class WelcomeChannel extends Base {
    * @type {GuildEmoji|Emoji}
    */
   get emoji() {
-    return this.client.emojis.cache.get(this._emoji.id) ?? new Emoji(this.client, this._emoji);
+    return this.guild.emojis.cache.get(this._emoji.id) ?? new Emoji(this.client, this._emoji);
   }
 }
 
-module.exports = WelcomeChannel;
+exports.WelcomeChannel = WelcomeChannel;

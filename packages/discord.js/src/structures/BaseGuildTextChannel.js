@@ -1,9 +1,9 @@
 'use strict';
 
-const GuildChannel = require('./GuildChannel');
-const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const GuildMessageManager = require('../managers/GuildMessageManager');
-const GuildTextThreadManager = require('../managers/GuildTextThreadManager');
+const { GuildChannel } = require('./GuildChannel.js');
+const { TextBasedChannel } = require('./interfaces/TextBasedChannel.js');
+const { GuildMessageManager } = require('../managers/GuildMessageManager.js');
+const { GuildTextThreadManager } = require('../managers/GuildTextThreadManager.js');
 
 /**
  * Represents a text-based guild channel on Discord.
@@ -196,6 +196,6 @@ class BaseGuildTextChannel extends GuildChannel {
   setNSFW() {}
 }
 
-TextBasedChannel.applyToClass(BaseGuildTextChannel, true);
+TextBasedChannel.applyToClass(BaseGuildTextChannel);
 
-module.exports = BaseGuildTextChannel;
+exports.BaseGuildTextChannel = BaseGuildTextChannel;

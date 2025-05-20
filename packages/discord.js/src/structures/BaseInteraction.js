@@ -3,9 +3,9 @@
 const { Collection } = require('@discordjs/collection');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { InteractionType, ApplicationCommandType, ComponentType } = require('discord-api-types/v10');
-const Base = require('./Base');
-const { SelectMenuTypes } = require('../util/Constants');
-const PermissionsBitField = require('../util/PermissionsBitField');
+const { Base } = require('./Base.js');
+const { SelectMenuTypes } = require('../util/Constants.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
 
 /**
  * Represents an interaction.
@@ -121,6 +121,12 @@ class BaseInteraction extends Base {
      * @type {?InteractionContextType}
      */
     this.context = data.context ?? null;
+
+    /**
+     * Attachment size limit in bytes
+     * @type {number}
+     */
+    this.attachmentSizeLimit = data.attachment_size_limit;
   }
 
   /**
@@ -219,6 +225,16 @@ class BaseInteraction extends Base {
   }
 
   /**
+   * Indicates whether this interaction is a {@link PrimaryEntryPointCommandInteraction}
+   * @returns {boolean}
+   */
+  isPrimaryEntryPointCommand() {
+    return (
+      this.type === InteractionType.ApplicationCommand && this.commandType === ApplicationCommandType.PrimaryEntryPoint
+    );
+  }
+
+  /**
    * Indicates whether this interaction is a {@link MessageComponentInteraction}
    * @returns {boolean}
    */
@@ -262,7 +278,7 @@ class BaseInteraction extends Base {
    * Indicates whether this interaction is a select menu of any known type.
    * @returns {boolean}
    */
-  isAnySelectMenu() {
+  isSelectMenu() {
     return this.type === InteractionType.MessageComponent && SelectMenuTypes.includes(this.componentType);
   }
 
@@ -315,4 +331,4 @@ class BaseInteraction extends Base {
   }
 }
 
-module.exports = BaseInteraction;
+exports.BaseInteraction = BaseInteraction;

@@ -1,9 +1,9 @@
 'use strict';
 
 const { Collection } = require('@discordjs/collection');
-const DataManager = require('./DataManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const { Role } = require('../structures/Role');
+const { DataManager } = require('./DataManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { Role } = require('../structures/Role.js');
 
 /**
  * Manages API methods for roles belonging to emojis and stores their cache.
@@ -39,19 +39,19 @@ class GuildEmojiRoleManager extends DataManager {
    * @param {RoleResolvable|RoleResolvable[]|Collection<Snowflake, Role>} roleOrRoles The role or roles to add
    * @returns {Promise<GuildEmoji>}
    */
-  add(roleOrRoles) {
-    if (!Array.isArray(roleOrRoles) && !(roleOrRoles instanceof Collection)) roleOrRoles = [roleOrRoles];
+  async add(roleOrRoles) {
+    const roles = Array.isArray(roleOrRoles) || roleOrRoles instanceof Collection ? roleOrRoles : [roleOrRoles];
 
-    const resolvedRoles = [];
-    for (const role of roleOrRoles.values()) {
-      const resolvedRole = this.guild.roles.resolveId(role);
-      if (!resolvedRole) {
-        return Promise.reject(new DiscordjsTypeError(ErrorCodes.InvalidElement, 'Array or Collection', 'roles', role));
+    const resolvedRoleIds = [];
+    for (const role of roles.values()) {
+      const roleId = this.guild.roles.resolveId(role);
+      if (!roleId) {
+        throw new DiscordjsTypeError(ErrorCodes.InvalidElement, 'Array or Collection', 'roles', role);
       }
-      resolvedRoles.push(resolvedRole);
+      resolvedRoleIds.push(roleId);
     }
 
-    const newRoles = [...new Set(resolvedRoles.concat(...this.cache.keys()))];
+    const newRoles = [...new Set(resolvedRoleIds.concat(...this.cache.keys()))];
     return this.set(newRoles);
   }
 
@@ -60,14 +60,14 @@ class GuildEmojiRoleManager extends DataManager {
    * @param {RoleResolvable|RoleResolvable[]|Collection<Snowflake, Role>} roleOrRoles The role or roles to remove
    * @returns {Promise<GuildEmoji>}
    */
-  remove(roleOrRoles) {
-    if (!Array.isArray(roleOrRoles) && !(roleOrRoles instanceof Collection)) roleOrRoles = [roleOrRoles];
+  async remove(roleOrRoles) {
+    const roles = Array.isArray(roleOrRoles) || roleOrRoles instanceof Collection ? roleOrRoles : [roleOrRoles];
 
     const resolvedRoleIds = [];
-    for (const role of roleOrRoles.values()) {
+    for (const role of roles.values()) {
       const roleId = this.guild.roles.resolveId(role);
       if (!roleId) {
-        return Promise.reject(new DiscordjsTypeError(ErrorCodes.InvalidElement, 'Array or Collection', 'roles', role));
+        throw new DiscordjsTypeError(ErrorCodes.InvalidElement, 'Array or Collection', 'roles', role);
       }
       resolvedRoleIds.push(roleId);
     }
@@ -115,4 +115,4 @@ class GuildEmojiRoleManager extends DataManager {
   }
 }
 
-module.exports = GuildEmojiRoleManager;
+exports.GuildEmojiRoleManager = GuildEmojiRoleManager;

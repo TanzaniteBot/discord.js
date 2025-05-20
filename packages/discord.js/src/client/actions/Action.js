@@ -1,7 +1,9 @@
 'use strict';
 
-const Events = require('../../util/Events');
-const Partials = require('../../util/Partials');
+const { Poll } = require('../../structures/Poll.js');
+const { PollAnswer } = require('../../structures/PollAnswer.js');
+const { Events } = require('../../util/Events.js');
+const { Partials } = require('../../util/Partials.js');
 
 /*
 
@@ -15,7 +17,7 @@ that WebSocket events don't clash with REST methods.
 
 */
 
-class GenericAction {
+class Action {
   constructor(client) {
     this.client = client;
   }
@@ -70,6 +72,23 @@ class GenericAction {
     );
   }
 
+  getPoll(data, message, channel) {
+    const includePollPartial = this.client.options.partials.includes(Partials.Poll);
+    const includePollAnswerPartial = this.client.options.partials.includes(Partials.PollAnswer);
+    if (message.partial && (!includePollPartial || !includePollAnswerPartial)) return null;
+
+    if (!message.poll && includePollPartial) {
+      message.poll = new Poll(this.client, data, message, channel);
+    }
+
+    if (message.poll && !message.poll.answers.has(data.answer_id) && includePollAnswerPartial) {
+      const pollAnswer = new PollAnswer(this.client, data, message.poll);
+      message.poll.answers.set(data.answer_id, pollAnswer);
+    }
+
+    return message.poll;
+  }
+
   getReaction(data, message, user) {
     const id = data.emoji.id ?? decodeURIComponent(data.emoji.name);
     return this.getPayload(
@@ -119,9 +138,13 @@ class GenericAction {
     return this.getPayload({ user_id: id }, manager, id, Partials.ThreadMember, false);
   }
 
+  getSoundboardSound(data, guild) {
+    return this.getPayload(data, guild.soundboardSounds, data.sound_id, Partials.SoundboardSound);
+  }
+
   spreadInjectedData(data) {
     return Object.fromEntries(Object.getOwnPropertySymbols(data).map(symbol => [symbol, data[symbol]]));
   }
 }
 
-module.exports = GenericAction;
+exports.Action = Action;

@@ -1,7 +1,7 @@
 'use strict';
 
-const Action = require('./Action');
-const Events = require('../../util/Events');
+const { Action } = require('./Action.js');
+const { Events } = require('../../util/Events.js');
 
 class MessagePollVoteAddAction extends Action {
   handle(data) {
@@ -11,10 +11,17 @@ class MessagePollVoteAddAction extends Action {
     const message = this.getMessage(data, channel);
     if (!message) return false;
 
-    const { poll } = message;
+    const poll = this.getPoll(data, message, channel);
+    if (!poll) return false;
 
-    const answer = poll?.answers.get(data.answer_id);
+    const answer = poll.answers.get(data.answer_id);
     if (!answer) return false;
+
+    const user = this.getUser(data);
+
+    if (user) {
+      answer.voters._add(user);
+    }
 
     answer.voteCount++;
 
@@ -30,4 +37,4 @@ class MessagePollVoteAddAction extends Action {
   }
 }
 
-module.exports = MessagePollVoteAddAction;
+exports.MessagePollVoteAddAction = MessagePollVoteAddAction;

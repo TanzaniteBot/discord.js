@@ -40,10 +40,10 @@ jobs:
         with:
           ref: ${{ inputs.ref || '' }}
 
-      - name: Install Node.js v20
+      - name: Install Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         uses: ./packages/actions/src/pnpmCache
@@ -60,8 +60,11 @@ jobs:
       - name: Build main
         if: ${{ inputs.ref && inputs.ref != 'main' }}
         shell: bash
+        env:
+          COREPACK_ENABLE_STRICT: 0
         run: |
           cd main
+          pnpm self-update 10
           pnpm install --frozen-lockfile --prefer-offline --loglevel error
           pnpm run build
           cd ..
@@ -102,8 +105,14 @@ jobs:
       - name: Upload documentation to database
         if: ${{ env.REF_TYPE == 'tag' && (!inputs.ref || inputs.ref == 'main') }}
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_D1_DOCS_API_KEY: ${{ secrets.CF_D1_DOCS_API_KEY }}
+          CF_D1_DOCS_ID: ${{ secrets.CF_D1_DOCS_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
+          CF_R2_DOCS_BUCKET_URL: ${{ secrets.CF_R2_DOCS_BUCKET_URL }}
         uses: ./packages/actions/src/uploadDocumentation
         with:
           package: ${{ steps.extract-tag.outputs.package }}
@@ -112,8 +121,14 @@ jobs:
       - name: Upload documentation to database
         if: ${{ env.REF_TYPE == 'tag' && inputs.ref && inputs.ref != 'main' }}
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_D1_DOCS_API_KEY: ${{ secrets.CF_D1_DOCS_API_KEY }}
+          CF_D1_DOCS_ID: ${{ secrets.CF_D1_DOCS_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
+          CF_R2_DOCS_BUCKET_URL: ${{ secrets.CF_R2_DOCS_BUCKET_URL }}
         uses: ./main/packages/actions/src/uploadDocumentation
         with:
           package: ${{ steps.extract-tag.outputs.package }}
@@ -122,7 +137,10 @@ jobs:
       - name: Upload split documentation to blob storage
         if: ${{ env.REF_TYPE == 'tag' && (!inputs.ref || inputs.ref == 'main') }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
         uses: ./packages/actions/src/uploadSplitDocumentation
         with:
           package: ${{ steps.extract-tag.outputs.package }}
@@ -131,7 +149,10 @@ jobs:
       - name: Upload split documentation to blob storage
         if: ${{ env.REF_TYPE == 'tag' && inputs.ref && inputs.ref != 'main' }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
         uses: ./main/packages/actions/src/uploadSplitDocumentation
         with:
           package: ${{ steps.extract-tag.outputs.package }}
@@ -154,27 +175,45 @@ jobs:
       - name: Upload documentation to database
         if: ${{ env.REF_TYPE == 'branch' && (!inputs.ref || inputs.ref == 'main') }}
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_D1_DOCS_API_KEY: ${{ secrets.CF_D1_DOCS_API_KEY }}
+          CF_D1_DOCS_ID: ${{ secrets.CF_D1_DOCS_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
+          CF_R2_DOCS_BUCKET_URL: ${{ secrets.CF_R2_DOCS_BUCKET_URL }}
         uses: ./packages/actions/src/uploadDocumentation
 
       - name: Upload documentation to database
         if: ${{ env.REF_TYPE == 'branch' && inputs.ref && inputs.ref != 'main' }}
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_D1_DOCS_API_KEY: ${{ secrets.CF_D1_DOCS_API_KEY }}
+          CF_D1_DOCS_ID: ${{ secrets.CF_D1_DOCS_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
+          CF_R2_DOCS_BUCKET_URL: ${{ secrets.CF_R2_DOCS_BUCKET_URL }}
         uses: ./main/packages/actions/src/uploadDocumentation
 
       - name: Upload split documentation to blob storage
         if: ${{ env.REF_TYPE == 'branch' && (!inputs.ref || inputs.ref == 'main') }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
         uses: ./packages/actions/src/uploadSplitDocumentation
 
       - name: Upload split documentation to blob storage
         if: ${{ env.REF_TYPE == 'branch' && inputs.ref && inputs.ref != 'main' }}
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CF_R2_DOCS_URL: ${{ secrets.CF_R2_DOCS_URL }}
+          CF_R2_DOCS_ACCESS_KEY_ID: ${{ secrets.CF_R2_DOCS_ACCESS_KEY_ID }}
+          CF_R2_DOCS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_DOCS_SECRET_ACCESS_KEY }}
+          CF_R2_DOCS_BUCKET: ${{ secrets.CF_R2_DOCS_BUCKET }}
         uses: ./main/packages/actions/src/uploadSplitDocumentation
 
       - name: Move docs to correct directory
@@ -213,10 +252,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js v20
+      - name: Install Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         uses: ./packages/actions/src/pnpmCache

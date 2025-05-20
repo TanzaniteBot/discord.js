@@ -27,6 +27,7 @@ export class OAuth2API {
 	 * @param options - The options for creating the authorization URL
 	 */
 	public generateAuthorizationURL(options: RESTOAuth2AuthorizationQuery) {
+		// eslint-disable-next-line n/prefer-global/url
 		const url = new URL(`${RouteBases.api}${Routes.oauth2Authorization()}`);
 		url.search = makeURLSearchParams(options).toString();
 		return url.toString();
@@ -106,8 +107,9 @@ export class OAuth2API {
 	 * @see {@link https://discord.com/developers/docs/topics/oauth2#get-current-bot-application-information}
 	 * @param options - The options for the current bot application information request
 	 */
-	public async getCurrentBotApplicationInformation({ signal }: Pick<RequestData, 'signal'> = {}) {
+	public async getCurrentBotApplicationInformation({ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
 		return this.rest.get(Routes.oauth2CurrentApplication(), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIOAuth2CurrentApplicationResult>;
 	}
@@ -118,8 +120,9 @@ export class OAuth2API {
 	 * @see {@link https://discord.com/developers/docs/topics/oauth2#get-current-authorization-information}
 	 * @param options - The options for the current authorization information request
 	 */
-	public async getCurrentAuthorizationInformation({ signal }: Pick<RequestData, 'signal'> = {}) {
+	public async getCurrentAuthorizationInformation({ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
 		return this.rest.get(Routes.oauth2CurrentAuthorization(), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIOAuth2CurrentAuthorizationResult>;
 	}

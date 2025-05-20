@@ -2,10 +2,10 @@
 
 const { Collection } = require('@discordjs/collection');
 const { Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const MessagePayload = require('../structures/MessagePayload');
-const { Sticker } = require('../structures/Sticker');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { MessagePayload } = require('../structures/MessagePayload.js');
+const { Sticker } = require('../structures/Sticker.js');
 
 /**
  * Manages API methods for Guild Stickers and stores their cache.
@@ -59,15 +59,14 @@ class GuildStickerManager extends CachedManager {
    */
   async create({ file, name, tags, description, reason } = {}) {
     const resolvedFile = await MessagePayload.resolveFile(file);
-    if (!resolvedFile) throw new DiscordjsTypeError(ErrorCodes.ReqResourceType);
-    file = { ...resolvedFile, key: 'file' };
+    resolvedFile.key = 'file';
 
     const body = { name, tags, description: description ?? '' };
 
     const sticker = await this.client.rest.post(Routes.guildStickers(this.guild.id), {
       appendToFormData: true,
       body,
-      files: [file],
+      files: [resolvedFile],
       reason,
     });
     return this.client.actions.GuildStickerCreate.handle(this.guild, sticker).sticker;
@@ -129,10 +128,10 @@ class GuildStickerManager extends CachedManager {
    * @returns {Promise<void>}
    */
   async delete(sticker, reason) {
-    sticker = this.resolveId(sticker);
-    if (!sticker) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'sticker', 'StickerResolvable');
+    const resolvedStickerId = this.resolveId(sticker);
+    if (!resolvedStickerId) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'sticker', 'StickerResolvable');
 
-    await this.client.rest.delete(Routes.guildSticker(this.guild.id, sticker), { reason });
+    await this.client.rest.delete(Routes.guildSticker(this.guild.id, resolvedStickerId), { reason });
   }
 
   /**
@@ -171,12 +170,12 @@ class GuildStickerManager extends CachedManager {
    * @returns {Promise<?User>}
    */
   async fetchUser(sticker) {
-    sticker = this.resolve(sticker);
-    if (!sticker) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'sticker', 'StickerResolvable');
-    const data = await this.client.rest.get(Routes.guildSticker(this.guild.id, sticker.id));
-    sticker._patch(data);
-    return sticker.user;
+    const resolvedSticker = this.resolve(sticker);
+    if (!resolvedSticker) throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'sticker', 'StickerResolvable');
+    const data = await this.client.rest.get(Routes.guildSticker(this.guild.id, resolvedSticker.id));
+    resolvedSticker._patch(data);
+    return resolvedSticker.user;
   }
 }
 
-module.exports = GuildStickerManager;
+exports.GuildStickerManager = GuildStickerManager;

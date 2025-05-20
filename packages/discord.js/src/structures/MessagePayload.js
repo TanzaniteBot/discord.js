@@ -3,11 +3,10 @@
 const { Buffer } = require('node:buffer');
 const { isJSONEncodable } = require('@discordjs/util');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
-const ActionRowBuilder = require('./ActionRowBuilder');
-const { DiscordjsError, DiscordjsRangeError, ErrorCodes } = require('../errors');
-const { resolveFile } = require('../util/DataResolver');
-const MessageFlagsBitField = require('../util/MessageFlagsBitField');
-const { basename, verifyString, resolvePartialEmoji } = require('../util/Util');
+const { DiscordjsError, DiscordjsRangeError, ErrorCodes } = require('../errors/index.js');
+const { resolveFile } = require('../util/DataResolver.js');
+const { MessageFlagsBitField } = require('../util/MessageFlagsBitField.js');
+const { basename, verifyString, resolvePartialEmoji } = require('../util/Util.js');
 
 /**
  * Represents a message to be sent to the API.
@@ -49,8 +48,8 @@ class MessagePayload {
    * @readonly
    */
   get isWebhook() {
-    const Webhook = require('./Webhook');
-    const WebhookClient = require('../client/WebhookClient');
+    const { Webhook } = require('./Webhook.js');
+    const { WebhookClient } = require('../client/WebhookClient.js');
     return this.target instanceof Webhook || this.target instanceof WebhookClient;
   }
 
@@ -60,8 +59,8 @@ class MessagePayload {
    * @readonly
    */
   get isUser() {
-    const User = require('./User');
-    const { GuildMember } = require('./GuildMember');
+    const { User } = require('./User.js');
+    const { GuildMember } = require('./GuildMember.js');
     return this.target instanceof User || this.target instanceof GuildMember;
   }
 
@@ -71,7 +70,7 @@ class MessagePayload {
    * @readonly
    */
   get isMessage() {
-    const { Message } = require('./Message');
+    const { Message } = require('./Message.js');
     return this.target instanceof Message;
   }
 
@@ -81,7 +80,7 @@ class MessagePayload {
    * @readonly
    */
   get isMessageManager() {
-    const MessageManager = require('../managers/MessageManager');
+    const { MessageManager } = require('../managers/MessageManager.js');
     return this.target instanceof MessageManager;
   }
 
@@ -133,7 +132,7 @@ class MessagePayload {
     }
 
     const components = this.options.components?.map(component =>
-      (isJSONEncodable(component) ? component : new ActionRowBuilder(component)).toJSON(),
+      isJSONEncodable(component) ? component.toJSON() : this.target.client.options.jsonTransformer(component),
     );
 
     let username;
@@ -149,15 +148,10 @@ class MessagePayload {
 
     let flags;
     if (
-      this.options.flags !== undefined ||
-      (this.isMessage && this.options.reply === undefined) ||
-      this.isMessageManager
+      // eslint-disable-next-line eqeqeq
+      this.options.flags != null
     ) {
-      flags =
-        // eslint-disable-next-line eqeqeq
-        this.options.flags != null
-          ? new MessageFlagsBitField(this.options.flags).bitfield
-          : this.target.flags?.bitfield;
+      flags = new MessageFlagsBitField(this.options.flags).bitfield;
     }
 
     let allowedMentions =
@@ -171,13 +165,16 @@ class MessagePayload {
     }
 
     let message_reference;
-    if (typeof this.options.reply === 'object') {
-      const reference = this.options.reply.messageReference;
-      const message_id = this.isMessage ? (reference.id ?? reference) : this.target.messages.resolveId(reference);
-      if (message_id) {
+    if (this.options.messageReference) {
+      const reference = this.options.messageReference;
+
+      if (reference.messageId) {
         message_reference = {
-          message_id,
-          fail_if_not_exists: this.options.reply.failIfNotExists ?? this.target.client.options.failIfNotExists,
+          message_id: reference.messageId,
+          channel_id: reference.channelId,
+          guild_id: reference.guildId,
+          type: reference.type,
+          fail_if_not_exists: reference.failIfNotExists ?? this.target.client.options.failIfNotExists,
         };
       }
     }
@@ -194,17 +191,19 @@ class MessagePayload {
 
     let poll;
     if (this.options.poll) {
-      poll = {
-        question: {
-          text: this.options.poll.question.text,
-        },
-        answers: this.options.poll.answers.map(answer => ({
-          poll_media: { text: answer.text, emoji: resolvePartialEmoji(answer.emoji) },
-        })),
-        duration: this.options.poll.duration,
-        allow_multiselect: this.options.poll.allowMultiselect,
-        layout_type: this.options.poll.layoutType,
-      };
+      poll = isJSONEncodable(this.options.poll)
+        ? this.options.poll.toJSON()
+        : {
+            question: {
+              text: this.options.poll.question.text,
+            },
+            answers: this.options.poll.answers.map(answer => ({
+              poll_media: { text: answer.text, emoji: resolvePartialEmoji(answer.emoji) },
+            })),
+            duration: this.options.poll.duration,
+            allow_multiselect: this.options.poll.allowMultiselect,
+            layout_type: this.options.poll.layoutType,
+          };
     }
 
     this.body = {
@@ -218,7 +217,10 @@ class MessagePayload {
       components,
       username,
       avatar_url: avatarURL,
-      allowed_mentions: content === undefined && message_reference === undefined ? undefined : allowedMentions,
+      allowed_mentions:
+        this.isMessage && message_reference === undefined && this.target.author.id !== this.target.client.user.id
+          ? undefined
+          : allowedMentions,
       flags,
       message_reference,
       attachments: this.options.attachments,
@@ -291,11 +293,11 @@ class MessagePayload {
   }
 }
 
-module.exports = MessagePayload;
+exports.MessagePayload = MessagePayload;
 
 /**
  * A target for a message.
- * @typedef {TextBasedChannels|User|GuildMember|Webhook|WebhookClient|BaseInteraction|InteractionWebhook|
+ * @typedef {TextBasedChannels|ChannelManager|Webhook|WebhookClient|BaseInteraction|InteractionWebhook|
  * Message|MessageManager} MessageTarget
  */
 

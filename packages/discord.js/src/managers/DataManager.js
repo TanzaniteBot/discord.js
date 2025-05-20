@@ -1,7 +1,7 @@
 'use strict';
 
-const BaseManager = require('./BaseManager');
-const { DiscordjsError, ErrorCodes } = require('../errors');
+const { BaseManager } = require('./BaseManager.js');
+const { DiscordjsError, ErrorCodes } = require('../errors/index.js');
 
 let Structures;
 
@@ -14,7 +14,7 @@ class DataManager extends BaseManager {
   constructor(client, holds) {
     super(client);
 
-    Structures ??= require('../util/Structures');
+    Structures ??= require('../util/Structures.js').Structures;
 
     /**
      * The data structure belonging to this manager.
@@ -62,4 +62,4 @@ class DataManager extends BaseManager {
   }
 }
 
-module.exports = DataManager;
+exports.DataManager = DataManager;

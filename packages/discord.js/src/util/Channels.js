@@ -3,18 +3,18 @@
 const { lazy } = require('@discordjs/util');
 const { ChannelType } = require('discord-api-types/v10');
 
-const getCategoryChannel = lazy(() => require('../util/Structures').get('CategoryChannel'));
-const getDMChannel = lazy(() => require('../util/Structures').get('DMChannel'));
-const getAnnouncementChannel = lazy(() => require('../util/Structures').get('AnnouncementChannel'));
-const getStageChannel = lazy(() => require('../util/Structures').get('StageChannel'));
-const getTextChannel = lazy(() => require('../util/Structures').get('TextChannel'));
-const getThreadChannel = lazy(() => require('../util/Structures').get('ThreadChannel'));
-const getVoiceChannel = lazy(() => require('../util/Structures').get('VoiceChannel'));
-const getDirectoryChannel = lazy(() => require('../util/Structures').get('DirectoryChannel'));
-const getPartialGroupDMChannel = lazy(() => require('../util/Structures').get('PartialGroupDMChannel'));
+const getCategoryChannel = lazy(() => require('../util/Structures.js').Structures.get('CategoryChannel'));
+const getDMChannel = lazy(() => require('../util/Structures.js').Structures.get('DMChannel'));
+const getAnnouncementChannel = lazy(() => require('../util/Structures.js').Structures.get('AnnouncementChannel'));
+const getStageChannel = lazy(() => require('../util/Structures.js').Structures.get('StageChannel'));
+const getTextChannel = lazy(() => require('../util/Structures.js').Structures.get('TextChannel'));
+const getThreadChannel = lazy(() => require('../util/Structures.js').Structures.get('ThreadChannel'));
+const getVoiceChannel = lazy(() => require('../util/Structures.js').Structures.get('VoiceChannel'));
+const getDirectoryChannel = lazy(() => require('../util/Structures.js').Structures.get('DirectoryChannel'));
+const getPartialGroupDMChannel = lazy(() => require('../util/Structures.js').Structures.get('PartialGroupDMChannel'));
 
-const getForumChannel = lazy(() => require('../util/Structures').get('ForumChannel'));
-const getMediaChannel = lazy(() => require('../util/Structures').get('MediaChannel'));
+const getForumChannel = lazy(() => require('../util/Structures.js').Structures.get('ForumChannel'));
+const getMediaChannel = lazy(() => require('../util/Structures.js').Structures.get('MediaChannel'));
 
 /**
  * Extra options for creating a channel.
@@ -34,56 +34,54 @@ const getMediaChannel = lazy(() => require('../util/Structures').get('MediaChann
  */
 function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
   let channel;
-  if (!data.guild_id && !guild) {
+  let resolvedGuild = guild || client.guilds.cache.get(data.guild_id);
+
+  if (!data.guild_id && !resolvedGuild) {
     if ((data.recipients && data.type !== ChannelType.GroupDM) || data.type === ChannelType.DM) {
       channel = new (getDMChannel())(client, data);
     } else if (data.type === ChannelType.GroupDM) {
       channel = new (getPartialGroupDMChannel())(client, data);
     }
-  } else {
-    guild ??= client.guilds.cache.get(data.guild_id);
-
-    if (guild || allowUnknownGuild) {
-      switch (data.type) {
-        case ChannelType.GuildText: {
-          channel = new (getTextChannel())(guild, data, client);
-          break;
-        }
-        case ChannelType.GuildVoice: {
-          channel = new (getVoiceChannel())(guild, data, client);
-          break;
-        }
-        case ChannelType.GuildCategory: {
-          channel = new (getCategoryChannel())(guild, data, client);
-          break;
-        }
-        case ChannelType.GuildAnnouncement: {
-          channel = new (getAnnouncementChannel())(guild, data, client);
-          break;
-        }
-        case ChannelType.GuildStageVoice: {
-          channel = new (getStageChannel())(guild, data, client);
-          break;
-        }
-        case ChannelType.AnnouncementThread:
-        case ChannelType.PublicThread:
-        case ChannelType.PrivateThread: {
-          channel = new (getThreadChannel())(guild, data, client);
-          if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
-          break;
-        }
-        case ChannelType.GuildDirectory:
-          channel = new (getDirectoryChannel())(guild, data, client);
-          break;
-        case ChannelType.GuildForum:
-          channel = new (getForumChannel())(guild, data, client);
-          break;
-        case ChannelType.GuildMedia:
-          channel = new (getMediaChannel())(guild, data, client);
-          break;
+  } else if (resolvedGuild || allowUnknownGuild) {
+    switch (data.type) {
+      case ChannelType.GuildText: {
+        channel = new (getTextChannel())(resolvedGuild, data, client);
+        break;
       }
-      if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
+      case ChannelType.GuildVoice: {
+        channel = new (getVoiceChannel())(resolvedGuild, data, client);
+        break;
+      }
+      case ChannelType.GuildCategory: {
+        channel = new (getCategoryChannel())(resolvedGuild, data, client);
+        break;
+      }
+      case ChannelType.GuildAnnouncement: {
+        channel = new (getAnnouncementChannel())(resolvedGuild, data, client);
+        break;
+      }
+      case ChannelType.GuildStageVoice: {
+        channel = new (getStageChannel())(resolvedGuild, data, client);
+        break;
+      }
+      case ChannelType.AnnouncementThread:
+      case ChannelType.PublicThread:
+      case ChannelType.PrivateThread: {
+        channel = new (getThreadChannel())(resolvedGuild, data, client);
+        if (!allowUnknownGuild) channel.parent?.threads.cache.set(channel.id, channel);
+        break;
+      }
+      case ChannelType.GuildDirectory:
+        channel = new (getDirectoryChannel())(resolvedGuild, data, client);
+        break;
+      case ChannelType.GuildForum:
+        channel = new (getForumChannel())(resolvedGuild, data, client);
+        break;
+      case ChannelType.GuildMedia:
+        channel = new (getMediaChannel())(resolvedGuild, data, client);
+        break;
     }
+    if (channel && !allowUnknownGuild) resolvedGuild.channels?.cache.set(channel.id, channel);
   }
   return channel;
 }
@@ -153,10 +151,8 @@ function transformGuildDefaultReaction(defaultReaction) {
   };
 }
 
-module.exports = {
-  createChannel,
-  transformAPIGuildForumTag,
-  transformGuildForumTag,
-  transformAPIGuildDefaultReaction,
-  transformGuildDefaultReaction,
-};
+exports.createChannel = createChannel;
+exports.transformAPIGuildForumTag = transformAPIGuildForumTag;
+exports.transformGuildForumTag = transformGuildForumTag;
+exports.transformAPIGuildDefaultReaction = transformAPIGuildDefaultReaction;
+exports.transformGuildDefaultReaction = transformGuildDefaultReaction;

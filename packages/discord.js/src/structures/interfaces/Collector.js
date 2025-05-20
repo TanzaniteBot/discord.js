@@ -1,10 +1,10 @@
 'use strict';
 
-const EventEmitter = require('node:events');
 const { setTimeout, clearTimeout } = require('node:timers');
 const { Collection } = require('@discordjs/collection');
-const { DiscordjsTypeError, ErrorCodes } = require('../../errors');
-const { flatten } = require('../../util/Util');
+const { AsyncEventEmitter } = require('@vladfrangu/async_event_emitter');
+const { DiscordjsTypeError, ErrorCodes } = require('../../errors/index.js');
+const { flatten } = require('../../util/Util.js');
 
 /**
  * Filter to be applied to the collector.
@@ -25,10 +25,10 @@ const { flatten } = require('../../util/Util');
 
 /**
  * Abstract class for defining a new Collector.
- * @extends {EventEmitter}
+ * @extends {AsyncEventEmitter}
  * @abstract
  */
-class Collector extends EventEmitter {
+class Collector extends AsyncEventEmitter {
   constructor(client, options = {}) {
     super();
 
@@ -267,7 +267,7 @@ class Collector extends EventEmitter {
 
   /**
    * Allows collectors to be consumed with for-await-of loops
-   * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of}
+   * @see {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/for-await...of}
    */
   async *[Symbol.asyncIterator]() {
     const queue = [];
@@ -332,4 +332,4 @@ class Collector extends EventEmitter {
   /* eslint-enable no-empty-function */
 }
 
-module.exports = Collector;
+exports.Collector = Collector;
