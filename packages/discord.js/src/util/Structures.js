@@ -156,4 +156,4 @@ const structures = {
   ApplicationEmoji: require('../structures/ApplicationEmoji.js').ApplicationEmoji,
 };
 
-module.Structures = Structures;
+exports.Structures = Structures;
